@@ -61,14 +61,18 @@ publishing the code as a package and more.
 │       └── docs.yaml
 ├── .gitignore
 ├── .pre-commit-config.yaml
-├── CHANGELOG.md
-├── CODE_OF_CONDUCT.md
-├── CONTRIBUTING.md
 ├── LICENSE
 ├── README.md
 ├── config
 │   ├── __init__.py
-│   └── config.yaml
+│   ├── config.yaml
+│   ├── dataset
+│   │   ├── common_voice_da.yaml
+│   │   ├── ftspeech.yaml
+│   │   └── nst_da.yaml
+│   └── model
+│       ├── wav2vec.yaml
+│       └── whisper.yaml
 ├── data
 ├── makefile
 ├── models
@@ -76,11 +80,33 @@ publishing the code as a package and more.
 ├── poetry.toml
 ├── pyproject.toml
 ├── src
-│   ├── scripts
-│   │   ├── fix_dot_env_file.py
-│   │   └── versioning.py
-│   └── coral_models
-│       └── __init__.py
+│   ├── coral_models
+│   │   ├── __init__.py
+│   │   ├── asr
+│   │   │   ├── __init__.py
+│   │   │   ├── data.py
+│   │   │   ├── ftspeech.py
+│   │   │   ├── ngram_model.py
+│   │   │   ├── utils.py
+│   │   │   ├── wav2vec
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── compute_metrics.py
+│   │   │   │   ├── data_collator.py
+│   │   │   │   ├── evaluate.py
+│   │   │   │   ├── finetune.py
+│   │   │   │   └── preprocess.py
+│   │   │   └── whisper
+│   │   │       ├── __init__.py
+│   │   │       ├── evaluate.py
+│   │   │       └── finetune.py
+│   │   └── tts
+│   │       ├── __init__.py
+│   │       ├── data.py
+│   │       └── utils.py
+│   └── scripts
+│       ├── fix_dot_env_file.py
+│       └── versioning.py
 └── tests
-    └── __init__.py
+    ├── __init__.py
+    └── test_dummy.py
 ```
