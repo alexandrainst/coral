@@ -1,0 +1,8 @@
+defaults:
+  - _self_
+
+dirs:
+  data: data
+  raw: raw
+  processed: processed
+  final: final
