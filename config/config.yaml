@@ -1,4 +1,6 @@
 defaults:
+  - model: wav2vec
+  - dataset: common_voice_da
   - _self_
 
 dirs:
@@ -6,3 +8,6 @@ dirs:
   raw: raw
   processed: processed
   final: final
+
+push_to_hub: false
+resume_from_checkpoint: false
