@@ -1,6 +1,6 @@
 """Functions related to the preprocessing of the data for Wav2Vec 2.0 models."""
 
-from datasets.arrow_dataset import DatasetDict
+from datasets import DatasetDict
 from omegaconf import DictConfig
 from transformers import Wav2Vec2Processor
 
