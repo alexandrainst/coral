@@ -136,7 +136,7 @@ python-versions = ">=3.7.0"
 name = "click"
 version = "8.1.3"
 description = "Composable command line interface toolkit"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 
@@ -280,7 +280,7 @@ torch = ["torch"]
 name = "exceptiongroup"
 version = "1.1.1"
 description = "Backport of PEP 654 (exception groups)"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 
@@ -393,6 +393,35 @@ python-versions = "*"
 antlr4-python3-runtime = ">=4.9.0,<4.10.0"
 omegaconf = ">=2.2,<2.4"
 packaging = "*"
+
+[[package]]
+name = "hypothesis"
+version = "6.72.2"
+description = "A library for property-based testing"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+attrs = ">=19.2.0"
+exceptiongroup = {version = ">=1.0.0", markers = "python_version < \"3.11\""}
+sortedcontainers = ">=2.1.0,<3.0.0"
+
+[package.extras]
+all = ["backports.zoneinfo (>=0.2.1)", "black (>=19.10b0)", "click (>=7.0)", "django (>=3.2)", "dpcontracts (>=0.4)", "importlib-metadata (>=3.6)", "lark (>=0.10.1)", "libcst (>=0.3.16)", "numpy (>=1.9.0)", "pandas (>=1.0)", "pytest (>=4.6)", "python-dateutil (>=1.4)", "pytz (>=2014.1)", "redis (>=3.0.0)", "rich (>=9.0.0)", "tzdata (>=2023.3)"]
+cli = ["black (>=19.10b0)", "click (>=7.0)", "rich (>=9.0.0)"]
+codemods = ["libcst (>=0.3.16)"]
+dateutil = ["python-dateutil (>=1.4)"]
+django = ["django (>=3.2)"]
+dpcontracts = ["dpcontracts (>=0.4)"]
+ghostwriter = ["black (>=19.10b0)"]
+lark = ["lark (>=0.10.1)"]
+numpy = ["numpy (>=1.9.0)"]
+pandas = ["pandas (>=1.0)"]
+pytest = ["pytest (>=4.6)"]
+pytz = ["pytz (>=2014.1)"]
+redis = ["redis (>=3.0.0)"]
+zoneinfo = ["backports.zoneinfo (>=0.2.1)", "tzdata (>=2023.3)"]
 
 [[package]]
 name = "identify"
@@ -907,6 +936,22 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
+name = "pyctcdecode"
+version = "0.5.0"
+description = "CTC beam search decoder for speech recognition."
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+hypothesis = ">=6.14,<7"
+numpy = ">=1.15.0,<2.0.0"
+pygtrie = ">=2.1,<3.0"
+
+[package.extras]
+dev = ["bandit", "black", "codecov", "flake8", "huggingface-hub", "isort (>=5.0.0,<6)", "jupyter", "mypy", "nbconvert", "nbformat", "pydocstyle", "pylint", "pytest", "pytest-cov"]
+
+[[package]]
 name = "Pygments"
 version = "2.15.1"
 description = "Pygments is a syntax highlighting package written in Python."
@@ -916,6 +961,14 @@ python-versions = ">=3.7"
 
 [package.extras]
 plugins = ["importlib-metadata"]
+
+[[package]]
+name = "pygtrie"
+version = "2.5.0"
+description = "A pure Python trie data structure implementation."
+category = "main"
+optional = false
+python-versions = "*"
 
 [[package]]
 name = "pypi-kenlm"
@@ -1125,6 +1178,14 @@ description = "Python 2 and 3 compatibility utilities"
 category = "main"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
+
+[[package]]
+name = "sortedcontainers"
+version = "2.4.0"
+description = "Sorted Containers -- Sorted List, Sorted Dict, Sorted Set"
+category = "main"
+optional = false
+python-versions = "*"
 
 [[package]]
 name = "soundfile"
@@ -1423,7 +1484,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.10,<3.11"
-content-hash = "3fd1a7565d970bfbc188d680f224c9ba3d5dd62379f936e1a2e1e23ac4feb475"
+content-hash = "b549d2887267b332c082d21060d0814ec984f6e0d9af922375e31ce4defb32db"
 
 [metadata.files]
 aiohttp = [
@@ -1902,6 +1963,10 @@ huggingface-hub = [
 hydra-core = [
     {file = "hydra-core-1.3.2.tar.gz", hash = "sha256:8a878ed67216997c3e9d88a8e72e7b4767e81af37afb4ea3334b269a4390a824"},
     {file = "hydra_core-1.3.2-py3-none-any.whl", hash = "sha256:fa0238a9e31df3373b35b0bfb672c34cc92718d21f81311d8996a16de1141d8b"},
+]
+hypothesis = [
+    {file = "hypothesis-6.72.2-py3-none-any.whl", hash = "sha256:83224b49c8320fca3fadcd5b6041c5311f59fdf4190d3819a783869f4720b690"},
+    {file = "hypothesis-6.72.2.tar.gz", hash = "sha256:a3c6003c45e825a9c5f7b910c0b4a0522d7e6302f9616b3d723df3f6129a18ca"},
 ]
 identify = [
     {file = "identify-2.5.22-py2.py3-none-any.whl", hash = "sha256:f0faad595a4687053669c112004178149f6c326db71ee999ae4636685753ad2f"},
@@ -2388,9 +2453,17 @@ pycparser = [
     {file = "pycparser-2.21-py2.py3-none-any.whl", hash = "sha256:8ee45429555515e1f6b185e78100aea234072576aa43ab53aefcae078162fca9"},
     {file = "pycparser-2.21.tar.gz", hash = "sha256:e644fdec12f7872f86c58ff790da456218b10f863970249516d60a5eaca77206"},
 ]
+pyctcdecode = [
+    {file = "pyctcdecode-0.5.0-py2.py3-none-any.whl", hash = "sha256:5b4282872ddc8e30fe7ac45112f4ab6134ac67fc03df0bbecf48667d032a0914"},
+    {file = "pyctcdecode-0.5.0.tar.gz", hash = "sha256:f3bcb313e43ca16a54938b3e77b0b375328653bba932668243db745fde513a2c"},
+]
 Pygments = [
     {file = "Pygments-2.15.1-py3-none-any.whl", hash = "sha256:db2db3deb4b4179f399a09054b023b6a586b76499d36965813c71aa8ed7b5fd1"},
     {file = "Pygments-2.15.1.tar.gz", hash = "sha256:8ace4d3c1dd481894b2005f560ead0f9f19ee64fe983366be1a21e171d12775c"},
+]
+pygtrie = [
+    {file = "pygtrie-2.5.0-py3-none-any.whl", hash = "sha256:8795cda8105493d5ae159a5bef313ff13156c5d4d72feddefacaad59f8c8ce16"},
+    {file = "pygtrie-2.5.0.tar.gz", hash = "sha256:203514ad826eb403dab1d2e2ddd034e0d1534bbe4dbe0213bb0593f66beba4e2"},
 ]
 pypi-kenlm = [
     {file = "pypi-kenlm-0.1.20220713.tar.gz", hash = "sha256:6bd960b1e6bf85cc5469d469bde1955dad7dc79b4fe06ade9b5d0609b3507992"},
@@ -2588,6 +2661,10 @@ setuptools = [
 six = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
     {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
+]
+sortedcontainers = [
+    {file = "sortedcontainers-2.4.0-py2.py3-none-any.whl", hash = "sha256:a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0"},
+    {file = "sortedcontainers-2.4.0.tar.gz", hash = "sha256:25caa5a06cc30b6b83d11423433f65d1f9d76c4c6a0c90e3379eaa43b9bfdb88"},
 ]
 soundfile = [
     {file = "soundfile-0.12.1-py2.py3-none-any.whl", hash = "sha256:828a79c2e75abab5359f780c81dccd4953c45a2c4cd4f05ba3e233ddf984b882"},
