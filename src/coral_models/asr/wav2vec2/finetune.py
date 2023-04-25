@@ -78,9 +78,7 @@ def finetune_wav2vec2(cfg: DictConfig) -> None:
             eos_token_id=tokenizer.eos_token_id,
             vocab_size=len(tokenizer.get_vocab()),
         )
-
-    if not isinstance(model, Wav2Vec2ForCTC):
-        raise TypeError("The model must be a `Wav2Vec2ForCTC` model.")
+        assert isinstance(model, Wav2Vec2ForCTC)
 
     # Freeze the feature encoder
     if cfg.model.freeze_feature_encoder:

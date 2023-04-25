@@ -69,9 +69,7 @@ def compute_metrics(
 
     # Compute the word error rate
     wer = wer_metric.compute(predictions=pred_str, references=label_str)
-
-    if wer is None:
-        raise ValueError("The word error rate is None!")
+    assert wer is not None
 
     # Return the word error rate
     return wer

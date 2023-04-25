@@ -28,10 +28,7 @@ def load_data(cfg: DictConfig) -> DatasetDict:
         name=subset,
         use_auth_token=os.getenv("HUGGINGFACE_HUB_TOKEN"),
     )
-
-    # Check if the dataset class is supported
-    if not isinstance(dataset, DatasetDict):
-        raise ValueError(f"Unsupported dataset class: {type(dataset)}")
+    assert isinstance(dataset, DatasetDict)
 
     # Only include the train, validation and test splits of the dataset
     return DatasetDict(
