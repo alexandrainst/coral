@@ -46,7 +46,6 @@ addopts = [
     '-n 2',
 ]
 xfail_strict = true
-filterwarnings = ["ignore"]
 log_cli_level = "info"
 testpaths = ["tests", "src/coral_models"]
 
