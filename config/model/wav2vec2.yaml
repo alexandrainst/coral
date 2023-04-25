@@ -1,3 +1,5 @@
+name: wav2vec2-300m
+type: wav2vec2
 pretrained_model_id: chcaa/xls-r-300m-danish
 freeze_feature_encoder: false
 
