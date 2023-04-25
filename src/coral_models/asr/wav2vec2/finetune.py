@@ -17,7 +17,7 @@ from transformers.trainer import OptimizerNames
 
 from ...data import load_data
 from ...utils import ignore_transformers_output
-from ..utils import dump_vocabulary
+from ..asr_utils import dump_vocabulary
 from .clean import clean_dataset
 from .compute_metrics import compute_metrics
 from .data_collator import DataCollatorCTCWithPadding
