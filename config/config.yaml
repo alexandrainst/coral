@@ -8,8 +8,9 @@ dirs:
   raw: raw
   processed: processed
   final: final
+  models: models
 
 pipeline_id: ${model.name}-${dataset.name}
-model_dir: models/${pipeline_id}
+model_dir: ${dirs.models}/${pipeline_id}
 push_to_hub: false
 resume_from_checkpoint: false
