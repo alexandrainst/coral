@@ -1,4 +1,4 @@
-name: wav2vec2-300m
+name: wav2vec2-300m-ngram
 type: wav2vec2
 pretrained_model_id: chcaa/xls-r-300m-danish
 freeze_feature_encoder: false
@@ -15,6 +15,14 @@ mask_feature_prob: 0.075
 mask_feature_length: 10
 layerdrop: 0.1
 ctc_loss_reduction: sum
+
+# Decoder hyperparameters
+language_model_decoder: ngram
+decoder:
+  dataset_id: DDSC/reddit-da-asr-preprocessed
+  dataset_subset: null
+  dataset_split: train
+  n: 5
 
 # Training hyperparameters
 batch_size: 4

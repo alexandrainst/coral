@@ -1,81 +1,78 @@
 """Language model to boost performance of the speech recognition model."""
 
 import os
+import subprocess
+import tempfile
 from pathlib import Path
-from shutil import rmtree
 
 from datasets import Dataset, load_dataset
 from huggingface_hub import Repository
+from omegaconf import DictConfig
 from pyctcdecode.decoder import build_ctcdecoder
 from transformers import AutoProcessor, Wav2Vec2ProcessorWithLM
 
 
-def train_ngram_model(
-    model_id: str,
-    dataset_id: str = "DDSC/reddit-da-asr-preprocessed",
-    split: str = "train",
-    n: int = 5,
-) -> None:
+def train_ngram_model(cfg: DictConfig) -> None:
     """Trains an ngram language model.
 
     Args:
-        model_id (str):
-            The model id of the finetuned speech model, which we will merge
-            with the ngram model.
-        dataset_id (str, optional):
-            The dataset to use for training. Defaults to
-            'DDSC/reddit-da-asr-preprocessed'.
-        split (str, optional):
-            The split to use for training. Defaults to 'train'.
-        n (int, optional):
-            The ngram order to use for training. Defaults to 5.
+        cfg (DictConfig):
+            Hydra configuration dictionary.
     """
-    # Ensure that the data folder exists
-    data_dir = Path("data")
-    if not data_dir.exists():
-        data_dir.mkdir()
-
-    # Ensure that the models folder exists
-    models_dir = Path("models")
-    if not models_dir.exists():
-        models_dir.mkdir()
-
     # Load the dataset
-    try:
-        dataset = load_dataset(dataset_id, split=split, use_auth_token=True)
-    except ValueError:
-        dataset = Dataset.from_file(f"{dataset_id}/dataset.arrow")
+    dataset = load_dataset(
+        path=cfg.model.decoder.dataset_id,
+        name=cfg.model.decoder.dataset_subset,
+        split=cfg.model.decoder.dataset_split,
+        use_auth_token=os.getenv("HUGGINGFACE_HUB_TOKEN"),
+    )
+    assert isinstance(dataset, Dataset)
 
-    # Dump dataset to a text file
-    text_path = data_dir / "text_data.txt"
-    with open(text_path, "w") as f:
-        f.write(" ".join(dataset["text"]))
+    # Dump dataset to a temporary text file
+    text_file = tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt")
+    text_file.write(" ".join(dataset["text"]))
 
     # Ensure that the `kenlm` directory exists, and download if otherwise
-    kenlm_dir = Path("kenlm")
+    kenlm_dir = Path.home() / ".cache" / "kenlm"
     if not kenlm_dir.exists():
-        os.system("wget -O - https://kheafield.com/code/kenlm.tar.gz | tar xz")
+        kenlm_url = "https://kheafield.com/code/kenlm.tar.gz"
+        subprocess.Popen(["wget", "-O", "-", kenlm_url], stdout=subprocess.PIPE)
+        subprocess.Popen(["tar", "-xz"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        subprocess.Popen(
+            ["rm", "-rf", "kenlm.tar.gz"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+        )
+        subprocess.Popen(["mv", "kenlm", str(kenlm_dir)], stdin=subprocess.PIPE)
 
     # Compile `kenlm` if it hasn't already been compiled
     kenlm_build_dir = kenlm_dir / "build"
     if not kenlm_build_dir.exists():
-        os.system(
-            "mkdir kenlm/build && " "cd kenlm/build && " "cmake .. && " "make -j2"
-        )
+        subprocess.Popen(["mkdir", str(kenlm_build_dir)])
+        subprocess.Popen(["cd", str(kenlm_build_dir)])
+        subprocess.Popen(["cmake", ".."])
+        subprocess.Popen(["make", "-j", "2"])
 
     # Train the n-gram language model if it doesn't already exist
-    correct_ngram_path = models_dir / f"{n}gram.arpa"
+    correct_ngram_path = Path(cfg.model_dir) / f"{cfg.model.decoder.n}gram.arpa"
     if not correct_ngram_path.exists():
-        # If the raw language model does not exist either, then train from
-        # scratch
-        ngram_path = models_dir / f"raw_{n}gram.arpa"
+        # If the raw language model does not exist either, then train from scratch
+        ngram_path = Path(cfg.model_dir) / f"raw_{cfg.model.decoder.n}gram.arpa"
         if not ngram_path.exists():
-            os.system(
-                f"kenlm/build/bin/lmplz -o {n} <" f'"{text_path}" >' f'"{ngram_path}"'
+            subprocess.Popen(
+                [
+                    "kenlm/build/bin/lmplz",
+                    "-o",
+                    cfg.model.decoder.n,
+                    "<",
+                    '"{text_file.name}"',
+                    ">",
+                    '"{ngram_path}"',
+                ]
             )
 
-        # Add end-of-sentence marker </s> to the n-gram language model to get
-        # the final language model
+        # Add end-of-sentence marker </s> to the n-gram language model to get the final
+        # language model
         with ngram_path.open("r") as f_in:
             with correct_ngram_path.open("w") as f_out:
                 # Iterate over the lines in the input file
@@ -103,10 +100,10 @@ def train_ngram_model(
             ngram_path.unlink()
 
     # Load the pretrained processor
-    processor = AutoProcessor.from_pretrained(model_id, use_auth_token=True)
+    processor = AutoProcessor.from_pretrained(cfg.model_dir)
 
     # Extract the vocabulary, which will be used to build the CTC decoder
-    vocab_dict = processor.tokenizer.get_vocab()
+    vocab_dict: dict[str, int] = processor.tokenizer.get_vocab()
     sorted_vocab_list = sorted(vocab_dict.items(), key=lambda item: item[1])
     sorted_vocab_dict = {k.lower(): v for k, v in sorted_vocab_list}
 
@@ -123,36 +120,23 @@ def train_ngram_model(
     )
 
     # Clone the repo containing the finetuned model
-    repo_dir = models_dir / model_id.split("/")[-1]
-    repo = Repository(local_dir=str(repo_dir), clone_from=model_id)
-
-    # Remove the previous language model if it exists
-    lang_model_dir = repo_dir / "language_model"
-    if lang_model_dir.exists():
-        rmtree(str(lang_model_dir))
+    repo = Repository(local_dir=cfg.model_dir, clone_from=cfg.model_dir)
 
     # Save the new processor to the repo
-    processor_with_lm.save_pretrained(str(repo_dir))
+    processor_with_lm.save_pretrained(cfg.model_dir)
 
     # Compress the ngram model
-    os.system(
-        f"kenlm/build/bin/build_binary "
-        f"{repo_dir}/language_model/{n}gram.arpa "
-        f"{repo_dir}/language_model/{n}gram.bin"
+    subprocess.Popen(
+        [
+            "kenlm/build/bin/build_binary",
+            str(correct_ngram_path),
+            str(correct_ngram_path.with_suffix(".bin")),
+        ]
     )
 
     # Remove the uncompressed ngram model
-    uncompressed_path = repo_dir / "language_model" / f"{n}gram.arpa"
-    if uncompressed_path.exists():
-        uncompressed_path.unlink()
+    if correct_ngram_path.exists():
+        correct_ngram_path.unlink()
 
     # Push the changes to the repo
     repo.push_to_hub(commit_message="Upload LM-boosted decoder")
-
-
-if __name__ == "__main__":
-    model_ids = [
-        "saattrupdan/alvenir-wav2vec2-base-cv8-da",
-    ]
-    for model_id in model_ids:
-        train_ngram_model(model_id, dataset_id="data/lexdk-preprocessed")
