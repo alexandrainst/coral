@@ -1,6 +1,5 @@
 """Functions related to the data loading and processing"""
 
-import datasets.utils.logging as ds_logging
 from datasets import DatasetDict, load_dataset
 from omegaconf import DictConfig
 
@@ -21,7 +20,6 @@ def load_data(cfg: DictConfig) -> DatasetDict:
             If the dataset is not supported.
     """
     # Load the dataset
-    ds_logging.set_verbosity_error()
     subset: str | None = None if cfg.dataset.subset == "" else cfg.dataset.subset
     dataset = load_dataset(path=cfg.dataset.id, name=subset)
 

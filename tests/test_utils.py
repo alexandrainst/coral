@@ -16,7 +16,7 @@ class blocking_output:
         block_terminal_output()
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        ds_logging.set_verbosity_info()
+        ds_logging.set_verbosity_warning()
         warnings.filterwarnings("default", category=UserWarning)
         enable_progress_bar()
 
