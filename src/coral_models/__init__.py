@@ -6,7 +6,7 @@ import importlib.metadata
 import logging
 import sys
 
-from .asr import finetune_wav2vec2, finetune_whisper
+from .asr import finetune_wav2vec2
 from .utils import block_terminal_output
 
 # Fetches the version of the package as defined in pyproject.toml
