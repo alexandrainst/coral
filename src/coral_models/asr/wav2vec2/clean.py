@@ -19,13 +19,13 @@ def clean_dataset(dataset: DatasetDict) -> DatasetDict:
     """
 
     def clean_examples(example: dict) -> dict:
-        example["sentence"] = _clean_transcription(example["sentence"])
+        example["sentence"] = clean_transcription(example["sentence"])
         return example
 
     return dataset.map(clean_examples)
 
 
-def _clean_transcription(doc: str) -> str:
+def clean_transcription(doc: str) -> str:
     """Cleans the transcription of a document.
 
     Args:
