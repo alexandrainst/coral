@@ -1,5 +1,7 @@
 """Functions related to the data loading and processing"""
 
+import os
+
 from datasets import DatasetDict, load_dataset
 from omegaconf import DictConfig
 
@@ -21,7 +23,11 @@ def load_data(cfg: DictConfig) -> DatasetDict:
     """
     # Load the dataset
     subset: str | None = None if cfg.dataset.subset == "" else cfg.dataset.subset
-    dataset = load_dataset(path=cfg.dataset.id, name=subset)
+    dataset = load_dataset(
+        path=cfg.dataset.id,
+        name=subset,
+        use_auth_token=os.getenv("HUGGINGFACE_HUB_TOKEN"),
+    )
 
     # Check if the dataset class is supported
     if not isinstance(dataset, DatasetDict):
