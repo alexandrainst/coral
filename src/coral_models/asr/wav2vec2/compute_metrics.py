@@ -26,7 +26,7 @@ def compute_metrics(
     wer_metric = evaluate.load("wer")
 
     # Get the padding token
-    pad_token = processor.tokenizer.pad_token_id
+    pad_token: int = processor.tokenizer.pad_token_id
 
     # Set the ground truth labels with label id -100 to be the padding token id
     pred.label_ids[pred.label_ids == -100] = pad_token
