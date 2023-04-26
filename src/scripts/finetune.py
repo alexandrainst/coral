@@ -9,7 +9,7 @@ import warnings
 import hydra
 from omegaconf import DictConfig
 
-from coral_models import finetune_wav2vec2, finetune_whisper
+from coral_models import finetune_wav2vec2
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
@@ -26,8 +26,6 @@ def main(cfg: DictConfig) -> None:
     # Finetune
     if cfg.model.type == "wav2vec2":
         finetune_wav2vec2(cfg)
-    elif cfg.model.type == "whisper":
-        finetune_whisper(cfg)
     else:
         raise NotImplementedError(f"Unsupported model type: {cfg.model.name}")
 
