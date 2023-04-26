@@ -40,7 +40,7 @@ def clean_transcription(doc: str) -> str:
     doc = normalize("NFKC", doc)
 
     # Remove punctuation
-    regex = re.compile(r"[\[\]\{\}\(\)\,\?\.\!\-\—\–\;\:\"\“\'\’\%\”\�\•\n\r\⁄\’]")
+    regex = re.compile(r"[\[\]\{\}\(\)\,\?\.\!\;\:\"\“\'\’\”\�\•\n\r\⁄\’\~]")
     doc = re.sub(regex, "", doc)
 
     # Remove non-vocabulary characters
@@ -50,8 +50,14 @@ def clean_transcription(doc: str) -> str:
         "ñ": "n",
         "ń": "n",
         "è": "e",
-        "μ": "mikro",
+        "kg": " kilo ",
+        "μg": " mikrogram ",
+        "μg": " mikrogram ",
+        "-": " minus ",
+        "+": " plus ",
+        "μ": " mikro ",
         "§": " paragraf ",
+        "%": " procent ",
         "‰": " promille ",
         "ú": "u",
         "ş": "s",
@@ -73,34 +79,9 @@ def clean_transcription(doc: str) -> str:
         "ö": "ø",
         "ç": "c",
         "ș": "s",
-        "(?<![0-9])(18|19|20)([0-9]{2})(?![0-9])": "\1 \2",
-        "1000": " tusind ",
-        "[2-9]000": " \1 tusind",
-        "100": " hundrede ",
-        "[2-9]00": " \1 hundrede",
-        "(?<![0-9])([0-9])([0-9])(?![0-9])": "\2 og \1\0",
-        "10": " ti ",
-        "20": " tyve ",
-        "30": " tredive ",
-        "40": " fyrre ",
-        "50": " halvtreds ",
-        "60": " treds ",
-        "70": " halvfjerds ",
-        "80": " firs ",
-        "90": " halvfems ",
-        "0": " nul ",
-        "1": " et ",
-        "2": " to ",
-        "3": " tre ",
-        "4": " fire ",
-        "5": " fem ",
-        "6": " seks ",
-        "7": " syv ",
-        "8": " otte ",
-        "9": " ni ",
     }
     for key, value in conversion_dict.items():
-        doc = re.sub(key, value, doc)
+        doc = doc.replace(key, value)
 
     # Remove empty whitespace
     doc = re.sub("\u0301", " ", doc)
