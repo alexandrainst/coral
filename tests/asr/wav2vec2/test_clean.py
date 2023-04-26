@@ -19,7 +19,7 @@ def test_clean_dataset(dataset, cfg) -> None:
     test_sentences = [clean_transcription(sentence) for sentence in test_sentences]
 
     # Clean the dataset with the `clean_dataset` function
-    dataset = clean_dataset(dataset)
+    dataset = clean_dataset(cfg, dataset=dataset)
 
     # Check that the cleaned dataset is equal to the manually cleaned dataset
     assert dataset["train"][cfg.dataset.text_column] == train_sentences
