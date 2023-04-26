@@ -14,11 +14,10 @@ def dump_vocabulary(cfg: DictConfig, dataset: Dataset) -> None:
         cfg (DictConfig):
             The Hydra configuration object.
         dataset (Dataset):
-            The dataset from which to extract the vocabulary. Needs to
-            contain a feature named 'sentence'.
+            The dataset from which to extract the vocabulary.
     """
     # Get all the text in the transcriptions
-    all_text = "|".join(dataset["sentence"])
+    all_text = "|".join(dataset[cfg.dataset.text_column])
 
     # Get the unique characters in the text
     unique_characters = set(all_text)

@@ -6,6 +6,7 @@ from pathlib import Path
 import pandas as pd
 from datasets import Audio, Dataset, DatasetDict
 from joblib import Parallel, delayed
+from omegaconf import DictConfig
 from pydub import AudioSegment
 from tqdm.auto import tqdm
 
@@ -66,10 +67,14 @@ def split_audio(record: dict, input_path: str | Path) -> None:
     del audio
 
 
-def build_and_store_data(input_dir: Path | str, output_dir: Path | str) -> None:
+def build_and_store_data(
+    cfg: DictConfig, input_dir: Path | str, output_dir: Path | str
+) -> None:
     """Builds and saves the FTSpeech dataset.
 
     Args:
+        cfg (DictConfig):
+            The Hydra configuration object.
         input_dir (str or Path):
             The directory where the raw dataset is stored.
         output_dir (str or Path):
@@ -101,7 +106,7 @@ def build_and_store_data(input_dir: Path | str, output_dir: Path | str) -> None:
 
     # Preprocess the transcriptions
     for split, df in dfs.items():
-        df["sentence"] = df.transcript.map(preprocess_transcription)
+        df[cfg.dataset.text_column] = df.transcript.map(preprocess_transcription)
         dfs[split] = df
 
     # Add a `speaker_id` column to the dataframes

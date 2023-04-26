@@ -42,7 +42,7 @@ def finetune_wav2vec2(cfg: DictConfig) -> None:
 
     # Clean the dataset
     logger.debug("Cleaning vocabulary...")
-    dataset = clean_dataset(dataset=dataset)
+    dataset = clean_dataset(cfg, dataset=dataset)
 
     # Dump the vocabulary
     logger.debug("Dumping vocabulary...")
