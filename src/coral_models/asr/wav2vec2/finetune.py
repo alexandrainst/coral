@@ -83,7 +83,8 @@ def finetune_wav2vec2(cfg: DictConfig) -> None:
     # Freeze the feature encoder
     if cfg.model.freeze_feature_encoder:
         logger.debug("Freezing feature encoder...")
-        model.freeze_feature_encoder()
+        for param in model.wav2vec2.parameters():
+            param.requires_grad = False
 
     # Initialise training arguments
     logger.debug("Initialising training arguments...")
