@@ -1,6 +1,7 @@
 defaults:
   - model: wav2vec2
   - dataset: common_voice_da
+  - override hydra/job_logging: custom
   - _self_
 
 dirs:
