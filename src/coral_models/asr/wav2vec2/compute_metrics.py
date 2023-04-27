@@ -68,8 +68,11 @@ def compute_metrics(
     #     print()
 
     # Compute the word error rate
-    wer = wer_metric.compute(predictions=pred_str, references=label_str)
-    assert wer is not None
+    computed = wer_metric.compute(predictions=pred_str, references=label_str)
+    assert computed is not None
 
-    # Return the word error rate
-    return wer
+    # Ensure that `wer` is a dict
+    if not isinstance(computed, dict):
+        return dict(wer=computed)
+    else:
+        return computed
