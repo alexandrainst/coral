@@ -118,9 +118,9 @@ def finetune_wav2vec2(cfg: DictConfig) -> None:
     )
 
     # Create early stopping callback
-    logger.debug("Initialising early stopping callback...")
     callbacks: list[TrainerCallback] = list()
     if cfg.model.early_stopping:
+        logger.debug("Initialising early stopping callback...")
         early_stopping_callback = EarlyStoppingCallback(
             early_stopping_patience=cfg.model.early_stopping_patience
         )
