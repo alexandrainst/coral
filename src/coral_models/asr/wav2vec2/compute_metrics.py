@@ -59,14 +59,6 @@ def compute_metrics(
     # Decode the ground truth labels
     label_str = processor.tokenizer.batch_decode(pred.label_ids, group_tokens=False)
 
-    # TEMP: Output sample predictions and labels, as a sanity check
-    # import itertools as it
-    # for label, pred in it.islice(zip(label_str, pred_str), 10):
-    #     print()
-    #     print(label)
-    #     print(pred)
-    #     print()
-
     # Compute the word error rate
     computed = wer_metric.compute(predictions=pred_str, references=label_str)
     assert computed is not None
