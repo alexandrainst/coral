@@ -12,6 +12,7 @@ dirs:
   models: models
 
 pipeline_id: ${model.name}-${dataset.name}
+hub_id: alexandrainst/${pipeline_id}
 model_dir: ${dirs.models}/${pipeline_id}
 push_to_hub: false
 resume_from_checkpoint: false

@@ -90,7 +90,7 @@ def finetune_wav2vec2(cfg: DictConfig) -> None:
     logger.debug("Initialising training arguments...")
     training_args = TrainingArguments(
         output_dir=cfg.model_dir,
-        hub_model_id=cfg.pipeline_id,
+        hub_model_id=cfg.hub_id,
         per_device_train_batch_size=cfg.model.batch_size,
         per_device_eval_batch_size=cfg.model.batch_size,
         gradient_accumulation_steps=cfg.model.gradient_accumulation_steps,
