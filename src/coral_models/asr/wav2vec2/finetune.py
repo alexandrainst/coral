@@ -154,3 +154,5 @@ def finetune_wav2vec2(cfg: DictConfig) -> None:
     if cfg.push_to_hub:
         logger.info("Pushing model to the hub...")
         trainer.push_to_hub()
+
+    # TODO: Add ngram model
