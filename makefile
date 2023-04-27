@@ -20,6 +20,9 @@ export GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' makefile | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
+finetune: ## Finetune a model
+	@PYTORCH_ENABLE_MPS_FALLBACK=1 python3 src/scripts/finetune.py
+
 install-poetry:
 	@echo "Installing poetry..."
 	@pipx install poetry==1.2.0
