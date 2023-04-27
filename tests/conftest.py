@@ -5,10 +5,10 @@ from typing import Generator
 
 import pytest
 from datasets import DatasetDict
-from hydra import compose, initialize
 from omegaconf import DictConfig
 
 from coral_models.data import load_data
+from hydra import compose, initialize
 
 # Initialise Hydra
 initialize(config_path="../config", version_base=None)
@@ -26,7 +26,13 @@ def pytest_unconfigure() -> None:
 
 @pytest.fixture(scope="session")
 def cfg() -> Generator[DictConfig, None, None]:
-    yield compose(config_name="config")
+    yield compose(
+        config_name="config",
+        overrides=[
+            "model=test",
+            "dataset=test",
+        ],
+    )
 
 
 @pytest.fixture(scope="session")
