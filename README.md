@@ -81,7 +81,6 @@ publishing the code as a package and more.
 │       ├── wav2vec2.yaml
 │       └── whisper.yaml
 ├── data
-├── hydra
 ├── makefile
 ├── models
 ├── notebooks
