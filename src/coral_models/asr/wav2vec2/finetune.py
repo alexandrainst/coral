@@ -58,7 +58,7 @@ def finetune_wav2vec2(cfg: DictConfig) -> None:
     data_collator = DataCollatorCTCWithPadding(processor=processor, padding="longest")
 
     # Initialise the model
-    logger.debug("Initialising model")
+    logger.info("Initialising model")
     tokenizer: PreTrainedTokenizerBase = processor.tokenizer
     with ignore_transformers_output():
         model = Wav2Vec2ForCTC.from_pretrained(
