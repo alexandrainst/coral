@@ -31,10 +31,6 @@ def train_ngram_model(cfg: DictConfig) -> None:
     )
     assert isinstance(dataset, Dataset)
 
-    # Dump dataset to a temporary text file
-    text_file = tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt")
-    text_file.write(" ".join(dataset["text"]))
-
     # Ensure that the `kenlm` directory exists, and download if otherwise
     kenlm_dir = Path.home() / ".cache" / "kenlm"
     if not kenlm_dir.exists():
@@ -57,17 +53,16 @@ def train_ngram_model(cfg: DictConfig) -> None:
 
         # If the raw language model does not exist either then train from scratch
         if not ngram_path.exists():
-            subprocess.run(
-                [
-                    "kenlm/build/bin/lmplz",
-                    "-o",
-                    cfg.model.decoder.n,
-                    "<",
-                    '"{text_file.name}"',
-                    ">",
-                    '"{ngram_path}"',
-                ]
-            )
+            # Dump dataset to a temporary text file
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as text_file:
+                with text_file.open() as f_in:
+                    f_in.write(" ".join(dataset["text"]))
+                    with ngram_path.open("w") as f_out:
+                        subprocess.run(
+                            ["kenlm/build/bin/lmplz", "-o", cfg.model.decoder.n],
+                            stdin=f_in,
+                            stdout=f_out,
+                        )
 
         # Add end-of-sentence marker </s> to the n-gram language model to get the final
         # language model
