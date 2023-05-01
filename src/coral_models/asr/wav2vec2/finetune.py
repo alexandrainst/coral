@@ -16,7 +16,7 @@ from transformers import (
 from transformers.trainer import OptimizerNames
 
 from ...data import load_data
-from ...utils import ignore_transformers_output
+from ...utils import transformers_output_ignored
 from ..utils import dump_vocabulary
 from .clean import clean_dataset
 from .compute_metrics import compute_metrics
@@ -149,7 +149,7 @@ def load_model(cfg: DictConfig, processor: ModifiedWav2Vec2Processor) -> Wav2Vec
         Wav2Vec2ForCTC:
             The Wav2Vec 2.0 model.
     """
-    with ignore_transformers_output():
+    with transformers_output_ignored():
         logger.info("Initialising model...")
         model = Wav2Vec2ForCTC.from_pretrained(
             cfg.model.pretrained_model_id,

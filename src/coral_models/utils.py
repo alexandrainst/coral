@@ -26,7 +26,7 @@ def block_terminal_output() -> None:
     disable_progress_bar()
 
 
-class ignore_transformers_output:
+class transformers_output_ignored:
     """Context manager to block terminal output."""
 
     def __enter__(self) -> None:
