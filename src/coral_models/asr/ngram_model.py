@@ -1,10 +1,13 @@
 """Language model to boost performance of the speech recognition model."""
 
+import io
 import os
 import subprocess
+import tarfile
 import tempfile
 from pathlib import Path
 
+import requests
 from datasets import Dataset, load_dataset
 from huggingface_hub import Repository
 from omegaconf import DictConfig
@@ -35,27 +38,15 @@ def train_ngram_model(cfg: DictConfig) -> None:
     # Ensure that the `kenlm` directory exists, and download if otherwise
     kenlm_dir = Path.home() / ".cache" / "kenlm"
     if not kenlm_dir.exists():
-        kenlm_url = "https://kheafield.com/code/kenlm.tar.gz"
-        wget_proc = subprocess.Popen(
-            ["wget", "-O", "-", kenlm_url], stdout=subprocess.PIPE
+        download_and_extract(
+            url="https://kheafield.com/code/kenlm.tar.gz",
+            target_dir=kenlm_dir,
         )
-        tar_proc = subprocess.Popen(
-            ["tar", "-xz"], stdin=subprocess.PIPE, stdout=subprocess.PIPE
-        )
-        rm_proc = subprocess.Popen(
-            ["rm", "-rf", "kenlm.tar.gz"],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-        )
-        subprocess.Popen(["mv", "kenlm", str(kenlm_dir)], stdin=subprocess.PIPE)
-        wget_proc.wait()
-        tar_proc.wait()
-        rm_proc.wait()
 
     # Compile `kenlm` if it hasn't already been compiled
     kenlm_build_dir = kenlm_dir / "build"
     if not kenlm_build_dir.exists():
-        subprocess.run(["mkdir", str(kenlm_build_dir)])
+        kenlm_build_dir.mkdir(parents=True, exist_ok=True)
         subprocess.run(["cd", str(kenlm_build_dir)])
         subprocess.run(["cmake", ".."])
         subprocess.run(["make", "-j", "2"])
@@ -147,3 +138,24 @@ def train_ngram_model(cfg: DictConfig) -> None:
 
     # Push the changes to the repo
     repo.push_to_hub(commit_message="Upload LM-boosted decoder")
+
+
+def download_and_extract(url: str, target_dir: str | Path) -> None:
+    """Download and extract a compressed file from a URL.
+
+    Args:
+        url (str):
+            URL to download from.
+        target_dir (str | Path):
+            Path to the directory where the file should be downloaded to.
+    """
+    # Download the file and load the data as bytes into memory
+    with requests.get(url) as response:
+        status_code: int = response.status_code  # type: ignore[attr-defined]
+        if status_code != 200:
+            raise requests.HTTPError(f"Received status code {status_code} from {url}")
+        data = response.content  # type: ignore[attr-defined]
+
+    # Extract the file
+    with tarfile.open(fileobj=io.BytesIO(data)) as tar:
+        tar.extractall(path=target_dir)
