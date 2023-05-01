@@ -1,52 +1,122 @@
 """Unit tests for the `asr.wav2vec2.clean` module."""
 
-from copy import deepcopy
+import re
 
 import pytest
+from datasets import DatasetDict
 
-from coral_models.asr.wav2vec2.clean import clean_dataset, clean_transcription
-
-
-def test_clean_dataset(dataset, cfg) -> None:
-    # Extract a copy of the documents in the dataset
-    train_sentences = deepcopy(dataset["train"][cfg.dataset.text_column])
-    val_sentences = deepcopy(dataset["val"][cfg.dataset.text_column])
-    test_sentences = deepcopy(dataset["test"][cfg.dataset.text_column])
-
-    # Manually apply the cleaning function to the documents
-    train_sentences = [clean_transcription(sentence) for sentence in train_sentences]
-    val_sentences = [clean_transcription(sentence) for sentence in val_sentences]
-    test_sentences = [clean_transcription(sentence) for sentence in test_sentences]
-
-    # Clean the dataset with the `clean_dataset` function
-    dataset = clean_dataset(cfg, dataset=dataset)
-
-    # Check that the cleaned dataset is equal to the manually cleaned dataset
-    assert dataset["train"][cfg.dataset.text_column] == train_sentences
-    assert dataset["val"][cfg.dataset.text_column] == val_sentences
-    assert dataset["test"][cfg.dataset.text_column] == test_sentences
+from coral_models.asr.wav2vec2.clean import clean_transcription
 
 
-@pytest.mark.parametrize(
-    "transcription, expected",
-    [
-        ("", ""),
-        (" ", ""),
-        (" laaseșmeð\u0301", "låsesmed"),
-        ("§14, stk. 5", "paragraf|14|stk|5"),
-        ("Han haR 5‰", "han|har|5|promille"),
-        ("Han haR 5%", "han|har|5|procent"),
-        (" Han lèr konstãnt\u0301 lîge her", "han|ler|konstant|lige|her"),
-        (" Vi tager den lige\u200b på gefühlen ", "vi|tager|den|lige|på|gefuehlen"),
-        ("10μg\u200b dosis", "10|mikrogram|dosis"),
-        ("Han vejer 10kg\u200b", "han|vejer|10|kilo"),
-        (
-            "株式会社ＫＡＤＯＫＡＷＡ Ｆｕｔｕｒｅ Ｐｕｂｌｉｓｈｉｎｇ",
-            "株式会社kadokawa|future|publishing",
-        ),
-        ("１２３", "123"),
-        ("＋－．～）｝", "plus|minus"),
-    ],
-)
-def test_clean_transcription(transcription: str, expected: str) -> None:
-    assert clean_transcription(transcription) == expected
+class TestCleanDataset:
+    def test_dtype(self, cleaned_dataset) -> None:
+        assert isinstance(cleaned_dataset, DatasetDict)
+
+    def test_split_names(self, cleaned_dataset) -> None:
+        assert set(cleaned_dataset.keys()) == {"train", "val", "test"}
+
+    def test_train_samples(self, cfg, cleaned_dataset) -> None:
+        samples = cleaned_dataset["train"][cfg.dataset.text_column]
+        assert samples == [
+            "min|fortræffelige|lille|nattergal",
+            "jeg|venter|grumme|meget|af|den",
+            "men|hendes|vilje|var|fast|som|hendes|tillid|til|vorherre",
+            "her|er|kommet|gode|klæder|at|slide|for|de|fire|børn",
+            "hver|rose|på|træet|i|haven|havde|sin|historie",
+        ]
+
+
+class TestCleanTranscription:
+    transcription = "\nThis is a (test) [sentence]\u0301 with \n{aa} and ğ. "
+
+    empty_punctuation_regex = re.compile(r"")
+    parans_punctuation_regex = re.compile(r"[\(\)\[\]\{\}]")
+    newline_punctuation_regex = re.compile(r"[\n\r]")
+
+    empty_conversion_dict: dict[str, str] = {}
+    diacritics_conversion_dict = {"aa": "å", "ğ": "g"}
+    empty_whitespace_conversion_dict = {"\u0301": " "}
+
+    @pytest.mark.parametrize(
+        "transcription, punctuation_regex, conversion_dict, expected",
+        ids=[
+            "empty-empty",
+            "empty-diacritics",
+            "empty-empty_whitespace",
+            "parans-empty",
+            "parans-diacritics",
+            "parans-empty_whitespace",
+            "newline-empty",
+            "newline-diacritics",
+            "newline-empty_whitespace",
+        ],
+        argvalues=[
+            (
+                transcription,
+                empty_punctuation_regex,
+                empty_conversion_dict,
+                "this|is|a|(test)|[sentence]\u0301|with|\n{aa}|and|ğ.",
+            ),
+            (
+                transcription,
+                empty_punctuation_regex,
+                diacritics_conversion_dict,
+                "this|is|a|(test)|[sentence]\u0301|with|\n{å}|and|g.",
+            ),
+            (
+                transcription,
+                empty_punctuation_regex,
+                empty_whitespace_conversion_dict,
+                "this|is|a|(test)|[sentence]|with|\n{aa}|and|ğ.",
+            ),
+            (
+                transcription,
+                parans_punctuation_regex,
+                empty_conversion_dict,
+                "this|is|a|test|sentence\u0301|with|\naa|and|ğ.",
+            ),
+            (
+                transcription,
+                parans_punctuation_regex,
+                diacritics_conversion_dict,
+                "this|is|a|test|sentence\u0301|with|\nå|and|g.",
+            ),
+            (
+                transcription,
+                parans_punctuation_regex,
+                empty_whitespace_conversion_dict,
+                "this|is|a|test|sentence|with|\naa|and|ğ.",
+            ),
+            (
+                transcription,
+                newline_punctuation_regex,
+                empty_conversion_dict,
+                "this|is|a|(test)|[sentence]\u0301|with|{aa}|and|ğ.",
+            ),
+            (
+                transcription,
+                newline_punctuation_regex,
+                diacritics_conversion_dict,
+                "this|is|a|(test)|[sentence]\u0301|with|{å}|and|g.",
+            ),
+            (
+                transcription,
+                newline_punctuation_regex,
+                empty_whitespace_conversion_dict,
+                "this|is|a|(test)|[sentence]|with|{aa}|and|ğ.",
+            ),
+        ],
+    )
+    def test_clean_transcription(
+        self,
+        transcription: str,
+        punctuation_regex: re.Pattern[str],
+        conversion_dict: dict[str, str],
+        expected: str,
+    ) -> None:
+        cleaned_transcription = clean_transcription(
+            doc=transcription,
+            punctuation_regex=punctuation_regex,
+            conversion_dict=conversion_dict,
+        )
+        assert cleaned_transcription == expected
