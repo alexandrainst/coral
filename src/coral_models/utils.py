@@ -8,7 +8,13 @@ from datasets.utils import disable_progress_bar
 
 
 def block_terminal_output() -> None:
-    """Blocks undesired terminal output."""
+    """Blocks undesired terminal output.
+
+    This blocks the following output:
+        - User warnings
+        - Logs from the `datasets` package
+        - Progress bars from the `datasets` package
+    """
 
     # Ignore user warnings throughout the codebase
     warnings.filterwarnings("ignore", category=UserWarning)
