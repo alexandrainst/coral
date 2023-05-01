@@ -47,9 +47,8 @@ def train_ngram_model(cfg: DictConfig) -> None:
     kenlm_build_dir = kenlm_dir / "build"
     if not kenlm_build_dir.exists():
         kenlm_build_dir.mkdir(parents=True, exist_ok=True)
-        subprocess.run(["cd", str(kenlm_build_dir)])
-        subprocess.run(["cmake", ".."])
-        subprocess.run(["make", "-j", "2"])
+        subprocess.run(["cmake", ".."], cwd=str(kenlm_dir / "build"))
+        subprocess.run(["make", "-j", "2"], cwd=str(kenlm_dir / "build"))
 
     # Train the n-gram language model if it doesn't already exist
     correct_ngram_path = Path(cfg.model_dir) / f"{cfg.model.decoder.n}gram.arpa"
