@@ -21,34 +21,15 @@ def clean_dataset(cfg: DictConfig, dataset: DatasetDict) -> DatasetDict:
             The cleaned dataset.
     """
 
-    def clean_examples(example: dict) -> dict:
-        example[cfg.dataset.text_column] = clean_transcription(
-            example[cfg.dataset.text_column]
-        )
-        return example
+    # This contains all the punctuation characters that will be removed from the
+    # transcriptions, as they do not have an influence on the pronunciation of the
+    # words.
+    punctuation_regex = re.compile(r"[\[\]\{\}\(\)\,\.\!\;\:\"\“\'\’\”\�\•\n\r\⁄\’\~]")
 
-    return dataset.map(clean_examples)
-
-
-def clean_transcription(doc: str) -> str:
-    """Cleans the transcription of a document.
-
-    Args:
-        doc (str):
-            A document to be cleaned.
-
-    Returns:
-        str:
-            The cleaned document.
-    """
-    # NFKC normalize the transcriptions
-    doc = normalize("NFKC", doc)
-
-    # Remove punctuation
-    regex = re.compile(r"[\[\]\{\}\(\)\,\?\.\!\;\:\"\“\'\’\”\�\•\n\r\⁄\’\~]")
-    doc = re.sub(regex, "", doc)
-
-    # Remove non-vocabulary characters
+    # Dictionary that contains characters to be converted (from the key to the value).
+    # Some values contain spaces to ensure that they're separated from other
+    # characters, and superfluous spaces are removed later. Note also that these are
+    # converted in the order they appear in the dictionary.
     conversion_dict = {
         "aa": "å",
         "ğ": "g",
@@ -84,18 +65,51 @@ def clean_transcription(doc: str) -> str:
         "ö": "ø",
         "ç": "c",
         "ș": "s",
+        "\u0301": " ",  # Empty whitespace symbol
+        "\u200b": " ",  # Empty whitespace symbol
     }
+
+    def clean_examples(example: dict) -> dict:
+        example[cfg.dataset.text_column] = clean_transcription(
+            doc=example[cfg.dataset.text_column],
+            punctuation_regex=punctuation_regex,
+            conversion_dict=conversion_dict,
+        )
+        return example
+
+    return dataset.map(clean_examples)
+
+
+def clean_transcription(
+    doc: str,
+    punctuation_regex: re.Pattern[str],
+    conversion_dict: dict[str, str],
+) -> str:
+    """Cleans the transcription of a document.
+
+    Args:
+        doc (str):
+            A document to be cleaned.
+        punctuation_regex (compiled regex expression):
+            A compiled regular expression for punctuation.
+        conversion_dict (dict[str, str]):
+            A dictionary of characters to be converted.
+
+    Returns:
+        str:
+            The cleaned document.
+    """
+    # Normalise the transcription, which uniformises the characters. For instance, the
+    # "long dash" (－) is converted to the normal dash (-).
+    doc = normalize("NFKC", doc)
+
+    # Normalise the transcription further by removing punctuation and substituting
+    # special characters
+    doc = re.sub(punctuation_regex, "", doc)
     for key, value in conversion_dict.items():
         doc = doc.replace(key, value)
-
-    # Remove empty whitespace
-    doc = re.sub("\u0301", " ", doc)
-    doc = re.sub("\u200b", " ", doc)
 
     # Replace spaces with a pipe, to emphasise the word boundaries
     doc = re.sub(r" +", "|", doc)
 
-    # Make the transcription lowercase and strip whitespace
-    doc = doc.lower().strip().strip("|")
-
-    return doc
+    return doc.lower().strip().strip("|")

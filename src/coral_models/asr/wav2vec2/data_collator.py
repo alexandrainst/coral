@@ -14,18 +14,18 @@ class DataCollatorCTCWithPadding:
         processor (Wav2Vec2Processor)
             The processor used for proccessing the data.
         padding (bool, str or PaddingStrategy, optional):
-            Select a strategy to pad the returned sequences (according to the
-            model's padding side and padding index) among:
+            Select a strategy to pad the returned sequences (according to the model's
+            padding side and padding index) among:
             * True or 'longest':
-                Pad to the longest sequence in the batch (or no padding if only
-                a single sequence if provided).
+                Pad to the longest sequence in the batch (or no padding if only a
+                single sequence if provided).
             * 'max_length':
-                Pad to a maximum length specified with the argument max_length
-                or to the maximum acceptable input length for the model if that
-                argument is not provided.
+                Pad to a maximum length specified with the argument max_length or to
+                the maximum acceptable input length for the model if that argument is
+                not provided.
             * False or 'do_not_pad':
-                No padding (i.e., can output a batch with sequences of
-                different lengths).
+                No padding (i.e., can output a batch with sequences of different
+                lengths).
             Defaults to True.
     """
 
@@ -75,8 +75,5 @@ class DataCollatorCTCWithPadding:
         non_one_entries: torch.Tensor = labels_batch.attention_mask.ne(1)
         labels: torch.Tensor = labels_batch.input_ids.masked_fill(non_one_entries, -100)
 
-        # Update the batch labels
         batch["labels"] = labels
-
-        # Return the updated batch
         return batch

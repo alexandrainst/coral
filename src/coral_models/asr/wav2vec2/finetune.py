@@ -23,7 +23,6 @@ from .compute_metrics import compute_metrics
 from .data_collator import DataCollatorCTCWithPadding
 from .preprocess import load_processor
 
-# Set up logging
 logger = logging.getLogger(__name__)
 
 
@@ -34,30 +33,24 @@ def finetune_wav2vec2(cfg: DictConfig) -> None:
         cfg (DictConfig):
             The Hydra cfguration object.
     """
-    # Load dataset
     logger.info("Loading dataset...")
     dataset = load_data(cfg)
 
     logger.info("Setting up dataset...")
 
-    # Clean the dataset
     logger.debug("Cleaning vocabulary...")
     dataset = clean_dataset(cfg, dataset=dataset)
 
-    # Dump the vocabulary
     logger.debug("Dumping vocabulary...")
     dump_vocabulary(cfg, dataset=dataset[cfg.dataset.train_name])
 
-    # Preprocess the dataset
     logger.debug("Preprocessing dataset...")
     processor = load_processor(cfg)
     dataset = processor.preprocess(dataset=dataset)
 
-    # Initialise data collator
     logger.debug("Initialising data collator...")
     data_collator = DataCollatorCTCWithPadding(processor=processor, padding="longest")
 
-    # Initialise the model
     logger.info("Initialising model...")
     tokenizer: PreTrainedTokenizerBase = processor.tokenizer
     with ignore_transformers_output():
@@ -80,13 +73,11 @@ def finetune_wav2vec2(cfg: DictConfig) -> None:
         )
         assert isinstance(model, Wav2Vec2ForCTC)
 
-    # Freeze the feature encoder
     if cfg.model.freeze_feature_encoder:
         logger.debug("Freezing feature encoder...")
         for param in model.wav2vec2.parameters():
             param.requires_grad = False
 
-    # Initialise training arguments
     logger.debug("Initialising training arguments...")
     training_args = TrainingArguments(
         output_dir=cfg.model_dir,
@@ -117,7 +108,6 @@ def finetune_wav2vec2(cfg: DictConfig) -> None:
         report_to=[],
     )
 
-    # Create early stopping callback
     callbacks: list[TrainerCallback] = list()
     if cfg.model.early_stopping:
         logger.debug("Initialising early stopping callback...")
@@ -126,7 +116,6 @@ def finetune_wav2vec2(cfg: DictConfig) -> None:
         )
         callbacks = [early_stopping_callback]
 
-    # Initialise the trainer
     logger.debug("Initialising trainer...")
     trainer = Trainer(
         model=model,
@@ -139,18 +128,14 @@ def finetune_wav2vec2(cfg: DictConfig) -> None:
         callbacks=callbacks,
     )
 
-    # Save the preprocessor
     logger.debug("Saving preprocessor...")
     processor.save_pretrained(cfg.model_dir)
 
-    # Train the model
     trainer.train(resume_from_checkpoint=cfg.resume_from_checkpoint)
 
-    # Save the model
     logger.info("Saving model...")
     model.save_pretrained(cfg.model_dir)
 
-    # Push the model to the hub
     if cfg.push_to_hub:
         logger.info("Pushing model to the hub...")
         trainer.push_to_hub()

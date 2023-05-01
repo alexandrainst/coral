@@ -89,7 +89,6 @@ def load_processor(cfg: DictConfig) -> ModifiedWav2Vec2Processor:
         ModifiedWav2Vec2Processor:
             The processor for a Wav2Vec 2.0 model.
     """
-    # Initialise the tokenizer
     tokenizer: Wav2Vec2CTCTokenizer = Wav2Vec2CTCTokenizer.from_pretrained(
         cfg.model_dir,
         unk_token="<unk>",
@@ -99,11 +98,13 @@ def load_processor(cfg: DictConfig) -> ModifiedWav2Vec2Processor:
         word_delimiter_token="|",
     )
 
-    # Set the `model_max_length` attribute of the tokenizer, if it hasn't been set
+    # Set the `model_max_length` attribute of the tokenizer, if it hasn't been set.
+    # This property defaults to very large value if not set, which causes issues with
+    # truncation, so we check manually if it is above a million, as this is unlikely to
+    # be a valid value.
     if tokenizer.model_max_length is None or tokenizer.model_max_length > 1e6:
         tokenizer.model_max_length = 512
 
-    # Initialise the feature extractor
     extractor = Wav2Vec2FeatureExtractor(
         feature_size=1,
         sampling_rate=cfg.model.sampling_rate,
@@ -111,10 +112,6 @@ def load_processor(cfg: DictConfig) -> ModifiedWav2Vec2Processor:
         do_normalize=True,
         return_attention_mask=True,
     )
-
-    # Initialise the processor, which wraps the tokenizer and the extractor
-    processor = ModifiedWav2Vec2Processor(
+    return ModifiedWav2Vec2Processor(
         cfg, feature_extractor=extractor, tokenizer=tokenizer
     )
-
-    return processor

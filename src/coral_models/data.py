@@ -21,16 +21,18 @@ def load_data(cfg: DictConfig) -> DatasetDict:
         ValueError:
             If the dataset is not supported.
     """
-    # Load the dataset
-    subset: str | None = None if cfg.dataset.subset == "" else cfg.dataset.subset
+    # Load dataset from the Hugging Face Hub. The HUGGINGFACE_HUB_TOKEN is only used
+    # during CI - normally it is expected that the user is logged in to the Hugging
+    # Face Hub using the `huggingface-cli login` command.
     dataset = load_dataset(
         path=cfg.dataset.id,
-        name=subset,
+        name=cfg.dataset.subset,
         use_auth_token=os.getenv("HUGGINGFACE_HUB_TOKEN"),
     )
     assert isinstance(dataset, DatasetDict)
 
-    # Only include the train, validation and test splits of the dataset
+    # Only include the train, validation and test splits of the dataset, and rename
+    # these splits to the default split names.
     return DatasetDict(
         dict(
             train=dataset[cfg.dataset.train_name],

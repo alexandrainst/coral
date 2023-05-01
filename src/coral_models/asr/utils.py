@@ -16,16 +16,13 @@ def dump_vocabulary(cfg: DictConfig, dataset: Dataset) -> None:
         dataset (Dataset):
             The dataset from which to extract the vocabulary.
     """
-    # Get all the text in the transcriptions
+    # Get all the text in the transcriptions. Note here that we have replaced the word
+    # boundaries by pipes ("|"), so we are splitting on those.
     all_text = "|".join(dataset[cfg.dataset.text_column])
 
-    # Get the unique characters in the text
+    # Build vocabulary
     unique_characters = set(all_text)
-
-    # Form the vocabulary dictionary
     vocab = {char: idx for idx, char in enumerate(unique_characters)}
-
-    # Manually add special tokens
     for tok in ["<unk>", "<pad>", "<s>", "</s>"]:
         vocab[tok] = len(vocab)
 

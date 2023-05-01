@@ -20,10 +20,8 @@ def main(cfg: DictConfig) -> None:
         cfg (DictConfig):
             The Hydra configuration object.
     """
-    # Ignore user warnings
     warnings.filterwarnings("ignore", category=UserWarning)
 
-    # Finetune
     if cfg.model.type == "wav2vec2":
         finetune_wav2vec2(cfg)
     else:
