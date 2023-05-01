@@ -6,7 +6,7 @@ import datasets.utils.logging as ds_logging
 import transformers.utils.logging as hf_logging
 from datasets.utils import enable_progress_bar
 
-from coral_models.utils import block_terminal_output, ignore_transformers_output
+from coral_models.utils import block_terminal_output, transformers_output_ignored
 
 
 class output_blocked:
@@ -61,13 +61,13 @@ class TestBlockTerminalOutput:
             assert not ds_logging.is_progress_bar_enabled()
 
 
-def test_ignore_transformers_output() -> None:
-    """Test that the `ignore_transformers_output` context manager works."""
+def test_transformers_output_ignored() -> None:
+    """Test that the `transformers_output_ignored` context manager works."""
 
     # Check that the `transformers` logging level is set to `WARNING` by default
     assert hf_logging.get_verbosity() == hf_logging.WARNING
 
     # Check that the `transformers` logging level is set to `ERROR` after
-    # `ignore_transformers_output` is called
-    with ignore_transformers_output():
+    # `transformers_output_ignored` is called
+    with transformers_output_ignored():
         assert hf_logging.get_verbosity() == hf_logging.ERROR
