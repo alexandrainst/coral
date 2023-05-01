@@ -9,7 +9,7 @@ from datasets.utils import enable_progress_bar
 from coral_models.utils import block_terminal_output, ignore_transformers_output
 
 
-class blocking_output:
+class output_blocked:
     """Convenience context manager to block terminal output."""
 
     def __enter__(self) -> None:
@@ -33,7 +33,7 @@ class TestBlockTerminalOutput:
             assert len(w) == 1
 
         # Check that user warnings are ignored after `block_terminal_output` is called
-        with blocking_output():
+        with output_blocked():
             with warnings.catch_warnings(record=True) as w:
                 warnings.warn("This is a user warning", category=UserWarning)
                 assert len(w) == 0
@@ -46,7 +46,7 @@ class TestBlockTerminalOutput:
 
         # Check that the `datasets` logging level is set to `ERROR` after
         # `block_terminal_output` is called
-        with blocking_output():
+        with output_blocked():
             assert ds_logging.get_verbosity() == ds_logging.ERROR
 
     def test_datasets_progress_bars_are_disabled(self) -> None:
@@ -57,7 +57,7 @@ class TestBlockTerminalOutput:
 
         # Check that the `datasets` progress bars are disabled after
         # `block_terminal_output` is called
-        with blocking_output():
+        with output_blocked():
             assert not ds_logging.is_progress_bar_enabled()
 
 
