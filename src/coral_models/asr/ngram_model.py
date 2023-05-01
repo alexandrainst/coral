@@ -36,30 +36,38 @@ def train_ngram_model(cfg: DictConfig) -> None:
     kenlm_dir = Path.home() / ".cache" / "kenlm"
     if not kenlm_dir.exists():
         kenlm_url = "https://kheafield.com/code/kenlm.tar.gz"
-        subprocess.Popen(["wget", "-O", "-", kenlm_url], stdout=subprocess.PIPE)
-        subprocess.Popen(["tar", "-xz"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        subprocess.Popen(
+        wget_proc = subprocess.Popen(
+            ["wget", "-O", "-", kenlm_url], stdout=subprocess.PIPE
+        )
+        tar_proc = subprocess.Popen(
+            ["tar", "-xz"], stdin=subprocess.PIPE, stdout=subprocess.PIPE
+        )
+        rm_proc = subprocess.Popen(
             ["rm", "-rf", "kenlm.tar.gz"],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
         )
         subprocess.Popen(["mv", "kenlm", str(kenlm_dir)], stdin=subprocess.PIPE)
+        wget_proc.wait()
+        tar_proc.wait()
+        rm_proc.wait()
 
     # Compile `kenlm` if it hasn't already been compiled
     kenlm_build_dir = kenlm_dir / "build"
     if not kenlm_build_dir.exists():
-        subprocess.Popen(["mkdir", str(kenlm_build_dir)])
-        subprocess.Popen(["cd", str(kenlm_build_dir)])
-        subprocess.Popen(["cmake", ".."])
-        subprocess.Popen(["make", "-j", "2"])
+        subprocess.run(["mkdir", str(kenlm_build_dir)])
+        subprocess.run(["cd", str(kenlm_build_dir)])
+        subprocess.run(["cmake", ".."])
+        subprocess.run(["make", "-j", "2"])
 
     # Train the n-gram language model if it doesn't already exist
     correct_ngram_path = Path(cfg.model_dir) / f"{cfg.model.decoder.n}gram.arpa"
     if not correct_ngram_path.exists():
-        # If the raw language model does not exist either, then train from scratch
         ngram_path = Path(cfg.model_dir) / f"raw_{cfg.model.decoder.n}gram.arpa"
+
+        # If the raw language model does not exist either then train from scratch
         if not ngram_path.exists():
-            subprocess.Popen(
+            subprocess.run(
                 [
                     "kenlm/build/bin/lmplz",
                     "-o",
@@ -75,7 +83,6 @@ def train_ngram_model(cfg: DictConfig) -> None:
         # language model
         with ngram_path.open("r") as f_in:
             with correct_ngram_path.open("w") as f_out:
-                # Iterate over the lines in the input file
                 has_added_eos = False
                 for line in f_in:
                     # Increment the 1-gram count by 1
@@ -126,7 +133,7 @@ def train_ngram_model(cfg: DictConfig) -> None:
     processor_with_lm.save_pretrained(cfg.model_dir)
 
     # Compress the ngram model
-    subprocess.Popen(
+    subprocess.run(
         [
             "kenlm/build/bin/build_binary",
             str(correct_ngram_path),
