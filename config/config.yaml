@@ -1,6 +1,7 @@
 defaults:
-  - model: wav2vec
+  - model: wav2vec2
   - dataset: common_voice_da
+  - override hydra/job_logging: custom
   - _self_
 
 dirs:
@@ -8,6 +9,10 @@ dirs:
   raw: raw
   processed: processed
   final: final
+  models: models
 
+pipeline_id: ${model.name}-${dataset.name}
+hub_id: alexandrainst/${pipeline_id}
+model_dir: ${dirs.models}/${pipeline_id}
 push_to_hub: false
 resume_from_checkpoint: false

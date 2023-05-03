@@ -6,6 +6,7 @@ from pathlib import Path
 import pandas as pd
 from datasets import Audio, Dataset, DatasetDict
 from joblib import Parallel, delayed
+from omegaconf import DictConfig
 from pydub import AudioSegment
 from tqdm.auto import tqdm
 
@@ -21,13 +22,13 @@ def preprocess_transcription(transcription: str) -> str:
         str:
             The preprocessed transcription.
     """
-    # Strip the transcription of <UNK> tokens
+    # Strip the transcription of <UNK> tokens, since these are not useful for training
+    # a speech recognition model
     transcription = transcription.replace("<UNK>", "")
 
-    # Remove trailing whitespace
+    # Remove trailing whitespace and newlines
     transcription = transcription.strip()
 
-    # Return the preprocessed transcription
     return transcription
 
 
@@ -44,32 +45,35 @@ def split_audio(record: dict, input_path: str | Path) -> None:
     # Ensure that `input_path` is a Path object
     input_path = Path(input_path)
 
-    # Build the audio file path
+    # Build the path to the audio file from the record
     year: str = record["utterance_id"].split("_")[1][:4]
     filename = "_".join(record["utterance_id"].split("_")[1:3]) + ".wav"
     audio_path: Path = input_path / "audio" / year / filename
 
-    # Get the start and end times in milliseconds
+    # Get the start and end times in milliseconds, as `pydub` works with audio files in
+    # milliseconds
     start_time: int = record["start_time"] * 1000
     end_time: int = record["end_time"] * 1000
 
-    # Load and split the audio
+    # Load the audio and slice it according to the start and end times in the record
     audio: AudioSegment = AudioSegment.from_wav(str(audio_path))[start_time:end_time]
 
-    # Store the audio
+    # Store the sliced audio
     new_filename: str = record["utterance_id"] + ".wav"
     new_audio_path: Path = input_path / "processed_audio" / new_filename
     out_ = audio.export(str(new_audio_path.resolve()), format="wav")
     out_.close()
-
-    # Close audio
     del audio
 
 
-def build_and_store_data(input_dir: Path | str, output_dir: Path | str) -> None:
+def build_and_store_data(
+    cfg: DictConfig, input_dir: Path | str, output_dir: Path | str
+) -> None:
     """Builds and saves the FTSpeech dataset.
 
     Args:
+        cfg (DictConfig):
+            The Hydra configuration object.
         input_dir (str or Path):
             The directory where the raw dataset is stored.
         output_dir (str or Path):
@@ -83,11 +87,10 @@ def build_and_store_data(input_dir: Path | str, output_dir: Path | str) -> None:
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
 
-    # If `input_dir` does not exist, raise an error
     if not input_dir.exists():
         raise FileNotFoundError(f"{input_dir} does not exist")
 
-    # Set up paths to the transcription data
+    # These are the paths to the transcription files
     paths = {
         "train": input_dir / "text" / "ft-speech_train.tsv",
         "dev_balanced": input_dir / "text" / "ft-speech_dev-balanced.tsv",
@@ -96,12 +99,12 @@ def build_and_store_data(input_dir: Path | str, output_dir: Path | str) -> None:
         "test_other": input_dir / "text" / "ft-speech_test-other.tsv",
     }
 
-    # Load file with transcriptions
+    # Load files with transcriptions
     dfs = {split: pd.read_csv(path, sep="\t") for split, path in paths.items()}
 
     # Preprocess the transcriptions
     for split, df in dfs.items():
-        df["sentence"] = df.transcript.map(preprocess_transcription)
+        df[cfg.dataset.text_column] = df.transcript.map(preprocess_transcription)
         dfs[split] = df
 
     # Add a `speaker_id` column to the dataframes
@@ -121,8 +124,7 @@ def build_and_store_data(input_dir: Path | str, output_dir: Path | str) -> None:
         with Parallel(n_jobs=mp.cpu_count()) as parallel:
             parallel(split_fn(record, input_dir) for record in pbar)
 
-    # Add an `audio` column to the dataframes, containing the paths to the
-    # audio files
+    # Add an `audio` column to the dataframes, containing the paths to the audio files
     for split, df in dfs.items():
         audio_paths = list()
         for _, row in df.iterrows():
@@ -145,8 +147,8 @@ def build_and_store_data(input_dir: Path | str, output_dir: Path | str) -> None:
     }
     dataset = DatasetDict(datasets)
 
-    # Cast `audio` as the audio path column
+    # Cast `audio` as the audio path column, which ensures that the audio can be loaded
+    # seamlessly on the fly
     dataset = dataset.cast_column("audio", Audio(sampling_rate=16_000))
 
-    # Store the dataset
     dataset.save_to_disk(str(output_dir))

@@ -6,7 +6,7 @@ ______________________________________________________________________
 [![Documentation](https://img.shields.io/badge/docs-passing-green)](https://alexandrainst.github.io/CoRal-models/coral_models.html)
 [![License](https://img.shields.io/github/license/alexandrainst/CoRal-models)](https://github.com/alexandrainst/CoRal-models/blob/main/LICENSE)
 [![LastCommit](https://img.shields.io/github/last-commit/alexandrainst/CoRal-models)](https://github.com/alexandrainst/CoRal-models/commits/main)
-[![Code Coverage](https://img.shields.io/badge/Coverage-25%25-red.svg)](https://github.com/alexandrainst/CoRal-models/tree/main/tests)
+[![Code Coverage](https://img.shields.io/badge/Coverage-37%25-red.svg)](https://github.com/alexandrainst/CoRal-models/tree/main/tests)
 
 
 Developers:
@@ -69,9 +69,16 @@ publishing the code as a package and more.
 │   ├── dataset
 │   │   ├── common_voice_da.yaml
 │   │   ├── ftspeech.yaml
-│   │   └── nst_da.yaml
+│   │   ├── nst_da.yaml
+│   │   └── test.yaml
+│   ├── hydra
+│   │   └── job_logging
+│   │       └── custom.yaml
 │   └── model
-│       ├── wav2vec.yaml
+│       ├── test.yaml
+│       ├── vall_e.yaml
+│       ├── vits.yaml
+│       ├── wav2vec2.yaml
 │       └── whisper.yaml
 ├── data
 ├── makefile
@@ -84,29 +91,43 @@ publishing the code as a package and more.
 │   │   ├── __init__.py
 │   │   ├── asr
 │   │   │   ├── __init__.py
-│   │   │   ├── data.py
 │   │   │   ├── ftspeech.py
 │   │   │   ├── ngram_model.py
 │   │   │   ├── utils.py
-│   │   │   ├── wav2vec
+│   │   │   ├── wav2vec2
 │   │   │   │   ├── __init__.py
+│   │   │   │   ├── clean.py
 │   │   │   │   ├── compute_metrics.py
 │   │   │   │   ├── data_collator.py
 │   │   │   │   ├── evaluate.py
 │   │   │   │   ├── finetune.py
 │   │   │   │   └── preprocess.py
 │   │   │   └── whisper
-│   │   │       ├── __init__.py
-│   │   │       ├── evaluate.py
-│   │   │       └── finetune.py
-│   │   └── tts
-│   │       ├── __init__.py
-│   │       ├── data.py
-│   │       └── utils.py
+│   │   │       └── __init__.py
+│   │   ├── data.py
+│   │   ├── tts
+│   │   │   └── __init__.py
+│   │   └── utils.py
 │   └── scripts
+│       ├── finetune.py
 │       ├── fix_dot_env_file.py
 │       └── versioning.py
 └── tests
     ├── __init__.py
-    └── test_dummy.py
+    ├── asr
+    │   ├── __init__.py
+    │   ├── test_ftspeech.py
+    │   ├── test_ngram_model.py
+    │   ├── test_utils.py
+    │   └── wav2vec2
+    │       ├── __init__.py
+    │       ├── test_clean.py
+    │       ├── test_compute_metrics.py
+    │       ├── test_data_collator.py
+    │       ├── test_evaluate.py
+    │       ├── test_finetune.py
+    │       └── test_preprocess.py
+    ├── conftest.py
+    ├── test_data.py
+    └── test_utils.py
 ```
