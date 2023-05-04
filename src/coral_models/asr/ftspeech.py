@@ -1,5 +1,6 @@
 """Functions related to building the FTSpeech dataset."""
 
+import logging
 import multiprocessing as mp
 from pathlib import Path
 
@@ -8,6 +9,12 @@ from datasets import Audio, Dataset, DatasetDict
 from joblib import Parallel, delayed
 from pydub import AudioSegment
 from tqdm.auto import tqdm
+
+# This enables the `progress_apply` method on Pandas DataFrames
+tqdm.pandas()
+
+
+logger = logging.getLogger(__name__)
 
 
 def build_and_store_data(input_dir: Path | str, output_dir: Path | str) -> None:
@@ -23,7 +30,6 @@ def build_and_store_data(input_dir: Path | str, output_dir: Path | str) -> None:
         FileNotFoundError:
             If `input_dir` does not exist.
     """
-    # Ensure that the paths are Path objects
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
 
@@ -39,12 +45,12 @@ def build_and_store_data(input_dir: Path | str, output_dir: Path | str) -> None:
         "test_other": input_dir / "text" / "ft-speech_test-other.tsv",
     }
 
-    # Load files with transcriptions
+    logger.info("Loading transcription files...")
     dfs = {split: pd.read_csv(path, sep="\t") for split, path in paths.items()}
 
-    # Preprocess the transcriptions
+    logger.info("Preprocessing the transcription files...")
     for split, df in dfs.items():
-        df["sentence"] = df.transcript.map(preprocess_transcription)
+        df["sentence"] = df.transcript.progress_apply(preprocess_transcription)
         dfs[split] = df
 
     # Add a `speaker_id` column to the dataframes
@@ -89,6 +95,7 @@ def build_and_store_data(input_dir: Path | str, output_dir: Path | str) -> None:
     # seamlessly on the fly
     dataset = dataset.cast_column("audio", Audio(sampling_rate=16_000))
 
+    logger.info(f"Saving the dataset to {output_dir}...")
     dataset.save_to_disk(str(output_dir))
 
 
