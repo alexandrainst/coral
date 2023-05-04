@@ -14,6 +14,9 @@ from tqdm.auto import tqdm
 tqdm.pandas()
 
 
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 
