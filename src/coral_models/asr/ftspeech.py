@@ -17,7 +17,9 @@ tqdm.pandas()
 logger = logging.getLogger(__name__)
 
 
-def build_and_store_data(input_dir: Path | str, output_dir: Path | str) -> None:
+def build_and_store_data(
+    input_dir: Path | str, output_dir: Path | str, n_jobs: int = -1
+) -> None:
     """Builds and saves the FTSpeech dataset.
 
     Args:
@@ -25,11 +27,17 @@ def build_and_store_data(input_dir: Path | str, output_dir: Path | str) -> None:
             The directory where the raw dataset is stored.
         output_dir (str or Path):
             The path to the resulting dataset.
+        n_jobs (int, optional):
+            The number of jobs to use for parallel processing. Can be a negative number
+            to use all available cores minus `n_jobs`. Defaults to -1, meaning all
+            available cores minus 1.
 
     Raises:
         FileNotFoundError:
             If `input_dir` does not exist.
     """
+    n_jobs = mp.cpu_count() + n_jobs if n_jobs <= 0 else n_jobs
+
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
 
@@ -65,7 +73,7 @@ def build_and_store_data(input_dir: Path | str, output_dir: Path | str) -> None:
     # Split the audio files
     for split, df in tqdm(list(dfs.items()), desc="Splitting audio"):
         with tqdm(df.to_dict("records"), desc=split, leave=False) as pbar:
-            with Parallel(n_jobs=mp.cpu_count()) as parallel:
+            with Parallel(n_jobs=n_jobs) as parallel:
                 parallel(delayed(split_audio)(record, input_dir) for record in pbar)
 
     # Add an `audio` column to the dataframes, containing the paths to the audio files
