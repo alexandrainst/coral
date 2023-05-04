@@ -10,10 +10,6 @@ from joblib import Parallel, delayed
 from pydub import AudioSegment
 from tqdm.auto import tqdm
 
-# This enables the `progress_apply` method on Pandas DataFrames
-tqdm.pandas()
-
-
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
 )
@@ -61,7 +57,7 @@ def build_and_store_data(
 
     logger.info("Preprocessing the transcription files...")
     for split, df in dfs.items():
-        df["sentence"] = df.transcript.progress_apply(preprocess_transcription)
+        df["sentence"] = df.transcript.map(preprocess_transcription)
         dfs[split] = df
 
     # Add a `speaker_id` column to the dataframes
