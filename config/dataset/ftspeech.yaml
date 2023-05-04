@@ -1,0 +1,7 @@
+name: ftspeech
+id: /mnt/data_4b/ftspeech/compiled_dataset
+subset: da
+train_name: train
+val_name: validation
+test_name: test
+text_column: sentence
