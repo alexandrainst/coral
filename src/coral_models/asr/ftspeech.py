@@ -140,7 +140,15 @@ def split_audio(record: dict, input_path: str | Path) -> None:
     # Ensure that `input_path` is a Path object
     input_path = Path(input_path)
 
-    # Build the path to the audio file from the record
+    # Build the path where we will save the audio
+    new_filename: str = record["utterance_id"] + ".wav"
+    new_audio_path: Path = input_path / "processed_audio" / new_filename
+
+    # If the audio file already exists, we don't need to do anything
+    if new_audio_path.exists():
+        return
+
+    # Build the path to the original audio file
     year: str = record["utterance_id"].split("_")[1][:4]
     filename = "_".join(record["utterance_id"].split("_")[1:3]) + ".wav"
     audio_path: Path = input_path / "audio" / year / filename
@@ -154,8 +162,6 @@ def split_audio(record: dict, input_path: str | Path) -> None:
     audio: AudioSegment = AudioSegment.from_wav(str(audio_path))[start_time:end_time]
 
     # Store the sliced audio
-    new_filename: str = record["utterance_id"] + ".wav"
-    new_audio_path: Path = input_path / "processed_audio" / new_filename
     out_ = audio.export(str(new_audio_path.resolve()), format="wav")
     out_.close()
     del audio
