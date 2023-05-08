@@ -154,7 +154,7 @@ def split_audio(records: list[dict], input_dir: str | Path) -> None:
     audio = AudioSegment.from_wav(str(audio_path))
     assert isinstance(audio, AudioSegment)
 
-    for record in tqdm(records, leave=False, desc=f"Processing {audio_path}"):
+    for record in records:
         split_single_audio(
             audio=audio, record=record, processed_audio_dir=processed_audio_dir
         )
