@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pandas as pd
 from datasets import Audio, Dataset, DatasetDict
-from joblib import Parallel, delayed
 from pydub import AudioSegment
 from tqdm.auto import tqdm
 
@@ -74,13 +73,10 @@ def build_and_store_data(
         df["src_fname"] = df.utterance_id.map(
             lambda id_str: "_".join(id_str.split("_")[1:3])
         )
-        with Parallel(n_jobs=n_jobs) as parallel:
-            parallel(
-                delayed(split_audio)(
-                    records=df.query("src_fname == @src_name").to_dict("records"),
-                    input_dir=input_dir,
-                )
-                for src_name in tqdm(df.src_fname.unique(), desc=split, leave=False)
+        for src_name in tqdm(df.src_fname.unique(), desc=split, leave=False):
+            split_audio(
+                records=df.query("src_fname == @src_name").to_dict("records"),
+                input_dir=input_dir,
             )
 
     # Add an `audio` column to the dataframes, containing the paths to the audio files
