@@ -1,7 +1,6 @@
 """Functions related to building the FTSpeech dataset."""
 
 import logging
-import multiprocessing as mp
 from pathlib import Path
 
 import pandas as pd
@@ -15,9 +14,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def build_and_store_data(
-    input_dir: Path | str, output_dir: Path | str, n_jobs: int = -1
-) -> None:
+def build_and_store_data(input_dir: Path | str, output_dir: Path | str) -> None:
     """Builds and saves the FTSpeech dataset.
 
     Args:
@@ -25,17 +22,11 @@ def build_and_store_data(
             The directory where the raw dataset is stored.
         output_dir (str or Path):
             The path to the resulting dataset.
-        n_jobs (int, optional):
-            The number of jobs to use for parallel processing. Can be a negative number
-            to use all available cores minus `n_jobs`. Defaults to -1, meaning all
-            available cores minus 1.
 
     Raises:
         FileNotFoundError:
             If `input_dir` does not exist.
     """
-    n_jobs = mp.cpu_count() + n_jobs if n_jobs <= 0 else n_jobs
-
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
 
@@ -163,7 +154,7 @@ def split_audio(records: list[dict], input_dir: str | Path) -> None:
     audio = AudioSegment.from_wav(str(audio_path))
     assert isinstance(audio, AudioSegment)
 
-    for record in records:
+    for record in tqdm(records, leave=False, desc=f"Processing {audio_path}"):
         split_single_audio(
             audio=audio, record=record, processed_audio_dir=processed_audio_dir
         )
