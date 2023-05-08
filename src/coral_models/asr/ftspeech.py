@@ -2,6 +2,7 @@
 
 import logging
 import multiprocessing as mp
+from multiprocessing import process
 from pathlib import Path
 
 import pandas as pd
@@ -71,9 +72,16 @@ def build_and_store_data(
 
     # Split the audio files
     for split, df in tqdm(list(dfs.items()), desc="Splitting audio"):
-        with tqdm(df.to_dict("records"), desc=split, leave=False) as pbar:
-            with Parallel(n_jobs=n_jobs) as parallel:
-                parallel(delayed(split_audio)(record, input_dir) for record in pbar)
+        df["src_fname"] = df.utterance_id.map(
+            lambda id_str: "_".join(id_str.split("_")[1:3])
+        )
+        for src_name in tqdm(df.src_fname.unique(), desc=split, leave=False):
+            records = df.query("src_fname == @src_name").to_dict("records")
+            split_audio(
+                records=records,
+                input_dir=input_dir,
+                n_jobs=n_jobs,
+            )
 
     # Add an `audio` column to the dataframes, containing the paths to the audio files
     for split, df in dfs.items():
@@ -127,41 +135,76 @@ def preprocess_transcription(transcription: str) -> str:
     return transcription
 
 
-def split_audio(record: dict, input_path: str | Path) -> None:
+def split_audio(records: list[dict], input_dir: str | Path, n_jobs: int) -> None:
     """Loads a full audio clip and splits it according to the record.
 
     Args:
-        record (dict):
-            The record containing the audio data. Needs to have columns
-            `utterance_id`, `start_time` and `end_time`.
-        input_path (str or Path):
+        records (list[dict]):
+            A list of records, each containing the following keys: `utterance_id`,
+            `start_time`, `end_time`.
+        input_dir (str or Path):
             The path to the directory where the raw dataset is stored.
+        n_jobs (int):
+            The number of jobs to use for parallel processing. Can be a negative number
+            to use all available cores minus `n_jobs`.
     """
-    # Ensure that `input_path` is a Path object
-    input_path = Path(input_path)
+    # Ensure that `input_dir` is a Path object
+    input_dir = Path(input_dir)
 
     # Build the path where we will save the audio
-    new_filename: str = record["utterance_id"] + ".wav"
-    new_audio_path: Path = input_path / "processed_audio" / new_filename
+    processed_audio_dir = input_dir / "processed_audio"
+    new_audio_paths: list[Path] = [
+        processed_audio_dir / record["utterance_id"] + ".wav" for record in records
+    ]
 
     # If the audio file already exists, we don't need to do anything
-    if new_audio_path.exists():
+    if all(new_audio_path.exists() for new_audio_path in new_audio_paths):
         return
 
-    # Build the path to the original audio file
-    year: str = record["utterance_id"].split("_")[1][:4]
-    filename = "_".join(record["utterance_id"].split("_")[1:3]) + ".wav"
-    audio_path: Path = input_path / "audio" / year / filename
+    # Load the audio
+    _, year_with_a_one_at_the_end, code, _ = records[0]["utterance_id"].split("_")
+    year: str = year_with_a_one_at_the_end[:4]
+    filename = f"{year_with_a_one_at_the_end}_{code}.wav"
+    audio_path: Path = input_dir / "audio" / year / filename
+    audio = AudioSegment.from_wav(str(audio_path))
+    assert isinstance(audio, AudioSegment)
 
-    # Get the start and end times in milliseconds, as `pydub` works with audio files in
-    # milliseconds
+    with Parallel(n_jobs=n_jobs) as parallel:
+        parallel(
+            delayed(split_single_audio)(
+                audio=audio, record=record, processed_audio_dir=processed_audio_dir
+            )
+            for record in records
+        )
+
+
+def split_single_audio(
+    processed_audio_dir: Path, record: dict, audio: AudioSegment
+) -> None:
+    """Split an audio file as according to a record containing start and end times.
+
+    Args:
+        processed_audio_dir (Path):
+            The data directory where the processed audio files are stored.
+        record (dict):
+            The record, which has to have the keys "utterance_id", "start_time" and
+            "end_time".
+        audio (AudioSegment):
+            The audio to split.
+    """
+    new_audio_path = processed_audio_dir / record["utterance_id"] + ".wav"
+
+    # Get the start and end times in milliseconds, as `pydub` works with audio
+    # files in milliseconds
     start_time: int = record["start_time"] * 1000
     end_time: int = record["end_time"] * 1000
 
-    # Load the audio and slice it according to the start and end times in the record
-    audio: AudioSegment = AudioSegment.from_wav(str(audio_path))[start_time:end_time]
+    # Load the audio and slice it according to the start and end times in the
+    # record
+    audio_segment = audio[start_time:end_time]
+    assert isinstance(audio_segment, AudioSegment)
 
     # Store the sliced audio
-    out_ = audio.export(str(new_audio_path.resolve()), format="wav")
+    out_ = audio_segment.export(str(new_audio_path.resolve()), format="wav")
     out_.close()
-    del audio
+    del audio_segment
