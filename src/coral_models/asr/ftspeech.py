@@ -14,7 +14,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def build_and_store_data(input_dir: Path | str, output_dir: Path | str) -> None:
+def build_and_store_ftspeech(input_dir: Path | str, output_dir: Path | str) -> None:
     """Builds and saves the FTSpeech dataset.
 
     Args:

@@ -6,7 +6,7 @@ Usage:
 
 import click
 
-from coral_models.asr.ftspeech import build_and_store_data
+from coral_models.asr.ftspeech import build_and_store_ftspeech
 
 
 @click.command()
@@ -21,7 +21,7 @@ def main(raw_data_dir: str, output_dir: str) -> None:
         output_dir (str):
             The path to the resulting dataset.
     """
-    build_and_store_data(input_dir=raw_data_dir, output_dir=output_dir)
+    build_and_store_ftspeech(input_dir=raw_data_dir, output_dir=output_dir)
 
 
 if __name__ == "__main__":
