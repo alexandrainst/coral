@@ -135,7 +135,7 @@ def preprocess_transcription(transcription: str) -> str:
     return transcription
 
 
-def split_audio(records: list[dict], input_dir: str | Path, n_jobs: int) -> None:
+def split_audio(records: list[dict], input_dir: str | Path) -> None:
     """Loads a full audio clip and splits it according to the record.
 
     Args:
@@ -145,9 +145,6 @@ def split_audio(records: list[dict], input_dir: str | Path, n_jobs: int) -> None
             audio clip.
         input_dir (str or Path):
             The path to the directory where the raw dataset is stored.
-        n_jobs (int):
-            The number of jobs to use for parallel processing. Can be a negative number
-            to use all available cores minus `n_jobs`.
     """
     # Ensure that `input_dir` is a Path object
     input_dir = Path(input_dir)
