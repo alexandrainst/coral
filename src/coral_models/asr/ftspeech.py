@@ -2,7 +2,6 @@
 
 import logging
 import multiprocessing as mp
-from multiprocessing import process
 from pathlib import Path
 
 import pandas as pd
@@ -75,12 +74,13 @@ def build_and_store_data(
         df["src_fname"] = df.utterance_id.map(
             lambda id_str: "_".join(id_str.split("_")[1:3])
         )
-        for src_name in tqdm(df.src_fname.unique(), desc=split, leave=False):
-            records = df.query("src_fname == @src_name").to_dict("records")
-            split_audio(
-                records=records,
-                input_dir=input_dir,
-                n_jobs=n_jobs,
+        with Parallel(n_jobs=n_jobs) as parallel:
+            parallel(
+                delayed(split_audio)(
+                    records=df.query("src_fname == @src_name").to_dict("records"),
+                    input_dir=input_dir,
+                )
+                for src_name in tqdm(df.src_fname.unique(), desc=split, leave=False)
             )
 
     # Add an `audio` column to the dataframes, containing the paths to the audio files
@@ -170,12 +170,9 @@ def split_audio(records: list[dict], input_dir: str | Path, n_jobs: int) -> None
     audio = AudioSegment.from_wav(str(audio_path))
     assert isinstance(audio, AudioSegment)
 
-    with Parallel(n_jobs=n_jobs) as parallel:
-        parallel(
-            delayed(split_single_audio)(
-                audio=audio, record=record, processed_audio_dir=processed_audio_dir
-            )
-            for record in records
+    for record in records:
+        split_single_audio(
+            audio=audio, record=record, processed_audio_dir=processed_audio_dir
         )
 
 
