@@ -141,7 +141,8 @@ def split_audio(records: list[dict], input_dir: str | Path, n_jobs: int) -> None
     Args:
         records (list[dict]):
             A list of records, each containing the following keys: `utterance_id`,
-            `start_time`, `end_time`.
+            `start_time`, `end_time`. It is assumed that they all refer to the same
+            audio clip.
         input_dir (str or Path):
             The path to the directory where the raw dataset is stored.
         n_jobs (int):
@@ -154,7 +155,7 @@ def split_audio(records: list[dict], input_dir: str | Path, n_jobs: int) -> None
     # Build the path where we will save the audio
     processed_audio_dir = input_dir / "processed_audio"
     new_audio_paths: list[Path] = [
-        processed_audio_dir / record["utterance_id"] + ".wav" for record in records
+        processed_audio_dir / (record["utterance_id"] + ".wav") for record in records
     ]
 
     # If the audio file already exists, we don't need to do anything
