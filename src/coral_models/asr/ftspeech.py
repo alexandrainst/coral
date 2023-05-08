@@ -192,7 +192,7 @@ def split_single_audio(
         audio (AudioSegment):
             The audio to split.
     """
-    new_audio_path = processed_audio_dir / record["utterance_id"] + ".wav"
+    new_audio_path = processed_audio_dir / (record["utterance_id"] + ".wav")
 
     # Get the start and end times in milliseconds, as `pydub` works with audio
     # files in milliseconds
