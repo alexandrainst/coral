@@ -28,6 +28,7 @@ def load_data(cfg: DictConfig) -> DatasetDict:
         path=cfg.dataset.id,
         name=cfg.dataset.subset,
         use_auth_token=os.getenv("HUGGINGFACE_HUB_TOKEN"),
+        streaming=True,
     )
     assert isinstance(dataset, DatasetDict)
 
