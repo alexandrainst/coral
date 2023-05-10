@@ -1,6 +1,6 @@
 """Functions related to the preprocessing of the data for Wav2Vec 2.0 models."""
 
-from datasets import Audio, DatasetDict
+from datasets import Audio, DatasetDict, IterableDatasetDict
 from omegaconf import DictConfig
 from transformers import (
     PreTrainedTokenizerBase,
@@ -27,44 +27,50 @@ class ModifiedWav2Vec2Processor(Wav2Vec2Processor):
         self.tokenizer: PreTrainedTokenizerBase = kwargs["tokenizer"]
         super().__init__(**kwargs)
 
-    def preprocess(self, dataset: DatasetDict) -> DatasetDict:
+    def preprocess(
+        self, dataset: DatasetDict | IterableDatasetDict
+    ) -> DatasetDict | IterableDatasetDict:
         """Preprocess the audio and transcriptions in a dataset.
 
         Args:
-            dataset (DatasetDict):
+            dataset (DatasetDict or IterableDatasetDict):
                 The dataset containing the audio and transcriptions.
 
         Returns:
-            DatasetDict:
+            DatasetDict or IterableDatasetDict:
                 The preprocessed audio and transcriptions dataset.
         """
         dataset = self.preprocess_audio(dataset=dataset)
         dataset = self.preprocess_transcriptions(dataset=dataset)
         return dataset
 
-    def preprocess_audio(self, dataset: DatasetDict) -> DatasetDict:
+    def preprocess_audio(
+        self, dataset: DatasetDict | IterableDatasetDict
+    ) -> DatasetDict | IterableDatasetDict:
         """Preprocess the audio feature in a dataset.
 
         Args:
-            dataset (DatasetDict):
+            dataset (DatasetDict or IterableDatasetDict):
                 The dataset containing the audio feature.
 
         Returns:
-            DatasetDict:
+            DatasetDict or IterableDatasetDict:
                 The preprocessed audio dataset.
         """
         audio = Audio(sampling_rate=self.cfg.model.sampling_rate)
         return dataset.cast_column("audio", audio)
 
-    def preprocess_transcriptions(self, dataset: DatasetDict) -> DatasetDict:
+    def preprocess_transcriptions(
+        self, dataset: DatasetDict | IterableDatasetDict
+    ) -> DatasetDict | IterableDatasetDict:
         """Preprocess the transcriptions in a dataset.
 
         Args:
-            dataset (DatasetDict):
+            dataset (DatasetDict or IterableDatasetDict):
                 The dataset containing the transcriptions.
 
         Returns:
-            DatasetDict:
+            DatasetDict or IterableDatasetDict:
                 The preprocessed transcriptions dataset.
         """
 

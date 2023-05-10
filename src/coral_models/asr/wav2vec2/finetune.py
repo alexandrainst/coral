@@ -3,7 +3,7 @@
 import logging
 from functools import partial
 
-from datasets import DatasetDict
+from datasets import DatasetDict, IterableDatasetDict
 from omegaconf import DictConfig
 from torch.backends.mps import is_available as mps_is_available
 from transformers import (
@@ -65,7 +65,7 @@ def finetune_wav2vec2(cfg: DictConfig) -> None:
 
 def load_preprocessed_dataset(
     cfg: DictConfig,
-) -> tuple[DatasetDict, ModifiedWav2Vec2Processor]:
+) -> tuple[DatasetDict | IterableDatasetDict, ModifiedWav2Vec2Processor]:
     """Load the dataset, clean it and preprocess it.
 
     Args:
@@ -73,7 +73,7 @@ def load_preprocessed_dataset(
             The Hydra configuration object.
 
     Returns:
-        pair of DatasetDict and ModifiedWav2Vec2Processor:
+        pair of DatasetDict or IterableDataset, and ModifiedWav2Vec2Processor:
             The preprocessed dataset, and the processor used to preprocess it.
     """
     logger.info("Loading dataset...")

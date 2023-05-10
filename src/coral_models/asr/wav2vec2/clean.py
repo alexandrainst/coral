@@ -3,21 +3,24 @@
 import re
 from unicodedata import normalize
 
-from datasets import DatasetDict
+from datasets import DatasetDict, IterableDatasetDict
 from omegaconf import DictConfig
 
 
-def clean_dataset(cfg: DictConfig, dataset: DatasetDict) -> DatasetDict:
+def clean_dataset(
+    cfg: DictConfig,
+    dataset: DatasetDict | IterableDatasetDict,
+) -> DatasetDict | IterableDatasetDict:
     """Clean the transcriptions in a dataset.
 
     Args:
         cfg (DictConfig):
             The Hydra configuration object.
-        dataset (DatasetDict):
+        dataset (DatasetDict or IterableDatasetDict):
             The dataset to be cleaned.
 
     Returns:
-        DatasetDict:
+        DatasetDict or IterableDatasetDict:
             The cleaned dataset.
     """
 
