@@ -81,7 +81,7 @@ def build_and_store_ftspeech(input_dir: Path | str, output_dir: Path | str) -> N
         dfs[split] = df
 
     # Remove unused columns
-    cols_to_drop = ["utterance_id", "start_time", "end_time", "transcript"]
+    cols_to_drop = ["src_fname", "start_time", "end_time", "transcript"]
     for split, df in dfs.items():
         df = df.drop(columns=cols_to_drop)
         dfs[split] = df
@@ -98,7 +98,10 @@ def build_and_store_ftspeech(input_dir: Path | str, output_dir: Path | str) -> N
     dataset = dataset.cast_column("audio", Audio(sampling_rate=16_000))
 
     logger.info(f"Saving the dataset to {output_dir}...")
-    dataset.save_to_disk(str(output_dir))
+    dataset.save_to_disk(str(output_dir / "ftspeech"))
+
+    text_dataset = dataset.remove_columns("audio")
+    text_dataset.save_to_disk(str(output_dir / "ftspeech-text"))
 
 
 def preprocess_transcription(transcription: str) -> str:
