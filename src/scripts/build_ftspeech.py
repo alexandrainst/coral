@@ -9,9 +9,17 @@ import click
 from coral_models.asr.ftspeech import build_and_store_ftspeech
 
 
-@click.command()
-@click.argument("raw_data_dir", type=click.Path(exists=True))
-@click.argument("output_dir", type=click.Path())
+@click.command(help="Builds and stores the FTSpeech dataset.")
+@click.argument(
+    "raw_data_dir",
+    type=click.Path(exists=True),
+    help="The directory where the raw data is stored.",
+)
+@click.argument(
+    "output_dir",
+    type=click.Path(),
+    help="The directory where the compiled dataset will be stored.",
+)
 def main(raw_data_dir: str, output_dir: str) -> None:
     """Builds and stores the FTSpeech dataset.
 
