@@ -10,7 +10,7 @@ from datasets import DatasetDict
 
 @click.command("Pushes a compiled FTSpeech dataset to the Hugging Face Hub.")
 @click.argument(
-    "compiled-dataset-dir",
+    "compiled-data-dir",
     type=click.Path(exists=True),
 )
 @click.option(
