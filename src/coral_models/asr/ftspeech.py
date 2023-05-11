@@ -1,6 +1,7 @@
 """Functions related to building the FTSpeech dataset."""
 
 import logging
+import multiprocessing as mp
 from pathlib import Path
 
 import pandas as pd
@@ -98,7 +99,11 @@ def build_and_store_ftspeech(input_dir: Path | str, output_dir: Path | str) -> N
     dataset = dataset.cast_column("audio", Audio(sampling_rate=16_000))
 
     logger.info(f"Saving the dataset to {output_dir}...")
-    dataset.save_to_disk(str(output_dir / "ftspeech"))
+    dataset.save_to_disk(
+        str(output_dir / "ftspeech"),
+        max_shard_size="50MB",
+        num_proc=mp.cpu_count() - 1,
+    )
 
 
 def preprocess_transcription(transcription: str) -> str:
