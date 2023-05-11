@@ -8,11 +8,10 @@ import click
 from datasets import DatasetDict
 
 
-@click.command(help="Pushes a compiled FTSpeech dataset to the Hugging Face Hub.")
+@click.command("Pushes a compiled FTSpeech dataset to the Hugging Face Hub.")
 @click.argument(
     "compiled-dataset-dir",
     type=click.Path(exists=True),
-    help="The directory where the compiled dataset is stored.",
 )
 @click.option(
     "--dataset-id",
@@ -33,14 +32,6 @@ def main(compiled_data_dir: str, dataset_id: str, private: bool) -> None:
 
     This also catches RuntimeError exceptions which tends to happen during the upload
     of large datasets, and retries the upload until it succeeds.
-
-    Args:
-        compiled_data_dir (str):
-            The directory where the compiled dataset is stored.
-        dataset_id (str):
-            The ID of the dataset on the Hugging Face Hub.
-        private (bool):
-            Whether to make the dataset private.
     """
     dataset = DatasetDict.load_from_disk(compiled_data_dir)
     while True:
