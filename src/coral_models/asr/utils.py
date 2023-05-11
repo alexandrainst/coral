@@ -18,8 +18,10 @@ def dump_vocabulary(cfg: DictConfig, dataset: Dataset | IterableDataset) -> None
     """
     # Build the set of all unique characters in the dataset
     unique_characters = {"|"}
-    for example in dataset:
-        unique_characters.update(example[cfg.data.text_column])
+    dataset.remove_columns("audio").map(
+        lambda exs: unique_characters.update("".join(exs[cfg.data.text_column])),
+        batched=True,
+    )
 
     # Build vocabulary
     vocab = {char: idx for idx, char in enumerate(unique_characters)}
