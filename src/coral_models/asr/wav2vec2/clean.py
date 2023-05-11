@@ -23,14 +23,6 @@ def clean_dataset(
         DatasetDict or IterableDatasetDict:
             The cleaned dataset.
     """
-
-    # This contains all the punctuation characters that will be removed from the
-    # transcriptions, as they do not have an influence on the pronunciation of the
-    # words.
-    non_standard_characters_regex = re.compile(
-        f"[^{re.escape(cfg.characters_to_keep)}]"
-    )
-
     # Dictionary that contains characters to be converted (from the key to the value).
     # Some values contain spaces to ensure that they're separated from other
     # characters, and superfluous spaces are removed later. Note also that these are
@@ -73,6 +65,13 @@ def clean_dataset(
         "\u0301": " ",  # Empty whitespace symbol
         "\u200b": " ",  # Empty whitespace symbol
     }
+
+    # This contains all the punctuation characters that will be removed from the
+    # transcriptions, as they do not have an influence on the pronunciation of the
+    # words.
+    non_standard_characters_regex = re.compile(
+        f"[^{re.escape(cfg.characters_to_keep)}]"
+    )
 
     def clean_examples(example: dict) -> dict:
         example[cfg.dataset.text_column] = clean_transcription(
