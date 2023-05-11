@@ -14,6 +14,9 @@ from datasets import DatasetDict
 def main(compiled_data_dir: str, dataset_id: str) -> None:
     """Builds and stores the FTSpeech dataset.
 
+    This also catches RuntimeError exceptions which tends to happen during the upload
+    of large datasets, and retries the upload until it succeeds.
+
     Args:
         compiled_data_dir (str):
             The directory where the compiled dataset is stored.
