@@ -100,7 +100,7 @@ def build_and_store_ftspeech(input_dir: Path | str, output_dir: Path | str) -> N
 
     logger.info(f"Saving the dataset to {output_dir}...")
     dataset.save_to_disk(
-        str(output_dir / "ftspeech"),
+        str(output_dir),
         max_shard_size="50MB",
         num_proc=mp.cpu_count() - 1,
     )
