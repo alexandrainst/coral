@@ -27,7 +27,9 @@ def clean_dataset(
     # This contains all the punctuation characters that will be removed from the
     # transcriptions, as they do not have an influence on the pronunciation of the
     # words.
-    punctuation_regex = re.compile(r"[\[\]\{\}\(\)\,\.\!\;\:\"\“\'\’\”\�\•\n\r\⁄\’\~]")
+    non_standard_characters_regex = re.compile(
+        f"[^{re.escape(cfg.characters_to_keep)}]"
+    )
 
     # Dictionary that contains characters to be converted (from the key to the value).
     # Some values contain spaces to ensure that they're separated from other
@@ -75,7 +77,7 @@ def clean_dataset(
     def clean_examples(example: dict) -> dict:
         example[cfg.dataset.text_column] = clean_transcription(
             doc=example[cfg.dataset.text_column],
-            punctuation_regex=punctuation_regex,
+            non_standard_characters_regex=non_standard_characters_regex,
             conversion_dict=conversion_dict,
         )
         return example
@@ -85,7 +87,7 @@ def clean_dataset(
 
 def clean_transcription(
     doc: str,
-    punctuation_regex: re.Pattern[str],
+    non_standard_characters_regex: re.Pattern[str],
     conversion_dict: dict[str, str],
 ) -> str:
     """Cleans the transcription of a document.
@@ -93,8 +95,8 @@ def clean_transcription(
     Args:
         doc (str):
             A document to be cleaned.
-        punctuation_regex (compiled regex expression):
-            A compiled regular expression for punctuation.
+        non_standard_characters_regex (compiled regex expression):
+            A compiled regex expression that matches all non-standard characters.
         conversion_dict (dict[str, str]):
             A dictionary of characters to be converted.
 
@@ -106,11 +108,11 @@ def clean_transcription(
     # "long dash" (－) is converted to the normal dash (-).
     doc = normalize("NFKC", doc)
 
-    # Normalise the transcription further by removing punctuation and substituting
-    # special characters
-    doc = re.sub(punctuation_regex, "", doc)
+    # Normalise the transcription further by substituting special characters and
+    # removing anything but the standard characters
     for key, value in conversion_dict.items():
         doc = doc.replace(key, value)
+    doc = re.sub(non_standard_characters_regex, "", doc)
 
     # Replace spaces with a pipe, to emphasise the word boundaries
     doc = re.sub(r" +", "|", doc)

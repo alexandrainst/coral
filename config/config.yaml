@@ -11,8 +11,12 @@ dirs:
   final: final
   models: models
 
+# Model parameters
 pipeline_id: ${model.name}-${dataset.name}
 hub_id: alexandrainst/${pipeline_id}
 model_dir: ${dirs.models}/${pipeline_id}
 push_to_hub: false
 resume_from_checkpoint: false
+
+# Data parameters
+characters_to_keep: 'a-zæøå0-9é|'
