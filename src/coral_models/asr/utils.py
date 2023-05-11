@@ -10,6 +10,8 @@ from omegaconf import DictConfig
 def dump_vocabulary(cfg: DictConfig, dataset: Dataset | IterableDataset) -> None:
     """Extracts the vocabulary from the dataset and dumps it to a file.
 
+    It will dump the file to `${cfg.model_dir}/vocab.json`.
+
     Args:
         cfg (DictConfig):
             The Hydra configuration object.
