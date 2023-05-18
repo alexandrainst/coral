@@ -21,7 +21,7 @@ def dump_vocabulary(cfg: DictConfig, dataset: Dataset | IterableDataset) -> None
     # Build the set of all unique characters in the dataset
     unique_characters = {"|"}
     mapped_dataset = dataset.remove_columns("audio").map(
-        lambda exs: unique_characters.update("".join(exs[cfg.data.text_column])),
+        lambda exs: unique_characters.update("".join(exs[cfg.dataset.text_column])),
         batched=True,
     )
 
