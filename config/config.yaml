@@ -19,4 +19,4 @@ push_to_hub: false
 resume_from_checkpoint: false
 
 # Data parameters
-characters_to_keep: 'a-zæøå0-9é|'
+characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789é|'
