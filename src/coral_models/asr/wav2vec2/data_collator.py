@@ -45,7 +45,7 @@ class DataCollatorCTCWithPadding:
         """
         # Split inputs and labels since they have to be of different lenghts and need
         # different padding methods
-        input_features = [
+        audio_features = [
             {
                 "input_values": self.processor(
                     feature["audio"]["array"],
@@ -56,14 +56,12 @@ class DataCollatorCTCWithPadding:
         ]
         label_features = [{"input_ids": feature["labels"]} for feature in features]
 
-        # Process audio
         batch: BatchFeature = self.processor.pad(  # type: ignore
-            input_features,
+            audio_features,
             padding=self.padding,
             return_tensors="pt",
         )
 
-        # Process labels
         with self.processor.as_target_processor():
             labels_batch: BatchEncoding = self.processor.pad(  # type: ignore
                 label_features,

@@ -113,7 +113,6 @@ def clean_transcription(
     # "long dash" (－) is converted to the normal dash (-).
     doc = normalize("NFKC", doc)
 
-    # Normalise the transcription further by substituting special characters
     for key, value in conversion_dict.items():
         doc = doc.replace(key, value)
 

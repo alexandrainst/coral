@@ -18,8 +18,6 @@ class TestCleanDataset:
         assert set(cleaned_dataset.keys()) == {"train", "val", "test"}
 
     def test_train_samples(self, cfg, cleaned_dataset) -> None:
-        for sample in cleaned_dataset["train"]:
-            print(sample)
         samples = [
             sample[cfg.dataset.text_column] for sample in cleaned_dataset["train"]
         ]
