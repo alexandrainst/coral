@@ -76,7 +76,8 @@ class ModifiedWav2Vec2Processor(Wav2Vec2Processor):
 
         def tokenize_examples(example: dict) -> dict:
             example["labels"] = self(
-                text=example[self.cfg.dataset.text_column]
+                text=example[self.cfg.dataset.text_column],
+                truncation=True,
             ).input_ids
             example["input_length"] = len(example["labels"])
             return example
