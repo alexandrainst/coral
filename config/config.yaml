@@ -20,3 +20,6 @@ resume_from_checkpoint: false
 
 # Data parameters
 characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789é|'
+
+# Training parameters
+wandb: false

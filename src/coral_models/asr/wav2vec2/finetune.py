@@ -131,7 +131,7 @@ def load_training_args(cfg: DictConfig) -> TrainingArguments:
         remove_unused_columns=False,
         optim=OptimizerNames.ADAMW_TORCH,
         use_mps_device=mps_is_available(),
-        report_to=[],
+        report_to=["wandb"] if cfg.wandb else [],
     )
 
 
