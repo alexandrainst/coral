@@ -85,7 +85,7 @@ def load_preprocessed_dataset(
     dataset = clean_dataset(cfg, dataset=dataset)
 
     logger.debug("Dumping vocabulary...")
-    dump_vocabulary(cfg, dataset=dataset[cfg.dataset.train_name])
+    dump_vocabulary(cfg)
 
     logger.debug("Preprocessing dataset...")
     processor = load_processor(cfg)
@@ -114,14 +114,13 @@ def load_training_args(cfg: DictConfig) -> TrainingArguments:
         gradient_accumulation_steps=cfg.model.gradient_accumulation_steps,
         learning_rate=cfg.model.learning_rate,
         warmup_steps=cfg.model.warmup_steps,
-        num_train_epochs=cfg.model.epochs,
+        max_steps=cfg.model.max_steps,
         fp16=cfg.model.fp16 and not mps_is_available(),
         push_to_hub=cfg.push_to_hub,
         evaluation_strategy="steps",
         eval_steps=cfg.model.eval_steps,
         save_steps=cfg.model.save_steps,
         logging_steps=cfg.model.logging_steps,
-        group_by_length=True,
         length_column_name="input_length",
         gradient_checkpointing=True,
         save_total_limit=cfg.model.save_total_limit,

@@ -3,11 +3,10 @@
 import json
 from pathlib import Path
 
-from datasets import Dataset, IterableDataset
 from omegaconf import DictConfig
 
 
-def dump_vocabulary(cfg: DictConfig, dataset: Dataset | IterableDataset) -> None:
+def dump_vocabulary(cfg: DictConfig) -> None:
     """Extracts the vocabulary from the dataset and dumps it to a file.
 
     It will dump the file to `${cfg.model_dir}/vocab.json`.
@@ -15,21 +14,9 @@ def dump_vocabulary(cfg: DictConfig, dataset: Dataset | IterableDataset) -> None
     Args:
         cfg (DictConfig):
             The Hydra configuration object.
-        dataset (Dataset or IterableDataset):
-            The dataset from which to extract the vocabulary.
     """
     # Build the set of all unique characters in the dataset
-    unique_characters = {"|"}
-    mapped_dataset = dataset.remove_columns("audio").map(
-        lambda exs: unique_characters.update("".join(exs[cfg.dataset.text_column])),
-        batched=True,
-    )
-
-    # If the dataset is iterable then the `map` method is lazy and we need to iterate
-    # over it to actually execute the mapping
-    if isinstance(mapped_dataset, IterableDataset):
-        for _ in mapped_dataset:
-            pass
+    unique_characters: set[str] = set(cfg.characters_to_keep)
 
     # Build vocabulary
     vocab = {char: idx for idx, char in enumerate(unique_characters)}
