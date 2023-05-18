@@ -22,7 +22,7 @@ language_model_decoder: null
 # Training hyperparameters
 batch_size: 1
 gradient_accumulation_steps: 1
-epochs: 1
+max_steps: 3
 learning_rate: 4e-5
 warmup_steps: 1
 early_stopping: true
