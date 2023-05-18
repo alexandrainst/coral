@@ -1,11 +1,11 @@
 """Functions related to the finetuning of Wav2Vec 2.0 models on ASR datasets."""
 
 import logging
-import sys
 from functools import partial
 
 from datasets import DatasetDict, IterableDatasetDict
 from omegaconf import DictConfig
+from torch.backends.mps import is_available as mps_is_available
 from transformers import (
     EarlyStoppingCallback,
     Trainer,
@@ -22,12 +22,6 @@ from .clean import clean_dataset
 from .compute_metrics import compute_metrics
 from .data_collator import DataCollatorCTCWithPadding
 from .preprocess import ModifiedWav2Vec2Processor, load_processor
-
-if not hasattr(sys, "_called_from_test"):
-    from torch.backends.mps import is_available as mps_is_available
-else:
-    mps_is_available = lambda: False
-
 
 logger = logging.getLogger(__name__)
 
