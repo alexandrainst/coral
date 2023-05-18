@@ -81,7 +81,13 @@ def clean_dataset(
         )
         return example
 
-    return dataset.map(clean_examples)
+    mapped = dataset.map(clean_examples)
+
+    # After calling `map` the DatasetInfo is lost, so we need to add it back in
+    for split in dataset.keys():
+        mapped[split]._info = dataset[split]._info
+
+    return mapped
 
 
 def clean_transcription(
