@@ -6,7 +6,7 @@ Usage:
 
 import click
 
-from coral_models.asr.ftspeech import build_and_store_ftspeech
+from coral_models import build_and_store_ftspeech
 
 
 @click.command("Builds and stores the FTSpeech dataset.")

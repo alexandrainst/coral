@@ -9,9 +9,6 @@ from datasets import Audio, Dataset, DatasetDict
 from pydub import AudioSegment
 from tqdm.auto import tqdm
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
-)
 logger = logging.getLogger(__name__)
 
 
