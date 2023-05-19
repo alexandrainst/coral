@@ -111,7 +111,7 @@ def load_training_args(cfg: DictConfig) -> TrainingArguments:
         hub_model_id=cfg.hub_id,
         per_device_train_batch_size=cfg.model.batch_size,
         per_device_eval_batch_size=cfg.model.batch_size,
-        gradient_accumulation_steps=cfg.model.gradient_accumulation_steps,
+        gradient_accumulation_steps=cfg.model.gradient_accumulation,
         learning_rate=cfg.model.learning_rate,
         warmup_steps=cfg.model.warmup_steps,
         max_steps=cfg.model.max_steps,
