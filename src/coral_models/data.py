@@ -28,7 +28,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         path=cfg.dataset.id,
         name=cfg.dataset.subset,
         use_auth_token=os.getenv("HUGGINGFACE_HUB_TOKEN"),
-        streaming=True,
+        streaming=False,  # True,
     )
 
     # Only include the train, validation and test splits of the dataset, and rename
