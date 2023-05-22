@@ -95,6 +95,7 @@ def preprocess_transcriptions(
     mapped = dataset.map(tokenize_examples)
 
     # After calling `map` the DatasetInfo is lost, so we need to add it back in
+    breakpoint()
     mapped._info = dataset._info
     return mapped
 
