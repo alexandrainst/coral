@@ -68,6 +68,7 @@ def main(cfg: DictConfig) -> None:
     trainer.log = lambda _: None
 
     # Evaluate the model
+    breakpoint()
     metrics = trainer.evaluate(dataset)
 
     # Extract the WER
