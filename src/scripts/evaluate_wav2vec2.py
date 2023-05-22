@@ -21,7 +21,7 @@ from coral_models.data import load_data
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
-def evaluate(cfg: DictConfig) -> None:
+def main(cfg: DictConfig) -> None:
     """Evaluate ASR models on a dataset"""
     dataset: Dataset | IterableDataset = load_data(cfg)["test"]
 
@@ -96,3 +96,7 @@ def preprocess_transcriptions(
         return example
 
     return dataset.map(tokenize_examples)
+
+
+if __name__ == "__main__":
+    main()
