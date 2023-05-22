@@ -3,8 +3,6 @@
 from functools import partial
 
 import hydra
-
-# import transformers.utils.logging as tf_logging
 from datasets import Audio, Dataset, IterableDataset, Sequence, Value
 from omegaconf import DictConfig
 from transformers import (
@@ -38,7 +36,6 @@ def main(cfg: DictConfig) -> None:
             processor = Wav2Vec2Processor.from_pretrained(
                 cfg.hub_id, use_auth_token=True
             )
-    model = Wav2Vec2ForCTC.from_pretrained(cfg.hub_id, use_auth_token=True)
 
     # Clean and tokenize the transcriptions
     dataset = clean_dataset(cfg, dataset=dataset)
@@ -49,32 +46,20 @@ def main(cfg: DictConfig) -> None:
         dataset=dataset, processor=processor, text_column=cfg.dataset.text_column
     )
 
-    # Initialise data collator
-    data_collator = DataCollatorCTCWithPadding(processor=processor, padding="longest")
-
-    # Initialise the trainer
     trainer = Trainer(
-        args=TrainingArguments(".", remove_unused_columns=False),
-        model=model,
-        data_collator=data_collator,
+        args=TrainingArguments(".", remove_unused_columns=False, report_to=[]),
+        model=Wav2Vec2ForCTC.from_pretrained(cfg.hub_id, use_auth_token=True),
+        data_collator=DataCollatorCTCWithPadding(
+            processor=processor, padding="longest"
+        ),
         compute_metrics=partial(compute_metrics, processor=processor),
         eval_dataset=dataset,
         tokenizer=processor.tokenizer,
     )
 
-    # Disable most of the `transformers` logging
-    # tf_logging.set_verbosity_error()
-
-    # Remove trainer logging
-    # trainer.log = lambda _: None
-
-    # Evaluate the model
     metrics = trainer.evaluate(dataset)
-
-    # Extract the WER
     wer = 100 * metrics["eval_wer"]
 
-    # Print the metrics
     print(f"\n*** RESULTS ON {cfg.dataset.name} ***")
     print(f"{cfg.hub_id} achieved a WER of {wer:.2f}.\n")
 
