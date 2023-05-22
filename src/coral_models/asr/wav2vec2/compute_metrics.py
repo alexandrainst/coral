@@ -3,21 +3,21 @@
 import evaluate
 import numpy as np
 from numpy.typing import NDArray
-from transformers import EvalPrediction, Wav2Vec2ProcessorWithLM
+from transformers import EvalPrediction, Wav2Vec2Processor, Wav2Vec2ProcessorWithLM
 
 from .preprocess import ModifiedWav2Vec2Processor
 
 
 def compute_metrics(
     pred: EvalPrediction,
-    processor: ModifiedWav2Vec2Processor,
+    processor: ModifiedWav2Vec2Processor | Wav2Vec2Processor | Wav2Vec2ProcessorWithLM,
 ) -> dict[str, float]:
     """Compute the word error rate of predictions.
 
     Args:
         pred (EvalPrediction):
             Prediction output of the speech recognition model.
-        processor (ModifiedWav2Vec2Processor):
+        processor (Wav2Vec2Processor):
             Audio and transcription processor.
 
     Returns:
