@@ -4,7 +4,7 @@ from functools import partial
 
 import hydra
 import transformers.utils.logging as tf_logging
-from datasets import Audio, Dataset, IterableDataset
+from datasets import Audio, Dataset, IterableDataset, Sequence, Value
 from omegaconf import DictConfig
 from transformers import (
     Trainer,
@@ -68,7 +68,6 @@ def main(cfg: DictConfig) -> None:
     trainer.log = lambda _: None
 
     # Evaluate the model
-    breakpoint()
     metrics = trainer.evaluate(dataset)
 
     # Extract the WER
@@ -95,8 +94,9 @@ def preprocess_transcriptions(
     mapped = dataset.map(tokenize_examples)
 
     # After calling `map` the DatasetInfo is lost, so we need to add it back in
-    breakpoint()
     mapped._info = dataset._info
+    mapped._info.features["labels"] = Sequence(feature=Value(dtype="int64"), length=-1)
+    mapped._info.features["input_length"] = Value(dtype="int64")
     return mapped
 
 
