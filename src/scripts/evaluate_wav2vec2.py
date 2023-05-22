@@ -3,7 +3,8 @@
 from functools import partial
 
 import hydra
-import transformers.utils.logging as tf_logging
+
+# import transformers.utils.logging as tf_logging
 from datasets import Audio, Dataset, IterableDataset, Sequence, Value
 from omegaconf import DictConfig
 from transformers import (
@@ -62,10 +63,10 @@ def main(cfg: DictConfig) -> None:
     )
 
     # Disable most of the `transformers` logging
-    tf_logging.set_verbosity_error()
+    # tf_logging.set_verbosity_error()
 
     # Remove trainer logging
-    trainer.log = lambda _: None
+    # trainer.log = lambda _: None
 
     # Evaluate the model
     metrics = trainer.evaluate(dataset)
