@@ -48,10 +48,6 @@ def main(cfg: DictConfig) -> None:
         dataset=dataset, processor=processor, text_column=cfg.dataset.text_column
     )
 
-    # Resample the audio
-    audio = Audio(sampling_rate=cfg.dataset.sampling_rate)
-    dataset = dataset.cast_column("audio", audio)
-
     # Initialise data collator
     data_collator = DataCollatorCTCWithPadding(processor=processor, padding="longest")
 
