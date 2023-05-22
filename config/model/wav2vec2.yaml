@@ -10,9 +10,9 @@ attention_dropout: 0.1
 hidden_dropout: 0.1
 feat_proj_dropout: 0.1
 final_dropout: 0.1
-mask_time_prob: 0.075
-mask_feature_prob: 0.075
-mask_feature_length: 10
+mask_time_prob: 0.5
+mask_feature_prob: 0.5
+mask_feature_length: 64
 layerdrop: 0.1
 ctc_loss_reduction: sum
 
@@ -22,13 +22,13 @@ language_model_decoder: null
 # Training hyperparameters
 batch_size: 2
 gradient_accumulation: 16
-max_steps: 100_000
-learning_rate: 4e-5
-warmup_steps: 500
-early_stopping: True
-early_stopping_patience: 5
+max_steps: 120_000
+learning_rate: 3e-5
+warmup_steps: 1000
+early_stopping: true
+early_stopping_patience: 10
 fp16: true
-eval_steps: 500
-save_steps: 500
+eval_steps: 1000
+save_steps: 1000
 logging_steps: 100
 save_total_limit: 2
