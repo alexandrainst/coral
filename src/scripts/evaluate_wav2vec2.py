@@ -72,7 +72,6 @@ def main(cfg: DictConfig) -> None:
     trainer.log = lambda _: None
 
     # Evaluate the model
-    breakpoint()
     metrics = trainer.evaluate(dataset)
 
     # Extract the WER
@@ -89,6 +88,7 @@ def preprocess_transcriptions(
     text_column: str = "sentence",
 ) -> Dataset | IterableDataset:
     def tokenize_examples(example: dict) -> dict:
+        breakpoint()
         example["labels"] = processor(
             text=example[text_column],
             truncation=True,
