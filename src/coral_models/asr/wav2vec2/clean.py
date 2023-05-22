@@ -88,7 +88,6 @@ def clean_dataset(
         for split in dataset.keys():
             mapped[split]._info = dataset[split]._info
     else:
-        breakpoint()
         mapped._info = dataset._info
 
     return mapped

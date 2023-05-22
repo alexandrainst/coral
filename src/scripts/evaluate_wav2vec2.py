@@ -95,7 +95,11 @@ def preprocess_transcriptions(
         example["input_length"] = len(example["labels"])
         return example
 
-    return dataset.map(tokenize_examples)
+    mapped = dataset.map(tokenize_examples)
+
+    # After calling `map` the DatasetInfo is lost, so we need to add it back in
+    mapped._info = dataset._info
+    return mapped
 
 
 if __name__ == "__main__":
