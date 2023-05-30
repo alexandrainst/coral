@@ -22,7 +22,7 @@ from coral_models.data import load_data
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
 def main(cfg: DictConfig) -> None:
     """Evaluate ASR models on a dataset"""
-    dataset: Dataset | IterableDataset = load_data(cfg)[cfg.dataset.test_name]
+    dataset: Dataset | IterableDataset = load_data(cfg)["test"]
 
     # Load the pretrained processor and model
     if cfg.model.language_model_decoder is None:
