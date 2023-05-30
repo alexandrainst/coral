@@ -27,7 +27,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
     dataset = load_dataset(
         path=cfg.dataset.id,
         name=cfg.dataset.subset,
-        use_auth_token=os.getenv("HUGGINGFACE_HUB_TOKEN"),
+        use_auth_token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
         streaming=True,
     )
 
