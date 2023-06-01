@@ -2,6 +2,7 @@
 
 import evaluate
 import numpy as np
+from numpy.typing import NDArray
 from transformers import EvalPrediction, Wav2Vec2ProcessorWithLM
 
 from .preprocess import ModifiedWav2Vec2Processor
@@ -40,7 +41,7 @@ def compute_metrics(
     # logits
     if isinstance(processor, Wav2Vec2ProcessorWithLM):
         try:
-            pred_str = processor.batch_decode(pred_logits).text
+            pred_str: str = processor.batch_decode(pred_logits).text
 
         # This error occurs when there are too few logits compared to the size of the
         # vocabulary. We fix this by simply adding zero logits padding to match the
@@ -54,7 +55,7 @@ def compute_metrics(
     # Otherwise, if we are not using a language model, we need to convert the logits to
     # token IDs and then decode the token IDs to get the predicted string
     else:
-        pred_ids = np.argmax(pred_logits, axis=-1)
+        pred_ids: NDArray[np.int_] = np.argmax(pred_logits, axis=-1)
         pred_str = processor.batch_decode(pred_ids)
 
     # Set the ground truth labels with label id -100 to be the padding token id. This

@@ -3,25 +3,22 @@
 import json
 from pathlib import Path
 
-from datasets import Dataset
 from omegaconf import DictConfig
 
 
-def dump_vocabulary(cfg: DictConfig, dataset: Dataset) -> None:
+def dump_vocabulary(cfg: DictConfig) -> None:
     """Extracts the vocabulary from the dataset and dumps it to a file.
+
+    It will dump the file to `${cfg.model_dir}/vocab.json`.
 
     Args:
         cfg (DictConfig):
             The Hydra configuration object.
-        dataset (Dataset):
-            The dataset from which to extract the vocabulary.
     """
-    # Get all the text in the transcriptions. Note here that we have replaced the word
-    # boundaries by pipes ("|"), so we are splitting on those.
-    all_text = "|".join(dataset[cfg.dataset.text_column])
+    # Build the set of all unique characters in the dataset
+    unique_characters: set[str] = set(cfg.characters_to_keep)
 
     # Build vocabulary
-    unique_characters = set(all_text)
     vocab = {char: idx for idx, char in enumerate(unique_characters)}
     for tok in ["<unk>", "<pad>", "<s>", "</s>"]:
         vocab[tok] = len(vocab)

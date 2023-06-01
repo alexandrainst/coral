@@ -3,7 +3,7 @@
 import logging
 from functools import partial
 
-from datasets import DatasetDict
+from datasets import DatasetDict, IterableDatasetDict
 from omegaconf import DictConfig
 from torch.backends.mps import is_available as mps_is_available
 from transformers import (
@@ -65,7 +65,7 @@ def finetune_wav2vec2(cfg: DictConfig) -> None:
 
 def load_preprocessed_dataset(
     cfg: DictConfig,
-) -> tuple[DatasetDict, ModifiedWav2Vec2Processor]:
+) -> tuple[DatasetDict | IterableDatasetDict, ModifiedWav2Vec2Processor]:
     """Load the dataset, clean it and preprocess it.
 
     Args:
@@ -73,7 +73,7 @@ def load_preprocessed_dataset(
             The Hydra configuration object.
 
     Returns:
-        pair of DatasetDict and ModifiedWav2Vec2Processor:
+        pair of DatasetDict or IterableDataset, and ModifiedWav2Vec2Processor:
             The preprocessed dataset, and the processor used to preprocess it.
     """
     logger.info("Loading dataset...")
@@ -85,7 +85,7 @@ def load_preprocessed_dataset(
     dataset = clean_dataset(cfg, dataset=dataset)
 
     logger.debug("Dumping vocabulary...")
-    dump_vocabulary(cfg, dataset=dataset[cfg.dataset.train_name])
+    dump_vocabulary(cfg)
 
     logger.debug("Preprocessing dataset...")
     processor = load_processor(cfg)
@@ -111,17 +111,16 @@ def load_training_args(cfg: DictConfig) -> TrainingArguments:
         hub_model_id=cfg.hub_id,
         per_device_train_batch_size=cfg.model.batch_size,
         per_device_eval_batch_size=cfg.model.batch_size,
-        gradient_accumulation_steps=cfg.model.gradient_accumulation_steps,
+        gradient_accumulation_steps=cfg.model.gradient_accumulation,
         learning_rate=cfg.model.learning_rate,
         warmup_steps=cfg.model.warmup_steps,
-        num_train_epochs=cfg.model.epochs,
+        max_steps=cfg.model.max_steps,
         fp16=cfg.model.fp16 and not mps_is_available(),
         push_to_hub=cfg.push_to_hub,
         evaluation_strategy="steps",
         eval_steps=cfg.model.eval_steps,
         save_steps=cfg.model.save_steps,
         logging_steps=cfg.model.logging_steps,
-        group_by_length=True,
         length_column_name="input_length",
         gradient_checkpointing=True,
         save_total_limit=cfg.model.save_total_limit,
@@ -132,7 +131,7 @@ def load_training_args(cfg: DictConfig) -> TrainingArguments:
         remove_unused_columns=False,
         optim=OptimizerNames.ADAMW_TORCH,
         use_mps_device=mps_is_available(),
-        report_to=[],
+        report_to=["wandb"] if cfg.wandb else [],
     )
 
 

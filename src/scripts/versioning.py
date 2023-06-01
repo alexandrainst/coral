@@ -36,7 +36,7 @@ def set_new_version(major: int, minor: int, patch: int) -> None:
         minor (int):
             The minor version. This changes when a backwards compatible change
             happened.
-        patch (init):
+        patch (int):
             The patch version. This changes when the only new changes are bug fixes.
     """
     version = f"{major}.{minor}.{patch}"

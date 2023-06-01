@@ -22,11 +22,7 @@ class output_blocked:
 
 
 class TestBlockTerminalOutput:
-    """Tests for the `block_terminal_output` function."""
-
     def test_user_warnings_are_ignored(self) -> None:
-        """Test that user warnings are ignored."""
-
         # Check that user warnings are raised by default
         with warnings.catch_warnings(record=True) as w:
             warnings.warn("This is a user warning", category=UserWarning)
@@ -39,35 +35,17 @@ class TestBlockTerminalOutput:
                 assert len(w) == 0
 
     def test_datasets_logging_level_is_error(self) -> None:
-        """Test that the `datasets` logging level is set to `ERROR`."""
-
-        # Check that the `datasets` logging level is set to `WARNING` by default
         assert ds_logging.get_verbosity() == ds_logging.WARNING
-
-        # Check that the `datasets` logging level is set to `ERROR` after
-        # `block_terminal_output` is called
         with output_blocked():
             assert ds_logging.get_verbosity() == ds_logging.ERROR
 
     def test_datasets_progress_bars_are_disabled(self) -> None:
-        """Test that the `datasets` progress bars are disabled."""
-
-        # Check that the `datasets` progress bars are enabled by default
         assert ds_logging.is_progress_bar_enabled()
-
-        # Check that the `datasets` progress bars are disabled after
-        # `block_terminal_output` is called
         with output_blocked():
             assert not ds_logging.is_progress_bar_enabled()
 
 
 def test_transformers_output_ignored() -> None:
-    """Test that the `transformers_output_ignored` context manager works."""
-
-    # Check that the `transformers` logging level is set to `WARNING` by default
     assert hf_logging.get_verbosity() == hf_logging.WARNING
-
-    # Check that the `transformers` logging level is set to `ERROR` after
-    # `transformers_output_ignored` is called
     with transformers_output_ignored():
         assert hf_logging.get_verbosity() == hf_logging.ERROR

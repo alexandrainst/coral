@@ -2,11 +2,11 @@
 
 import os
 
-from datasets import DatasetDict, load_dataset
+from datasets import DatasetDict, IterableDatasetDict, load_dataset
 from omegaconf import DictConfig
 
 
-def load_data(cfg: DictConfig) -> DatasetDict:
+def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
     """Load an audio dataset.
 
     Args:
@@ -14,7 +14,7 @@ def load_data(cfg: DictConfig) -> DatasetDict:
             The Hydra configuration object.
 
     Returns:
-        DatasetDict:
+        DatasetDict or IterableDatasetDict:
             The audio dataset.
 
     Raises:
@@ -28,15 +28,26 @@ def load_data(cfg: DictConfig) -> DatasetDict:
         path=cfg.dataset.id,
         name=cfg.dataset.subset,
         use_auth_token=os.getenv("HUGGINGFACE_HUB_TOKEN"),
+        streaming=True,
     )
-    assert isinstance(dataset, DatasetDict)
 
     # Only include the train, validation and test splits of the dataset, and rename
     # these splits to the default split names.
-    return DatasetDict(
-        dict(
-            train=dataset[cfg.dataset.train_name],
-            val=dataset[cfg.dataset.val_name],
-            test=dataset[cfg.dataset.test_name],
+    if isinstance(dataset, DatasetDict):
+        return DatasetDict(
+            dict(
+                train=dataset[cfg.dataset.train_name],
+                val=dataset[cfg.dataset.val_name],
+                test=dataset[cfg.dataset.test_name],
+            )
         )
-    )
+    elif isinstance(dataset, IterableDatasetDict):
+        return IterableDatasetDict(
+            dict(
+                train=dataset[cfg.dataset.train_name],
+                val=dataset[cfg.dataset.val_name],
+                test=dataset[cfg.dataset.test_name],
+            )
+        )
+    else:
+        raise ValueError(f"Unsupported dataset type: {type(dataset)}")
