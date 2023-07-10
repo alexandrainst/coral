@@ -3,6 +3,7 @@
 import logging
 from functools import partial
 
+import wandb
 from datasets import DatasetDict, IterableDatasetDict
 from omegaconf import DictConfig
 from torch.backends.mps import is_available as mps_is_available
@@ -105,6 +106,9 @@ def load_training_args(cfg: DictConfig) -> TrainingArguments:
         TrainingArguments:
             The training arguments.
     """
+    if cfg.wandb:
+        wandb.init(project=cfg.pipeline_id, name=cfg.wandb_name)
+
     logger.debug("Initialising training arguments...")
     return TrainingArguments(
         output_dir=cfg.model_dir,
@@ -132,6 +136,7 @@ def load_training_args(cfg: DictConfig) -> TrainingArguments:
         optim=OptimizerNames.ADAMW_TORCH,
         use_mps_device=mps_is_available(),
         report_to=["wandb"] if cfg.wandb else [],
+        ignore_data_skip=cfg.ignore_data_skip,
     )
 
 

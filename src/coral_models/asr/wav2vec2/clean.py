@@ -3,24 +3,24 @@
 import re
 from unicodedata import normalize
 
-from datasets import DatasetDict, IterableDatasetDict
+from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict
 from omegaconf import DictConfig
 
 
 def clean_dataset(
     cfg: DictConfig,
-    dataset: DatasetDict | IterableDatasetDict,
-) -> DatasetDict | IterableDatasetDict:
+    dataset: DatasetDict | IterableDatasetDict | Dataset | IterableDataset,
+) -> DatasetDict | IterableDatasetDict | Dataset | IterableDataset:
     """Clean the transcriptions in a dataset.
 
     Args:
         cfg (DictConfig):
             The Hydra configuration object.
-        dataset (DatasetDict or IterableDatasetDict):
+        dataset (DatasetDict, IterableDatasetDict, Dataset or IterableDataset):
             The dataset to be cleaned.
 
     Returns:
-        DatasetDict or IterableDatasetDict:
+        DatasetDict, IterableDatasetDict, Dataset or IterableDataset:
             The cleaned dataset.
     """
     # Dictionary that contains characters to be converted (from the key to the value).
@@ -84,8 +84,11 @@ def clean_dataset(
     mapped = dataset.map(clean_examples)
 
     # After calling `map` the DatasetInfo is lost, so we need to add it back in
-    for split in dataset.keys():
-        mapped[split]._info = dataset[split]._info
+    if isinstance(dataset, DatasetDict) or isinstance(dataset, IterableDatasetDict):
+        for split in dataset.keys():
+            mapped[split]._info = dataset[split]._info
+    else:
+        mapped._info = dataset._info
 
     return mapped
 

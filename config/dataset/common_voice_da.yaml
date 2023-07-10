@@ -1,7 +1,8 @@
-name: cv-13
+name: common_voice_da
 id: mozilla-foundation/common_voice_13_0
 subset: da
 train_name: train
 val_name: validation
 test_name: test
 text_column: sentence
+sampling_rate: 16_000
