@@ -6,7 +6,7 @@ import importlib.metadata
 import logging
 import sys
 
-from .asr import build_and_store_ftspeech, finetune_wav2vec2  # noqa: F401
+from .finetune import finetune
 from .utils import block_terminal_output
 
 # Fetches the version of the package as defined in pyproject.toml
@@ -19,5 +19,5 @@ if not hasattr(sys, "_called_from_test"):
 
 
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
+    level=logging.INFO, format="%(asctime)s ⋅ %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
 )

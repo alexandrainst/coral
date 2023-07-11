@@ -1,23 +1,20 @@
 """Function used to compute metrics during ASR training of Wave2Vec 2.0 models."""
 
-import evaluate
 import numpy as np
+from evaluate.loading import load as load_metric
 from numpy.typing import NDArray
-from transformers import EvalPrediction, Wav2Vec2Processor, Wav2Vec2ProcessorWithLM
-
-from .preprocess import ModifiedWav2Vec2Processor
+from transformers import EvalPrediction, ProcessorMixin, Wav2Vec2ProcessorWithLM
 
 
-def compute_metrics(
-    pred: EvalPrediction,
-    processor: ModifiedWav2Vec2Processor | Wav2Vec2Processor | Wav2Vec2ProcessorWithLM,
+def compute_wer_metrics(
+    pred: EvalPrediction, processor: ProcessorMixin
 ) -> dict[str, float]:
     """Compute the word error rate of predictions.
 
     Args:
         pred (EvalPrediction):
             Prediction output of the speech recognition model.
-        processor (Wav2Vec2Processor):
+        processor (ProcessorMixin):
             Audio and transcription processor.
 
     Returns:
@@ -25,7 +22,7 @@ def compute_metrics(
             dictionary with 'wer' as the key and the word error rate as the
             value.
     """
-    wer_metric = evaluate.load("wer")
+    wer_metric = load_metric("wer")
     pad_token = processor.tokenizer.pad_token_id
 
     pred_logits = pred.predictions
