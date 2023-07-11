@@ -1,0 +1,5 @@
+name: CoRal_raw
+id: CoRal_raw
+input_path: data/raw
+metadata_path: data/raw/metadata.csv
+output_path: data/processed
