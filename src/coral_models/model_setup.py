@@ -50,9 +50,6 @@ class Processor(Protocol):
     def decode(self, *args, **kwargs) -> str:
         ...
 
-    def batch_decode(self, *args, **kwargs) -> list[str]:
-        ...
-
 
 class ModelSetup(Protocol):
     def __init__(self, cfg: DictConfig) -> None:
