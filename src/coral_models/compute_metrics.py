@@ -1,4 +1,5 @@
 """Function used to compute metrics during ASR training of Wave2Vec 2.0 models."""
+
 import numpy as np
 from evaluate.loading import load as load_metric
 from numpy.typing import NDArray
