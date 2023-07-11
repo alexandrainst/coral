@@ -1,54 +1,63 @@
 """Abstract model setups for the different types of models."""
 
-from pathlib import Path
+from dataclasses import dataclass
 from typing import Callable, Protocol, Type
 
+import numpy as np
+from numpy.typing import NDArray
 from omegaconf import DictConfig
 from transformers import (
     BatchEncoding,
     EvalPrediction,
-    FeatureExtractionMixin,
     PreTrainedModel,
-    PreTrainedTokenizer,
+    PreTrainedTokenizerBase,
     Trainer,
 )
 from transformers.data.data_collator import DataCollatorMixin
+from transformers.models.wav2vec2_with_lm.processing_wav2vec2_with_lm import (
+    Wav2Vec2DecoderWithLMOutput,
+)
 
 from .wav2vec2 import Wav2Vec2ModelSetup
 
 
 class Processor(Protocol):
-    feature_extractor: FeatureExtractionMixin
-    tokenizer: PreTrainedTokenizer
-
-    def __init__(
-        self, feature_extractor: FeatureExtractionMixin, tokenizer: PreTrainedTokenizer
-    ) -> None:
-        ...
-
-    @classmethod
-    def from_pretrained(
-        cls,
-        pretrained_model_name_or_path: str | Path,
-        cache_dir: str | Path | None = None,
-        force_download: bool = False,
-        local_files_only: bool = False,
-        token: str | bool | None = None,
-        revision: str = "main",
-        **kwargs,
-    ) -> "Processor":
-        ...
-
-    def save_pretrained(
-        self, save_directory, push_to_hub: bool = False, **kwargs
-    ) -> None:
-        ...
+    tokenizer: PreTrainedTokenizerBase
 
     def __call__(self, *args, **kwargs) -> BatchEncoding:
         ...
 
-    def decode(self, *args, **kwargs) -> str:
+    def decode(
+        self,
+        logits: NDArray[np.float_],
+        beam_width: int | None = None,
+        beam_prune_logp: float | None = None,
+        token_min_logp: float | None = None,
+        hotwords: list[str] | None = None,
+        hotword_weight: float | None = None,
+        alpha: float | None = None,
+        beta: float | None = None,
+        unk_score_offset: float | None = None,
+        lm_score_boundary: bool | None = None,
+        output_word_offsets: bool = False,
+        n_best: int = 1,
+    ) -> Wav2Vec2DecoderWithLMOutput | str:
         ...
+
+    @classmethod
+    def from_pretrained(cls, pretrained_model_name_or_path: str) -> "Processor":
+        ...
+
+    def save_pretrained(self, save_directory: str) -> None:
+        ...
+
+
+@dataclass
+class PreTrainedModelData:
+    model: PreTrainedModel
+    processor: Processor
+    data_collator: DataCollatorMixin
+    compute_metrics: Callable[[EvalPrediction], dict]
 
 
 class ModelSetup(Protocol):
@@ -68,6 +77,9 @@ class ModelSetup(Protocol):
         ...
 
     def load_compute_metrics(self) -> Callable[[EvalPrediction], dict]:
+        ...
+
+    def load_saved(self) -> PreTrainedModelData:
         ...
 
 

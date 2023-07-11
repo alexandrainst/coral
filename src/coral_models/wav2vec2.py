@@ -18,8 +18,11 @@ from transformers import (
     Wav2Vec2FeatureExtractor,
     Wav2Vec2ForCTC,
     Wav2Vec2Processor,
+    Wav2Vec2ProcessorWithLM,
 )
 from transformers.data.data_collator import DataCollatorMixin
+
+from coral_models.model_setup import PreTrainedModelData, Processor
 
 from .compute_metrics import compute_wer_metrics
 from .utils import transformers_output_ignored
@@ -143,7 +146,6 @@ class Wav2Vec2ModelSetup:
 
     def load_model(self) -> Wav2Vec2ForCTC:
         with transformers_output_ignored():
-            logger.info("Initialising model...")
             model = Wav2Vec2ForCTC.from_pretrained(
                 self.cfg.model.pretrained_model_id,
                 activation_dropout=self.cfg.model.activation_dropout,
@@ -164,7 +166,6 @@ class Wav2Vec2ModelSetup:
             assert isinstance(model, Wav2Vec2ForCTC)
 
         if self.cfg.model.freeze_feature_encoder:
-            logger.debug("Freezing feature encoder...")
             for param in model.wav2vec2.parameters():
                 param.requires_grad = False
 
@@ -178,6 +179,35 @@ class Wav2Vec2ModelSetup:
 
     def load_compute_metrics(self) -> Callable[[EvalPrediction], dict]:
         return partial(compute_wer_metrics, processor=self.processor)
+
+    def load_saved(self) -> PreTrainedModelData:
+        # Load the processor
+        processor: Processor
+        if self.cfg.model.language_model_decoder is not None:
+            try:
+                processor = Wav2Vec2ProcessorWithLM.from_pretrained(
+                    self.cfg.hub_id, use_auth_token=True
+                )
+            except (FileNotFoundError, ValueError):
+                processor = Wav2Vec2Processor.from_pretrained(
+                    self.cfg.hub_id, use_auth_token=True
+                )
+        else:
+            processor = Wav2Vec2Processor.from_pretrained(
+                self.cfg.hub_id, use_auth_token=True
+            )
+
+        model = Wav2Vec2ForCTC.from_pretrained(self.cfg.hub_id, use_auth_token=True)
+        data_collator = DataCollatorCTCWithPadding(
+            processor=processor, padding="longest"
+        )
+        compute_metrics = partial(compute_wer_metrics, processor=processor)
+        return PreTrainedModelData(
+            processor=processor,
+            model=model,
+            data_collator=data_collator,
+            compute_metrics=compute_metrics,
+        )
 
 
 def dump_vocabulary(cfg: DictConfig) -> None:
