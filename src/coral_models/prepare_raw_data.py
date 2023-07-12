@@ -92,11 +92,7 @@ def make_speaker_metadata(cfg: DictConfig, raw_path: Path) -> pd.DataFrame:
     # Specification of gender is not consistent, so we need to correct that
     # by mapping "K" to "female", and "M" to "male".
     speakers["gender"] = speakers["gender"].apply(
-        lambda x: "male"
-        if x in ["male", "M"]
-        else "female"
-        if x in ["K", "female"]
-        else x
+        lambda x: dict(M="male", K="female").get(x, x)
     )
 
     # Create a speaker id column
