@@ -40,7 +40,10 @@ def make_speaker_metadata(cfg: DictConfig, raw_path: Path) -> pd.DataFrame:
 
     speaker_metadata = pd.read_excel(metadata_path, index_col=0)
 
-    # Replace all nan values with empty strings
+    # Replace all nan values with empty strings, because any nan values are
+    # due to the fact that the speaker did not provide the information in the
+    # metadata form. All metadata columns are strings, hence we can replace
+    # nan values with empty strings.
     speaker_metadata = speaker_metadata.fillna("")
 
     # Get the columns that contain information about speakers
@@ -65,7 +68,9 @@ def make_speaker_metadata(cfg: DictConfig, raw_path: Path) -> pd.DataFrame:
     read_aloud_paths = raw_path.glob("*_oplæst_*")
     for read_aloud_path in read_aloud_paths:
         connection = sqlite3.connect(read_aloud_path / "db.sqlite3")
-        read_aloud_data = pd.read_sql_query(sql="SELECT * FROM CoRal_recording", con=connection)
+        read_aloud_data = pd.read_sql_query(
+            sql="SELECT * FROM CoRal_recording", con=connection
+        )
         read_aloud_data_speakers = read_aloud_data[DB_TO_EXCEL_METADATA_NAMES.keys()]
         read_aloud_data_speakers = read_aloud_data_speakers.rename(
             columns=DB_TO_EXCEL_METADATA_NAMES
@@ -117,8 +122,7 @@ def make_recording_metadata(
             The sentences dataframe
 
     Returns:
-        pd.DataFrame: The recording metadata dataframe.        
-"""
+        pd.DataFrame: The recording metadata dataframe."""
     metadata_path = raw_path / "metadata.xlsx"
 
     # Make speaker-metadata file
