@@ -126,7 +126,7 @@ def make_recording_metadata(
     metadata_path = raw_path / "metadata.xlsx"
 
     # Make speaker-metadata file
-    speaker_metadata = pd.read_excel(metadata_path)
+    speaker_metadata = pd.read_excel(metadata_path, index_col=0)
 
     # Get the columns that contain information about speakers, recorders and recording
     recording_metadata = speaker_metadata[
