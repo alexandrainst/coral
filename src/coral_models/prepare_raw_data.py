@@ -48,7 +48,7 @@ def make_speaker_metadata(cfg: DictConfig, raw_path: Path) -> pd.DataFrame:
     speaker_b_columns = [col for col in speaker_metadata.columns if "subject_b" in col]
     recorder_columns = [col for col in speaker_metadata.columns if "recorder" in col]
 
-    # We have speajer_a and speaker_b columns, but we want a single speaker column
+    # We have speaker_a and speaker_b columns, but we want a single speaker column
     speaker_a = speaker_metadata[speaker_a_columns].rename(
         lambda x: x.replace("subject_a_", ""), axis=1
     )
