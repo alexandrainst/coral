@@ -153,7 +153,6 @@ def make_recording_metadata(
         lambda x: str(speaker_mail_to_id[x])
     )
 
-    # Drop columns
     recording_metadata = recording_metadata.drop(
         columns=["subject_a_mail", "subject_b_mail", "recorder_mail"]
     )
