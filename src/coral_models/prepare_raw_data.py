@@ -423,7 +423,8 @@ def correct_country_list(country_list: str) -> str:
         country_list (str): A string containing a list of countries
 
     Returns:
-        str: A string containing a list of full country names"""
+        str: A string containing a list of full country names.
+    """
     for delimiter in [",", ";", " "]:
         if len(country_list.split(delimiter)) > 1:
             return ";".join(
