@@ -162,7 +162,9 @@ def make_recording_metadata(
         columns=["subject_a_mail", "subject_b_mail", "recorder_mail"]
     )
 
-    # Make a sentence_id column for the recording metadata
+    # Make a sentence_id column for the recording metadata, sentence_id is -1 if the
+    # recorder does not contain a sentences from the sentence dataframe, i.e. if
+    # recording is a conversation.
     recording_metadata["sentence_id"] = -1
 
     # Make a sentence content to sentence_id dict
