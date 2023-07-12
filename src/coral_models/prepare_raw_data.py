@@ -67,10 +67,8 @@ def make_speaker_metadata(cfg: DictConfig, raw_path: Path) -> pd.DataFrame:
     # Load speaker information from read aloud data
     read_aloud_paths = raw_path.glob("*_oplæst_*")
     for read_aloud_path in read_aloud_paths:
-        connection = sqlite3.connect(read_aloud_path / "db.sqlite3")
-        read_aloud_data = pd.read_sql_query(
-            sql="SELECT * FROM CoRal_recording", con=connection
-        )
+        read_aloud_data = get_data_from_db(read_aloud_path)
+
         read_aloud_data_speakers = read_aloud_data[DB_TO_EXCEL_METADATA_NAMES.keys()]
         read_aloud_data_speakers = read_aloud_data_speakers.rename(
             columns=DB_TO_EXCEL_METADATA_NAMES
@@ -174,8 +172,7 @@ def make_recording_metadata(
     recording_metadata_list = [recording_metadata]
     read_aloud_paths = raw_path.glob("*_oplæst_*")
     for read_aloud_path in read_aloud_paths:
-        cnx = sqlite3.connect(read_aloud_path / "db.sqlite3")
-        read_aloud_data = pd.read_sql_query("SELECT * FROM CoRal_recording", cnx)
+        read_aloud_data = get_data_from_db(read_aloud_path)
 
         # Format filenames
         read_aloud_data["filename"] = read_aloud_data["recorded_file"].apply(
@@ -458,3 +455,11 @@ def correct_timestamp(timestamp: str) -> str:
         )
     except ValueError:
         return timestamp
+
+
+def get_data_from_db(db_folder: Path) -> pd.DataFrame:
+    connection = sqlite3.connect(db_folder / "db.sqlite3")
+    read_aloud_data = pd.read_sql_query(
+        sql="SELECT * FROM CoRal_recording", con=connection
+    )
+    return read_aloud_data
