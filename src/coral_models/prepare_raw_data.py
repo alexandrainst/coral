@@ -36,7 +36,6 @@ def make_speaker_metadata(cfg: DictConfig, raw_path: Path) -> pd.DataFrame:
             The Hydra configuration object.
         raw_path (Path):
             The path to the raw data."""
-    # Load the metadata
     metadata_path = raw_path / "metadata.xlsx"
 
     speaker_metadata = pd.read_excel(metadata_path, index_col=0)
