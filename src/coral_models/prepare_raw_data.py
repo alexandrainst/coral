@@ -264,13 +264,7 @@ def make_recording_metadata(
     # only "none" or "traffic".
     all_recording_metadata["background_noise_level"] = all_recording_metadata[
         "background_noise_level"
-    ].apply(
-        lambda x: "none"
-        if x in ["none", "ingen"]
-        else "traffic"
-        if x in ["trafik", "traffic"]
-        else x
-    )
+    ].apply(lambda x: dict(ingen="none", trafik="traffic").get(x, x))
 
     return all_recording_metadata, sentences
 
