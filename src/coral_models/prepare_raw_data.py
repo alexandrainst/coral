@@ -64,8 +64,8 @@ def make_speaker_metadata(cfg: DictConfig, raw_path: Path) -> pd.DataFrame:
     # Load speaker information from read aloud data
     read_aloud_paths = raw_path.glob("*_oplæst_*")
     for read_aloud_path in read_aloud_paths:
-        cnx = sqlite3.connect(read_aloud_path / "db.sqlite3")
-        read_aloud_data = pd.read_sql_query("SELECT * FROM CoRal_recording", cnx)
+        connection = sqlite3.connect(read_aloud_path / "db.sqlite3")
+        read_aloud_data = pd.read_sql_query(sql="SELECT * FROM CoRal_recording", con=connection)
         read_aloud_data_speakers = read_aloud_data[db_to_excel_metadata_names.keys()]
         read_aloud_data_speakers = read_aloud_data_speakers.rename(
             columns=db_to_excel_metadata_names
