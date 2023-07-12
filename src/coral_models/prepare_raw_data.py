@@ -258,8 +258,8 @@ def make_recording_metadata(
         correct_timestamp
     )
 
-    # Dimensions are in the format "X,Y,Z" and "XxYxZ" need to be converted to
-    # "X,Y,Z"
+    # The dimensions column has values in the format "X,Y,Z" and "XxYxZ". These need to
+    #  be converted to "X,Y,Z"
     all_recording_metadata["dimensions"] = all_recording_metadata["dimensions"].apply(
         lambda x: ",".join(x.split("x"))
     )
