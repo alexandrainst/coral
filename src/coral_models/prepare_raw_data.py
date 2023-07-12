@@ -79,10 +79,10 @@ def make_speaker_metadata(cfg: DictConfig, raw_path: Path) -> pd.DataFrame:
     # yields a lot of duplicates. We therefore remove rows with duplicate emails.
     speakers = speakers.drop_duplicates(subset=["mail"])
 
-    # The native_language columns contains both aplha-2 codes and full names, so we
-    # need to convert the aplha-2 codes to full names. The same goes for the
-    # birthplace. Spoken_languages is a list of languages, so we need to convert that
-    # as well.
+    # The `native_language` column contains both alpha-2 codes and full names, so we
+    # need to convert the alpha-2 codes to full names. The same goes for the
+    # birthplace. `spoken_languages` is a list of languages, so we need to convert that
+    # as well
     speakers["native_language"] = speakers["native_language"].apply(correct_language)
     speakers["birthplace"] = speakers["birthplace"].apply(correct_language)
     speakers["spoken_languages"] = speakers["spoken_languages"].apply(
