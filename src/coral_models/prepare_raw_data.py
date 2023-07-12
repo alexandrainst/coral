@@ -117,7 +117,8 @@ def make_recording_metadata(
             The sentences dataframe
 
     Returns:
-        pd.DataFrame: The recording metadata dataframe"""
+        pd.DataFrame: The recording metadata dataframe.        
+"""
     # Load the metadata
     metadata_path = raw_path / "metadata.xlsx"
 
