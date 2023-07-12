@@ -119,7 +119,6 @@ def make_recording_metadata(
     Returns:
         pd.DataFrame: The recording metadata dataframe.        
 """
-    # Load the metadata
     metadata_path = raw_path / "metadata.xlsx"
 
     # Make speaker-metadata file
