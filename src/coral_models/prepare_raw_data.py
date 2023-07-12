@@ -12,7 +12,7 @@ import pycountry
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-db_to_excel_metadata_names = {
+DB_TO_EXCEL_METADATA_NAMES = {
     "name": "name",
     "email": "mail",
     "age": "age",
