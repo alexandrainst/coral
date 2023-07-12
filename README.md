@@ -69,16 +69,14 @@ publishing the code as a package and more.
 │   ├── dataset
 │   │   ├── common_voice_da.yaml
 │   │   ├── ftspeech.yaml
-│   │   ├── nst_da.yaml
 │   │   └── test.yaml
 │   ├── hydra
 │   │   └── job_logging
 │   │       └── custom.yaml
 │   └── model
 │       ├── test.yaml
-│       ├── vall_e.yaml
-│       ├── vits.yaml
 │       ├── wav2vec2.yaml
+│       ├── wav2vec2_with_lm.yaml
 │       └── whisper.yaml
 ├── data
 ├── makefile
@@ -89,45 +87,27 @@ publishing the code as a package and more.
 ├── src
 │   ├── coral_models
 │   │   ├── __init__.py
-│   │   ├── asr
-│   │   │   ├── __init__.py
-│   │   │   ├── ftspeech.py
-│   │   │   ├── ngram_model.py
-│   │   │   ├── utils.py
-│   │   │   ├── wav2vec2
-│   │   │   │   ├── __init__.py
-│   │   │   │   ├── clean.py
-│   │   │   │   ├── compute_metrics.py
-│   │   │   │   ├── data_collator.py
-│   │   │   │   ├── evaluate.py
-│   │   │   │   ├── finetune.py
-│   │   │   │   └── preprocess.py
-│   │   │   └── whisper
-│   │   │       └── __init__.py
+│   │   ├── compute_metrics.py
 │   │   ├── data.py
-│   │   ├── tts
-│   │   │   └── __init__.py
-│   │   └── utils.py
+│   │   ├── finetune.py
+│   │   ├── protocols.py
+│   │   ├── utils.py
+│   │   └── wav2vec2.py
 │   └── scripts
+│       ├── build_ftspeech.py
+│       ├── evaluate.py
 │       ├── finetune.py
 │       ├── fix_dot_env_file.py
+│       ├── push_ftspeech_to_hub.py
+│       ├── train_ngram_decoder.py
 │       └── versioning.py
 └── tests
     ├── __init__.py
-    ├── asr
-    │   ├── __init__.py
-    │   ├── test_ftspeech.py
-    │   ├── test_ngram_model.py
-    │   ├── test_utils.py
-    │   └── wav2vec2
-    │       ├── __init__.py
-    │       ├── test_clean.py
-    │       ├── test_compute_metrics.py
-    │       ├── test_data_collator.py
-    │       ├── test_evaluate.py
-    │       ├── test_finetune.py
-    │       └── test_preprocess.py
     ├── conftest.py
+    ├── test_compute_metrics.py
     ├── test_data.py
-    └── test_utils.py
+    ├── test_finetune.py
+    ├── test_protocols.py
+    ├── test_utils.py
+    └── test_wav2vec2.py
 ```
