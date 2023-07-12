@@ -9,7 +9,6 @@ from pathlib import Path
 
 import pandas as pd
 import pycountry
-from omegaconf import DictConfig
 from tqdm import tqdm
 
 DB_TO_EXCEL_METADATA_NAMES = {
@@ -28,7 +27,7 @@ DB_TO_EXCEL_METADATA_NAMES = {
 }
 
 
-def make_speaker_metadata(cfg: DictConfig, raw_path: Path) -> pd.DataFrame:
+def make_speaker_metadata(raw_path: Path, metadata_path: Path) -> pd.DataFrame:
     """Make a speaker metadata dataframe from the raw data.
 
     Args:
@@ -36,8 +35,6 @@ def make_speaker_metadata(cfg: DictConfig, raw_path: Path) -> pd.DataFrame:
             The Hydra configuration object.
         raw_path (Path):
             The path to the raw data."""
-    metadata_path = raw_path / "metadata.xlsx"
-
     speaker_metadata = pd.read_excel(metadata_path, index_col=0)
 
     # Replace all nan values with empty strings, because any nan values are
@@ -105,7 +102,7 @@ def make_speaker_metadata(cfg: DictConfig, raw_path: Path) -> pd.DataFrame:
 
 
 def make_recording_metadata(
-    cfg: DictConfig, speakers: pd.DataFrame, raw_path: Path, sentences: pd.DataFrame
+    speakers: pd.DataFrame, raw_path: Path, sentences: pd.DataFrame, metadata_path: Path
 ) -> pd.DataFrame:
     """Make a recording metadata file from the raw data
 
@@ -273,21 +270,29 @@ def make_recording_metadata(
     return all_recording_metadata, sentences
 
 
-def prepare_raw_data(cfg: DictConfig):
+def prepare_raw_data(
+    input_path_str: str = "data/raw",
+    output_path_str: str = "data/processed",
+    metadata_path_str: str = "data/raw/metadata.csv",
+):
     """Prepare the raw data.
 
     Args:
-        cfg (DictConfig):
-            The Hydra configuration object.
+        input_path (Path, optional): Path to the raw data. Defaults to "data/raw".
+        output_path (Path, optional): Path to the processed data.
+            Defaults to "data/processed".
+        metadata_path (Path, optional): Path to the metadata. Defaults to
+            "data/raw/metadata.csv".
     """
-    # Create the directory to store the raw data
-    raw_path = Path(cfg.input_path)
+    input_path = Path(input_path_str)
+    output_path = Path(output_path_str)
+    metadata_path = Path(metadata_path_str)
 
     # Make speaker-metadata dataframe
-    speakers = make_speaker_metadata(cfg, raw_path)
+    speakers = make_speaker_metadata(input_path, metadata_path)
 
     # Make sentence-metadata dataframe
-    sentences_path = raw_path / "processed_articles.csv"
+    sentences_path = input_path / "processed_articles.csv"
     sentences = pd.read_csv(sentences_path)
 
     # Make sentence-index, and simplify the sentence dataframe
@@ -295,10 +300,11 @@ def prepare_raw_data(cfg: DictConfig):
     sentences = sentences[["sentence_id", "text"]]
 
     # Make recording-metadata dataframe
-    recordings, sentences = make_recording_metadata(cfg, speakers, raw_path, sentences)
+    recordings, sentences = make_recording_metadata(
+        speakers, input_path, sentences, metadata_path
+    )
 
-    # Check if the output path exists
-    output_path = Path(cfg.output_path)
+    # Check if the output path exists, and if not, make it
     if not output_path.exists():
         output_path.mkdir(parents=True)
 
@@ -315,7 +321,7 @@ def prepare_raw_data(cfg: DictConfig):
     conversation_duration = 0.0
     for row_i, row in tqdm(recordings.iterrows()):
         # Get the filename
-        filename = raw_path / row["filename"]
+        filename = input_path / row["filename"]
 
         # Get the new filename
         # New filename is in the format is for conversations:
