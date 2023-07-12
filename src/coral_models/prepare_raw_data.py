@@ -75,8 +75,8 @@ def make_speaker_metadata(cfg: DictConfig, raw_path: Path) -> pd.DataFrame:
     # Concatenate all speaker information
     speakers = pd.concat(speaker_list, axis=0).drop_duplicates().reset_index(drop=True)
 
-    # People often typed their name in all lower case or similiar variations, which
-    # yields a lot of duplicates. We therefore we remove rows with dublicate emails.
+    # People often typed their name in all lower case or similar variations, which
+    # yields a lot of duplicates. We therefore remove rows with duplicate emails.
     speakers = speakers.drop_duplicates(subset=["mail"])
 
     # The native_language columns contains both aplha-2 codes and full names, so we
