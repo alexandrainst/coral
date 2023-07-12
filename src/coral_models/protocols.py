@@ -1,4 +1,4 @@
-"""Abstract model setups for the different types of models."""
+"""Protocols used throughout the project."""
 
 from dataclasses import dataclass
 from typing import Callable, Protocol, Type
@@ -17,8 +17,6 @@ from transformers.data.data_collator import DataCollatorMixin
 from transformers.models.wav2vec2_with_lm.processing_wav2vec2_with_lm import (
     Wav2Vec2DecoderWithLMOutput,
 )
-
-from .wav2vec2 import Wav2Vec2ModelSetup
 
 
 class Processor(Protocol):
@@ -81,21 +79,3 @@ class ModelSetup(Protocol):
 
     def load_saved(self) -> PreTrainedModelData:
         ...
-
-
-def load_model_setup(cfg: DictConfig) -> ModelSetup:
-    """Get the model setup for the given configuration.
-
-    Args:
-        cfg (DictConfig):
-            The Hydra configuration object.
-
-    Returns:
-        ModelSetup:
-            The model setup.
-    """
-    model_type: str = cfg.model.type
-    if model_type == "wav2vec2":
-        return Wav2Vec2ModelSetup(cfg)
-    else:
-        raise ValueError(f"Unsupported model type: {model_type!r}")

@@ -5,7 +5,7 @@ from evaluate.loading import load as load_metric
 from numpy.typing import NDArray
 from transformers import EvalPrediction
 
-from .model_setup import Processor
+from .protocols import Processor
 
 
 def compute_wer_metrics(pred: EvalPrediction, processor: Processor) -> dict[str, float]:

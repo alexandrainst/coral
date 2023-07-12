@@ -22,9 +22,8 @@ from transformers import (
 )
 from transformers.data.data_collator import DataCollatorMixin
 
-from coral_models.model_setup import PreTrainedModelData, Processor
-
 from .compute_metrics import compute_wer_metrics
+from .protocols import PreTrainedModelData, Processor
 from .utils import transformers_output_ignored
 
 logger = logging.getLogger(__package__)
