@@ -39,13 +39,7 @@ def make_speaker_metadata(cfg: DictConfig, raw_path: Path) -> pd.DataFrame:
     # Load the metadata
     metadata_path = raw_path / "metadata.xlsx"
 
-    # Make speaker-metadata file
-    speaker_metadata = pd.read_excel(metadata_path)
-
-    # Get all columns but not the column "Unnamed: 0"
-    speaker_metadata = speaker_metadata.loc[
-        :, ~speaker_metadata.columns.str.contains("^Unnamed")
-    ]
+    speaker_metadata = pd.read_excel(metadata_path, index_col=0)
 
     # Replace all nan values with empty strings
     speaker_metadata = speaker_metadata.fillna("")
