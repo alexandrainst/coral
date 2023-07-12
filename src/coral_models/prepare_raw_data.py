@@ -249,8 +249,8 @@ def make_recording_metadata(
     ].astype(str)
 
     # Start and Stop columns are in the format "HHMM-DD-MM-YY" and
-    # "DD/MM/YYYY HH:MM:SS" and need to be converted to only
-    # "DD/MM/YYYY HH:MM:SS"
+    # "DD/MM/YYYY HH:MM:SS" and need to be converted to
+    # "DD/MM/YYYY HH:MM:SS+02:00"
     all_recording_metadata["start"] = all_recording_metadata["start"].apply(
         correct_timestamp
     )
@@ -441,7 +441,7 @@ def correct_country_list(country_list: str) -> str:
 
 
 def correct_timestamp(timestamp: str) -> str:
-    """Converts a timestamp from the format "HHMM-DD-MM-YY" to "DD/MM/YYYY HH:MM:SS"
+    """Converts a timestamp from "HHMM-DD-MM-YY" to "DD/MM/YYYY HH:MM:SS+02:00"
 
     Args:
         timestamp (str): The timestamp to convert
@@ -449,9 +449,13 @@ def correct_timestamp(timestamp: str) -> str:
     Returns:
         str: The converted timestamp
     """
+    if ":" in timestamp:
+        format = "DD/MM/YYYY HH:MM:SS"
+    else:
+        format = "%H%M-%d-%m-%y"
     try:
-        return datetime.datetime.strptime(timestamp, "%H%M-%d-%m-%y").strftime(
-            "%d/%m/%Y %H:%M:%S"
+        return datetime.datetime.strptime(timestamp, format).strftime(
+            "YYYY-MM-DDTHH:MM:SS+02:00"
         )
     except ValueError:
         return timestamp
