@@ -86,8 +86,8 @@ def make_speaker_metadata(cfg: DictConfig, raw_path: Path) -> pd.DataFrame:
     # need to convert the alpha-2 codes to full names. The same goes for the
     # birthplace. `spoken_languages` is a list of languages, so we need to convert that
     # as well
-    speakers["native_language"] = speakers["native_language"].apply(correct_language)
-    speakers["birthplace"] = speakers["birthplace"].apply(correct_language)
+    speakers["native_language"] = speakers["native_language"].apply(correct_country)
+    speakers["birthplace"] = speakers["birthplace"].apply(correct_country)
     speakers["spoken_languages"] = speakers["spoken_languages"].apply(
         correct_country_list
     )
@@ -400,8 +400,8 @@ def prepare_raw_data(cfg: DictConfig):
     recordings.to_csv(output_path / "recordings.csv", index=False)
 
 
-def correct_language(country: str) -> str:
-    """Converts a country name or alpha-2 code to a full country name
+def correct_country(country: str) -> str:
+    """Converts a country name or alpha-2 language code to a full country name
 
     Args:
         country (str): A country name or alpha-2 code
@@ -433,11 +433,11 @@ def correct_country_list(country_list: str) -> str:
         if len(country_list.split(delimiter)) > 1:
             return ";".join(
                 [
-                    correct_language(country.strip())
+                    correct_country(country.strip())
                     for country in country_list.split(delimiter)
                 ]
             )
-    return correct_language(country_list)
+    return correct_country(country_list)
 
 
 def correct_timestamp(timestamp: str) -> str:
