@@ -73,11 +73,11 @@ def make_speaker_metadata(raw_path: Path, metadata_path: Path) -> pd.DataFrame:
         speaker_list.append(read_aloud_data_speakers)
 
     # Concatenate all speaker information
-    speakers = pd.concat(speaker_list, axis=0).drop_duplicates().reset_index(drop=True)
+    speakers = pd.concat(speaker_list, axis=0).drop_duplicates()
 
     # People often typed their name in all lower case or similar variations, which
     # yields a lot of duplicates. We therefore remove rows with duplicate emails.
-    speakers = speakers.drop_duplicates(subset=["mail"])
+    speakers = speakers.drop_duplicates(subset=["mail"]).reset_index(drop=True)
 
     # The `native_language` column contains both alpha-2 codes and full names, so we
     # need to convert the alpha-2 codes to full names. The same goes for the
