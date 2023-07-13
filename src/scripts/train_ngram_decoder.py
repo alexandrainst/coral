@@ -1,4 +1,8 @@
-"""Language model to boost performance of the speech recognition model."""
+"""Train an n-gram language model for the decoder of a finetuned Wav2Vec 2.0 model.
+
+Usage:
+    python train_ngram_decoder.py <key>=<value> <key>=<value> ...
+"""
 
 import io
 import os
@@ -7,6 +11,7 @@ import tarfile
 import tempfile
 from pathlib import Path
 
+import hydra
 import requests
 from datasets import Dataset, load_dataset
 from huggingface_hub import Repository
@@ -15,6 +20,7 @@ from pyctcdecode.decoder import build_ctcdecoder
 from transformers import AutoProcessor, Wav2Vec2ProcessorWithLM
 
 
+@hydra.main(config_path="../../config", config_name="config", version_base=None)
 def train_ngram_model(cfg: DictConfig) -> None:
     """Trains an ngram language model.
 

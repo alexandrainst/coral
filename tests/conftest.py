@@ -8,7 +8,7 @@ from datasets import DatasetDict, IterableDatasetDict
 from hydra import compose, initialize
 from omegaconf import DictConfig
 
-from coral_models.data import load_data
+from coral_models.data import clean_dataset, load_data
 
 # Initialise Hydra
 initialize(config_path="../config", version_base=None)
@@ -38,3 +38,10 @@ def cfg() -> Generator[DictConfig, None, None]:
 @pytest.fixture(scope="session")
 def dataset(cfg) -> Generator[DatasetDict | IterableDatasetDict, None, None]:
     yield load_data(cfg)
+
+
+@pytest.fixture(scope="session")
+def cleaned_dataset(
+    cfg, dataset
+) -> Generator[DatasetDict | IterableDatasetDict, None, None]:
+    yield clean_dataset(cfg, dataset=dataset)

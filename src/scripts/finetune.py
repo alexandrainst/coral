@@ -1,15 +1,13 @@
-"""Script that finetunes a speech model.
+"""Finetune a speech model.
 
 Usage:
     python finetune.py <key>=<value> <key>=<value> ...
 """
 
-import warnings
-
 import hydra
 from omegaconf import DictConfig
 
-from coral_models import finetune_wav2vec2
+from coral_models import finetune
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
@@ -20,12 +18,7 @@ def main(cfg: DictConfig) -> None:
         cfg (DictConfig):
             The Hydra configuration object.
     """
-    warnings.filterwarnings("ignore", category=UserWarning)
-
-    if cfg.model.type == "wav2vec2":
-        finetune_wav2vec2(cfg)
-    else:
-        raise NotImplementedError(f"Unsupported model type: {cfg.model.name}")
+    finetune(cfg)
 
 
 if __name__ == "__main__":
