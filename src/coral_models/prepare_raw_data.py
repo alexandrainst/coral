@@ -320,7 +320,6 @@ def prepare_raw_data(
     read_aloud_duration = 0.0
     conversation_duration = 0.0
     for row_i, row in tqdm(recordings.iterrows()):
-        # Get the filename
         filename = input_path / row["filename"]
 
         # Get the new filename
