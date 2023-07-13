@@ -31,10 +31,14 @@ def make_speaker_metadata(raw_path: Path, metadata_path: Path) -> pd.DataFrame:
     """Make a speaker metadata dataframe from the raw data.
 
     Args:
-        cfg (DictConfig):
-            The Hydra configuration object.
         raw_path (Path):
-            The path to the raw data."""
+            The path to the raw data.
+        metadata_path (Path):
+            The path to the metadata file.
+
+    Returns:
+        pd.DataFrame:
+            The speaker metadata."""
     speaker_metadata = pd.read_excel(metadata_path, index_col=0)
 
     # Replace all nan values with empty strings, because any nan values are
@@ -107,8 +111,6 @@ def make_recording_metadata(
     """Make a recording metadata file from the raw data
 
     Args:
-        cfg (DictConfig):
-            The config
         speakers (pd.DataFrame):
             The speakers dataframe
         raw_path (Path):
