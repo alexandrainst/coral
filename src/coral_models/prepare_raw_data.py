@@ -446,7 +446,7 @@ def correct_country_list(country_list: str) -> str:
 
 
 def correct_timestamp(timestamp: str) -> str:
-    """Converts a timestamp from "HHMM-DD-MM-YY" to "DD/MM/YYYY HH:MM:SS+02:00"
+    """Uniformises a timestamp.
 
     Args:
         timestamp (str): The timestamp to convert
