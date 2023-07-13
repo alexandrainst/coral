@@ -3,6 +3,7 @@
 Usage:
     python build_coral_data.py <input_path> <metadata_path> <output_path>
 """
+
 import click
 
 from coral_models.prepare_raw_data import prepare_raw_data

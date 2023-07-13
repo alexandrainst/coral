@@ -273,23 +273,23 @@ def make_recording_metadata(
 
 
 def prepare_raw_data(
-    input_path_str: str = "data/raw",
-    output_path_str: str = "data/processed",
-    metadata_path_str: str = "data/raw/metadata.csv",
+    input_path: Path | str = Path("data/raw"),
+    output_path: Path | str = Path("data/processed"),
+    metadata_path: Path | str = Path("data/raw/metadata.csv"),
 ):
     """Prepare the raw data.
 
     Args:
-        input_path (Path, optional): 
+        input_path (Path or str, optional):
             Path to the raw data. Defaults to "data/raw".
-        output_path (Path, optional): 
+        output_path (Path or str, optional):
             Path to the processed data. Defaults to "data/processed".
-        metadata_path (Path, optional): 
+        metadata_path (Path or str, optional):
             Path to the metadata. Defaults to "data/raw/metadata.csv".
     """
-    input_path = Path(input_path_str)
-    output_path = Path(output_path_str)
-    metadata_path = Path(metadata_path_str)
+    input_path = Path(input_path)
+    output_path = Path(output_path)
+    metadata_path = Path(metadata_path)
 
     # Make speaker-metadata dataframe
     speakers = make_speaker_metadata(input_path, metadata_path)
