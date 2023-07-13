@@ -27,7 +27,7 @@ wandb = ">=0.15.3,<1.0.0"
 accelerate = ">=0.19.0,<1.0.0"
 openpyxl = "^3.1.2"
 pycountry = "^22.3.5"
-wave = "^0.0.2"
+wave = ">=0.0.2,<1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0.0"
