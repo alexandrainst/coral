@@ -455,12 +455,12 @@ def correct_timestamp(timestamp: str) -> str:
         str: The converted timestamp
     """
     if ":" in timestamp:
-        format = "DD/MM/YYYY HH:MM:SS"
+        format = "%d/%m/%Y %H:%M:%S"
     else:
         format = "%H%M-%d-%m-%y"
     try:
         return datetime.datetime.strptime(timestamp, format).strftime(
-            "YYYY-MM-DDTHH:MM:SS+02:00"
+            "%Y-%m-%dT%H:%M:%S+02:00"
         )
     except ValueError:
         return timestamp
