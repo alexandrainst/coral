@@ -470,6 +470,15 @@ def correct_timestamp(timestamp: str) -> str:
 
 
 def get_data_from_db(db_folder: Path) -> pd.DataFrame:
+    """Gets the data from the database
+
+    Args:
+        db_folder (Path): The path to the folder containing the database
+            the database should be named "db.sqlite3"
+
+    Returns:
+        pd.DataFrame: The data from the database
+    """
     connection = sqlite3.connect(db_folder / "db.sqlite3")
     read_aloud_data = pd.read_sql_query(
         sql="SELECT * FROM CoRal_recording", con=connection
