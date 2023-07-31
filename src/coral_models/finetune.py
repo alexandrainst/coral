@@ -26,7 +26,8 @@ def finetune(cfg: DictConfig) -> None:
     model = model_setup.load_model()
 
     dataset = load_data(cfg)
-    dataset = clean_dataset(cfg, dataset=dataset)
+    if cfg.model.clean_dataset:
+        dataset = clean_dataset(cfg, dataset=dataset)
     dataset = dataset.cast_column("audio", Audio(sampling_rate=cfg.model.sampling_rate))
 
     def prepare_dataset(example: dict) -> dict:

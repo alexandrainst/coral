@@ -1,0 +1,26 @@
+name: whisper-medium
+type: whisper
+pretrained_model_id: openai/whisper-medium
+freeze_feature_encoder: false
+
+# Data hyperparameters
+clean_dataset: false
+
+# Model hyperparameters
+sampling_rate: 16_000
+activation_dropout: 0.1
+attention_dropout: 0.1
+mask_time_prob: 0.5
+mask_feature_prob: 0.5
+mask_feature_length: 64
+
+# Training hyperparameters
+batch_size: 2
+gradient_accumulation: 16
+max_steps: 120_000
+learning_rate: 3e-5
+warmup_steps: 1000
+early_stopping: true
+early_stopping_patience: 10
+fp16: true
+generation_max_length: 225

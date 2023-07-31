@@ -1,8 +1,10 @@
 """Model setup for Wav2Vec 2.0 models."""
 
+import json
 import logging
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 from typing import Callable, Type
 
 import torch
@@ -26,7 +28,7 @@ from transformers.trainer import OptimizerNames
 
 from .compute_metrics import compute_wer_metrics
 from .protocols import PreTrainedModelData, Processor
-from .utils import dump_vocabulary, transformers_output_ignored
+from .utils import transformers_output_ignored
 
 logger = logging.getLogger(__package__)
 
@@ -197,12 +199,12 @@ class Wav2Vec2ModelSetup:
             fp16=self.cfg.model.fp16 and not mps_is_available(),
             push_to_hub=self.cfg.push_to_hub,
             evaluation_strategy="steps",
-            eval_steps=self.cfg.model.eval_steps,
-            save_steps=self.cfg.model.save_steps,
-            logging_steps=self.cfg.model.logging_steps,
+            eval_steps=self.cfg.eval_steps,
+            save_steps=self.cfg.save_steps,
+            logging_steps=self.cfg.logging_steps,
             length_column_name="input_length",
             gradient_checkpointing=True,
-            save_total_limit=self.cfg.model.save_total_limit,
+            save_total_limit=self.cfg.save_total_limit,
             load_best_model_at_end=self.cfg.model.early_stopping,
             metric_for_best_model="wer",
             greater_is_better=False,
@@ -243,3 +245,28 @@ class Wav2Vec2ModelSetup:
             data_collator=data_collator,
             compute_metrics=compute_metrics,
         )
+
+
+def dump_vocabulary(cfg: DictConfig) -> None:
+    """Extracts the vocabulary from the dataset and dumps it to a file.
+
+    It will dump the file to `${cfg.model_dir}/vocab.json`.
+
+    Args:
+        cfg (DictConfig):
+            The Hydra configuration object.
+    """
+    # Build the set of all unique characters in the dataset
+    unique_characters: set[str] = set(cfg.model.characters_to_keep)
+
+    # Build vocabulary
+    vocab = {char: idx for idx, char in enumerate(unique_characters)}
+    for tok in ["<unk>", "<pad>", "<s>", "</s>"]:
+        vocab[tok] = len(vocab)
+
+    # Dump the vocabulary to a json file
+    model_dir = Path(cfg.model_dir)
+    model_dir.mkdir(parents=True, exist_ok=True)
+    vocab_path = model_dir / "vocab.json"
+    with vocab_path.open("w") as f:
+        json.dump(vocab, f)

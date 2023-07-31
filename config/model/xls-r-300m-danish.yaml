@@ -3,6 +3,10 @@ type: wav2vec2
 pretrained_model_id: chcaa/xls-r-300m-danish
 freeze_feature_encoder: false
 
+# Data hyperparameters
+clean_dataset: true
+characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789é|'
+
 # Model hyperparameters
 sampling_rate: 16_000
 activation_dropout: 0.1

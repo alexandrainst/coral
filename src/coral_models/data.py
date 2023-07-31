@@ -118,7 +118,7 @@ def clean_dataset(
     # transcriptions, as they do not have an influence on the pronunciation of the
     # words.
     non_standard_characters_regex = re.compile(
-        f"[^{re.escape(cfg.characters_to_keep)}]"
+        f"[^{re.escape(cfg.model.characters_to_keep)}]"
     )
 
     def clean_examples(example: dict) -> dict:

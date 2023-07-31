@@ -1,7 +1,10 @@
-name: whisper-tiny
+name: whisper-large
 type: whisper
-pretrained_model_id: openai/whisper-tiny
+pretrained_model_id: openai/whisper-large-v2
 freeze_feature_encoder: false
+
+# Data hyperparameters
+clean_dataset: false
 
 # Model hyperparameters
 sampling_rate: 16_000
@@ -20,8 +23,4 @@ warmup_steps: 1000
 early_stopping: true
 early_stopping_patience: 10
 fp16: true
-eval_steps: 1000
-save_steps: 1000
-logging_steps: 100
-save_total_limit: 2
 generation_max_length: 225
