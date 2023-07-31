@@ -180,7 +180,6 @@ class Wav2Vec2ModelSetup:
         return partial(compute_wer_metrics, processor=self.processor)
 
     def load_saved(self) -> PreTrainedModelData:
-        # Load the processor
         processor: Processor
         if self.cfg.model.language_model_decoder is not None:
             try:
