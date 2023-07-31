@@ -6,13 +6,7 @@ from typing import Callable, Protocol, Type
 import numpy as np
 from numpy.typing import NDArray
 from omegaconf import DictConfig
-from transformers import (
-    BatchEncoding,
-    EvalPrediction,
-    PreTrainedModel,
-    PreTrainedTokenizerBase,
-    Trainer,
-)
+from transformers import BatchEncoding, EvalPrediction, PreTrainedModel, Trainer
 from transformers.data.data_collator import DataCollatorMixin
 from transformers.models.wav2vec2_with_lm.processing_wav2vec2_with_lm import (
     Wav2Vec2DecoderWithLMOutput,
@@ -20,8 +14,6 @@ from transformers.models.wav2vec2_with_lm.processing_wav2vec2_with_lm import (
 
 
 class Processor(Protocol):
-    tokenizer: PreTrainedTokenizerBase
-
     def __call__(self, *args, **kwargs) -> BatchEncoding:
         ...
 
