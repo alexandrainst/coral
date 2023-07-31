@@ -1,4 +1,4 @@
-name: test
+name: test_dataset
 id: alexandrainst/audio_test_dataset
 subset: null
 train_name: train

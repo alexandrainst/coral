@@ -30,7 +30,7 @@ def cfg(request) -> Generator[DictConfig, None, None]:
         config_name="config",
         overrides=[
             f"model={request.param}",
-            "dataset=test",
+            "dataset=test_dataset",
         ],
     )
 
