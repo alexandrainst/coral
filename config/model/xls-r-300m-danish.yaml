@@ -37,7 +37,3 @@ warmup_steps: 1000
 early_stopping: true
 early_stopping_patience: 10
 fp16: true
-eval_steps: 1000
-save_steps: 1000
-logging_steps: 100
-save_total_limit: 2
