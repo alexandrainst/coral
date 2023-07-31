@@ -4,6 +4,7 @@ from omegaconf import DictConfig
 
 from .protocols import ModelSetup
 from .wav2vec2 import Wav2Vec2ModelSetup
+from .whisper import WhisperModelSetup
 
 
 def load_model_setup(cfg: DictConfig) -> ModelSetup:
@@ -18,7 +19,10 @@ def load_model_setup(cfg: DictConfig) -> ModelSetup:
             The model setup.
     """
     model_type: str = cfg.model.type
-    if model_type == "wav2vec2":
-        return Wav2Vec2ModelSetup(cfg)
-    else:
-        raise ValueError(f"Unsupported model type: {model_type!r}")
+    match model_type:
+        case "wav2vec2":
+            return Wav2Vec2ModelSetup(cfg)
+        case "whisper":
+            return WhisperModelSetup(cfg)
+        case _:
+            raise ValueError(f"Unsupported model type: {model_type!r}")

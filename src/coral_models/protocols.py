@@ -6,7 +6,13 @@ from typing import Callable, Protocol, Type
 import numpy as np
 from numpy.typing import NDArray
 from omegaconf import DictConfig
-from transformers import BatchEncoding, EvalPrediction, PreTrainedModel, Trainer
+from transformers import (
+    BatchEncoding,
+    EvalPrediction,
+    PreTrainedModel,
+    Trainer,
+    TrainingArguments,
+)
 from transformers.data.data_collator import DataCollatorMixin
 from transformers.models.wav2vec2_with_lm.processing_wav2vec2_with_lm import (
     Wav2Vec2DecoderWithLMOutput,
@@ -67,6 +73,9 @@ class ModelSetup(Protocol):
         ...
 
     def load_compute_metrics(self) -> Callable[[EvalPrediction], dict]:
+        ...
+
+    def load_training_arguments(self) -> TrainingArguments:
         ...
 
     def load_saved(self) -> PreTrainedModelData:

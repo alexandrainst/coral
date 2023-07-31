@@ -1,42 +1,41 @@
-"""Model setup for Wav2Vec 2.0 models."""
+"""Model setup for Whisper models."""
 
 import logging
 from dataclasses import dataclass
 from functools import partial
 from typing import Callable, Type
 
-import torch
 import wandb
 from omegaconf import DictConfig
 from torch.backends.mps import is_available as mps_is_available
 from transformers import (
-    BatchEncoding,
     BatchFeature,
     EvalPrediction,
+    Seq2SeqTrainer,
+    Seq2SeqTrainingArguments,
     Trainer,
     TrainingArguments,
-    Wav2Vec2CTCTokenizer,
-    Wav2Vec2FeatureExtractor,
-    Wav2Vec2ForCTC,
-    Wav2Vec2Processor,
-    Wav2Vec2ProcessorWithLM,
+    WhisperFeatureExtractor,
+    WhisperForConditionalGeneration,
+    WhisperProcessor,
+    WhisperTokenizer,
 )
 from transformers.data.data_collator import DataCollatorMixin
 from transformers.trainer import OptimizerNames
 
 from .compute_metrics import compute_wer_metrics
 from .protocols import PreTrainedModelData, Processor
-from .utils import dump_vocabulary, transformers_output_ignored
+from .utils import transformers_output_ignored
 
 logger = logging.getLogger(__package__)
 
 
 @dataclass
-class DataCollatorCTCWithPadding(DataCollatorMixin):
+class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
     """Data collator that will dynamically pad the inputs received.
 
     Args:
-        processor (Wav2Vec2Processor)
+        processor (WhisperProcessor)
             The processor used for proccessing the data.
         padding (bool, str or PaddingStrategy, optional):
             Select a strategy to pad the returned sequences (according to the model's
@@ -54,7 +53,7 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
             Defaults to True.
     """
 
-    processor: Wav2Vec2Processor
+    processor: WhisperProcessor
     padding: bool | str = True
     return_tensors: str = "pt"
 
@@ -70,41 +69,37 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
                 A dictionary of the collated features.
         """
         # Split inputs and labels since they have to be of different lengths and need
-        # different padding methods
-        audio_features = [
-            {
-                "input_values": self.processor(
-                    feature["audio"]["array"],
-                    sampling_rate=feature["audio"]["sampling_rate"],
-                ).input_values[0]
-            }
-            for feature in features
+        # different padding methods. First treat the audio inputs by simply returning
+        # torch tensors
+        input_features = [
+            {"input_features": feature["input_features"]} for feature in features
         ]
-        label_features = [{"input_ids": feature["labels"]} for feature in features]
-
-        batch: BatchFeature = self.processor.pad(
-            audio_features,
-            padding=self.padding,
-            return_tensors="pt",
+        batch = self.processor.feature_extractor.pad(
+            input_features, return_tensors="pt"
         )
 
-        with self.processor.as_target_processor():
-            labels_batch: BatchEncoding = self.processor.pad(
-                label_features,
-                padding=self.padding,
-                return_tensors="pt",
-            )
+        # Get the tokenized label sequences
+        label_features = [{"input_ids": feature["labels"]} for feature in features]
 
-        # Replace padding with -100 to ignore loss correctly
-        non_one_entries: torch.Tensor = labels_batch.attention_mask.ne(1)
-        labels: torch.Tensor = labels_batch.input_ids.masked_fill(non_one_entries, -100)
+        # Pad the labels to max length
+        labels_batch = self.processor.tokenizer.pad(label_features, return_tensors="pt")
+
+        # replace padding with -100 to ignore loss correctly
+        labels = labels_batch["input_ids"].masked_fill(
+            labels_batch.attention_mask.ne(1), -100
+        )
+
+        # if bos token is appended in previous tokenization step,
+        # cut bos token here as it's append later anyways
+        if (labels[:, 0] == self.processor.tokenizer.bos_token_id).all().cpu().item():
+            labels = labels[:, 1:]
 
         batch["labels"] = labels
         return batch
 
 
-class Wav2Vec2ModelSetup:
-    """Model setup for Wav2Vec 2.0 models.
+class WhisperModelSetup:
+    """Model setup for Whisper models.
 
     Args:
         cfg (DictConfig):
@@ -113,19 +108,13 @@ class Wav2Vec2ModelSetup:
 
     def __init__(self, cfg: DictConfig) -> None:
         self.cfg = cfg
-        self.processor: Wav2Vec2Processor
+        self.processor: WhisperProcessor
 
-    def load_processor(self) -> Wav2Vec2Processor:
+    def load_processor(self) -> WhisperProcessor:
         # We dump the vocabulary to a file since the tokenizer uses this file during
         # initialisation
-        dump_vocabulary(self.cfg)
-        tokenizer: Wav2Vec2CTCTokenizer = Wav2Vec2CTCTokenizer.from_pretrained(
-            self.cfg.model_dir,
-            unk_token="<unk>",
-            pad_token="<pad>",
-            bos_token="<s>",
-            eos_token="</s>",
-            word_delimiter_token="|",
+        tokenizer: WhisperTokenizer = WhisperTokenizer.from_pretrained(
+            self.cfg.model.pretrained_model_id, language="Danish", task="transcribe"
         )
 
         # Set the `model_max_length` attribute of the tokenizer, if it hasn't been set,
@@ -133,50 +122,57 @@ class Wav2Vec2ModelSetup:
         if tokenizer.model_max_length is None or tokenizer.model_max_length > 1e6:
             tokenizer.model_max_length = 512
 
-        extractor = Wav2Vec2FeatureExtractor(
-            feature_size=1,
-            sampling_rate=self.cfg.model.sampling_rate,
-            padding_value=0.0,
-            do_normalize=True,
-            return_attention_mask=True,
+        extractor = WhisperFeatureExtractor.from_pretrained(
+            self.cfg.model.pretrained_model_id
         )
-        self.processor = Wav2Vec2Processor(
+        self.processor = WhisperProcessor(
             feature_extractor=extractor, tokenizer=tokenizer
         )
         return self.processor
 
-    def load_model(self) -> Wav2Vec2ForCTC:
+    def load_model(self) -> WhisperForConditionalGeneration:
         with transformers_output_ignored():
-            model = Wav2Vec2ForCTC.from_pretrained(
+            model = WhisperForConditionalGeneration.from_pretrained(
                 self.cfg.model.pretrained_model_id,
                 activation_dropout=self.cfg.model.activation_dropout,
                 attention_dropout=self.cfg.model.attention_dropout,
-                hidden_dropout=self.cfg.model.hidden_dropout,
-                feat_proj_dropout=self.cfg.model.feat_proj_dropout,
-                final_dropout=self.cfg.model.final_dropout,
                 mask_time_prob=self.cfg.model.mask_time_prob,
                 mask_feature_prob=self.cfg.model.mask_feature_prob,
                 mask_feature_length=self.cfg.model.mask_feature_length,
-                layerdrop=self.cfg.model.layerdrop,
-                ctc_loss_reduction=self.cfg.model.ctc_loss_reduction,
                 pad_token_id=self.processor.tokenizer.pad_token_id,
                 bos_token_id=self.processor.tokenizer.bos_token_id,
                 eos_token_id=self.processor.tokenizer.eos_token_id,
-                vocab_size=len(self.processor.tokenizer.get_vocab()),
             )
-            assert isinstance(model, Wav2Vec2ForCTC)
+            assert isinstance(model, WhisperForConditionalGeneration)
 
         if self.cfg.model.freeze_feature_encoder:
             for param in model.wav2vec2.parameters():
                 param.requires_grad = False
 
+        # The Whisper model has token ids that are forced as model outputs before
+        # autoregressive generation is started (forced_decoder_ids). These token ids
+        # control the transcription language and task for zero-shot ASR. For
+        # fine-tuning, we'll set these ids to None, as we'll train the model to predict
+        # the correct language and task. There are also tokens that are completely
+        # suppressed during generation (suppress_tokens). These tokens have their log
+        # probabilities set to -inf, such that they are never sampled. We'll override
+        # these tokens to an empty list, meaning no tokens are suppressed.
+        # Source: https://hf.co/blog/fine-tune-whisper#load-a-pre-trained-checkpoint
+        model.config.forced_decoder_ids = None
+        model.config.suppress_tokens = []
+
+        # Disabling cache as this is incompatible with gradient checkpointing
+        model.config.use_cache = False
+
         return model
 
-    def load_data_collator(self) -> DataCollatorCTCWithPadding:
-        return DataCollatorCTCWithPadding(processor=self.processor, padding=True)
+    def load_data_collator(self) -> DataCollatorSpeechSeq2SeqWithPadding:
+        return DataCollatorSpeechSeq2SeqWithPadding(
+            processor=self.processor, padding=True
+        )
 
     def load_trainer_class(self) -> Type[Trainer]:
-        return Trainer
+        return Seq2SeqTrainer
 
     def load_compute_metrics(self) -> Callable[[EvalPrediction], dict]:
         return partial(compute_wer_metrics, processor=self.processor)
@@ -184,8 +180,7 @@ class Wav2Vec2ModelSetup:
     def load_training_arguments(self) -> TrainingArguments:
         if self.cfg.wandb:
             wandb.init(project=self.cfg.pipeline_id, name=self.cfg.wandb_name)
-
-        args = TrainingArguments(
+        args = Seq2SeqTrainingArguments(
             output_dir=self.cfg.model_dir,
             hub_model_id=self.cfg.hub_id,
             per_device_train_batch_size=self.cfg.model.batch_size,
@@ -213,27 +208,21 @@ class Wav2Vec2ModelSetup:
             report_to=["wandb"] if self.cfg.wandb else [],
             ignore_data_skip=self.cfg.ignore_data_skip,
             save_safetensors=True,
+            predict_with_generate=True,
+            generation_max_length=self.cfg.model.generation_max_length,
         )
         return args
 
     def load_saved(self) -> PreTrainedModelData:
         processor: Processor
-        if self.cfg.model.language_model_decoder is not None:
-            try:
-                processor = Wav2Vec2ProcessorWithLM.from_pretrained(
-                    self.cfg.hub_id, use_auth_token=True
-                )
-            except (FileNotFoundError, ValueError):
-                processor = Wav2Vec2Processor.from_pretrained(
-                    self.cfg.hub_id, use_auth_token=True
-                )
-        else:
-            processor = Wav2Vec2Processor.from_pretrained(
-                self.cfg.hub_id, use_auth_token=True
-            )
+        processor = WhisperProcessor.from_pretrained(
+            self.cfg.hub_id, use_auth_token=True
+        )
 
-        model = Wav2Vec2ForCTC.from_pretrained(self.cfg.hub_id, use_auth_token=True)
-        data_collator = DataCollatorCTCWithPadding(
+        model = WhisperForConditionalGeneration.from_pretrained(
+            self.cfg.hub_id, use_auth_token=True
+        )
+        data_collator = DataCollatorSpeechSeq2SeqWithPadding(
             processor=processor, padding="longest"
         )
         compute_metrics = partial(compute_wer_metrics, processor=processor)

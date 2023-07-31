@@ -1,23 +1,15 @@
-name: wav2vec2-300m-ngram
-type: wav2vec2
-pretrained_model_id: chcaa/xls-r-300m-danish
+name: whisper-tiny
+type: whisper
+pretrained_model_id: openai/whisper-tiny
 freeze_feature_encoder: false
 
 # Model hyperparameters
 sampling_rate: 16_000
 activation_dropout: 0.1
 attention_dropout: 0.1
-hidden_dropout: 0.1
-feat_proj_dropout: 0.1
-final_dropout: 0.1
 mask_time_prob: 0.5
 mask_feature_prob: 0.5
 mask_feature_length: 64
-layerdrop: 0.1
-ctc_loss_reduction: sum
-
-# Decoder hyperparameters
-language_model_decoder: null
 
 # Training hyperparameters
 batch_size: 2
@@ -32,3 +24,4 @@ eval_steps: 1000
 save_steps: 1000
 logging_steps: 100
 save_total_limit: 2
+generation_max_length: 225
