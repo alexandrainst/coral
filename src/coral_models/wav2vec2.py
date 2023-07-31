@@ -2,6 +2,7 @@
 
 import json
 import logging
+import sys
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
@@ -71,30 +72,17 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
             BatchFeature:
                 A dictionary of the collated features.
         """
-        # Split inputs and labels since they have to be of different lengths and need
-        # different padding methods
         audio_features = [
-            {
-                "input_values": self.processor(
-                    feature["audio"]["array"],
-                    sampling_rate=feature["audio"]["sampling_rate"],
-                ).input_values[0]
-            }
-            for feature in features
+            dict(input_values=feature["input_values"]) for feature in features
         ]
-        label_features = [{"input_ids": feature["labels"]} for feature in features]
-
         batch: BatchFeature = self.processor.pad(
-            audio_features,
-            padding=self.padding,
-            return_tensors="pt",
+            audio_features, padding=self.padding, return_tensors="pt"
         )
 
         with self.processor.as_target_processor():
+            label_features = [dict(input_ids=feature["labels"]) for feature in features]
             labels_batch: BatchEncoding = self.processor.pad(
-                label_features,
-                padding=self.padding,
-                return_tensors="pt",
+                label_features, padding=self.padding, return_tensors="pt"
             )
 
         # Replace padding with -100 to ignore loss correctly
@@ -215,6 +203,7 @@ class Wav2Vec2ModelSetup:
             report_to=["wandb"] if self.cfg.wandb else [],
             ignore_data_skip=self.cfg.ignore_data_skip,
             save_safetensors=True,
+            no_cuda=hasattr(sys, "_called_from_test"),
         )
         return args
 
