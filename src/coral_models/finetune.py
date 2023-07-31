@@ -48,7 +48,7 @@ def finetune(cfg: DictConfig) -> None:
         compute_metrics=model_setup.load_compute_metrics(),
         train_dataset=dataset["train"],
         eval_dataset=dataset["val"],
-        tokenizer=processor.tokenizer,
+        tokenizer=getattr(processor, "tokenizer"),
         callbacks=load_callbacks(cfg),
     )
 

@@ -3,7 +3,7 @@
 import numpy as np
 from evaluate.loading import load as load_metric
 from numpy.typing import NDArray
-from transformers import EvalPrediction
+from transformers import EvalPrediction, PreTrainedTokenizerBase
 
 from .protocols import Processor
 
@@ -22,7 +22,8 @@ def compute_wer_metrics(pred: EvalPrediction, processor: Processor) -> dict[str,
             dictionary with 'wer' as the key and the word error rate as the value.
     """
     wer_metric = load_metric("wer")
-    pad_token = processor.tokenizer.pad_token_id
+    tokenizer: PreTrainedTokenizerBase = getattr(processor, "tokenizer")
+    pad_token = tokenizer.pad_token_id
 
     # Shape: [batch_size, seq_len, vocab_size]
     predictions: NDArray[np.int_] | NDArray[np.float_] = pred.predictions
@@ -39,7 +40,7 @@ def compute_wer_metrics(pred: EvalPrediction, processor: Processor) -> dict[str,
     if predictions.dtype == np.int_:
         # If the vocabulary dimension of the predictions is too small then we pad with
         # zeros to match the size of the vocabulary
-        vocab_size = processor.tokenizer.get_vocab()
+        vocab_size = tokenizer.get_vocab()
         mismatch_dim = len(vocab_size) - predictions.shape[-1]
         predictions = np.pad(predictions, ((0, 0), (0, 0), (0, mismatch_dim)))
 
@@ -58,7 +59,7 @@ def compute_wer_metrics(pred: EvalPrediction, processor: Processor) -> dict[str,
     labels[labels == -100] = pad_token
 
     # Decode the ground truth labels
-    labels_str = processor.tokenizer.batch_decode(labels, group_tokens=False)
+    labels_str = tokenizer.batch_decode(labels, group_tokens=False)
 
     # Compute the word error rate
     computed = wer_metric.compute(predictions=predictions_str, references=labels_str)

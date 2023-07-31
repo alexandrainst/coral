@@ -6,7 +6,8 @@ from omegaconf import DictConfig
 from transformers import Trainer, TrainingArguments
 
 from coral_models.data import clean_dataset, load_data
-from coral_models.model_setup import Processor, load_model_setup
+from coral_models.model_setup import load_model_setup
+from coral_models.protocols import Processor
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
@@ -32,14 +33,14 @@ def main(cfg: DictConfig) -> None:
         data_collator=model_data.data_collator,
         compute_metrics=model_data.compute_metrics,
         eval_dataset=dataset,
-        tokenizer=model_data.processor.tokenizer,
+        tokenizer=getattr(model_data.processor, "tokenizer"),
     )
 
     metrics = trainer.evaluate(dataset)
-    wer = 100 * metrics["eval_wer"]
+    wer = metrics["eval_wer"]
 
     print(f"\n*** RESULTS ON {cfg.dataset.name} ***")
-    print(f"{cfg.hub_id} achieved a WER of {wer:.2f}.\n")
+    print(f"{cfg.hub_id} achieved a WER of {wer:.2%}.\n")
 
 
 def preprocess_transcriptions(
