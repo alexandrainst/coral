@@ -1067,6 +1067,21 @@ files = [
 ]
 
 [[package]]
+name = "kenlm"
+version = "0.0.0"
+description = ""
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "master.zip", hash = "sha256:ed5ccd547fe6ef753debd1686751c702d005c71f22e01001cf011ec99a2125b6"},
+]
+
+[package.source]
+type = "url"
+url = "https://github.com/kpu/kenlm/archive/master.zip"
+
+[[package]]
 name = "lazy-loader"
 version = "0.3"
 description = "lazy_loader"
@@ -2013,17 +2028,6 @@ python-versions = "*"
 files = [
     {file = "pygtrie-2.5.0-py3-none-any.whl", hash = "sha256:8795cda8105493d5ae159a5bef313ff13156c5d4d72feddefacaad59f8c8ce16"},
     {file = "pygtrie-2.5.0.tar.gz", hash = "sha256:203514ad826eb403dab1d2e2ddd034e0d1534bbe4dbe0213bb0593f66beba4e2"},
-]
-
-[[package]]
-name = "pypi-kenlm"
-version = "0.1.20220713"
-description = ""
-category = "main"
-optional = false
-python-versions = "*"
-files = [
-    {file = "pypi-kenlm-0.1.20220713.tar.gz", hash = "sha256:6bd960b1e6bf85cc5469d469bde1955dad7dc79b4fe06ade9b5d0609b3507992"},
 ]
 
 [[package]]
@@ -3362,4 +3366,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.12"
-content-hash = "8fbf807f1c106771610e073fdbcea20d82cfa107cdba5b5c7d1f0b9a86a18f97"
+content-hash = "9c0f46feb1e0e33a2944b68d61f3ab119d774e4077833aa324bd799bb331af10"
