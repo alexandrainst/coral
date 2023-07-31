@@ -33,9 +33,11 @@ def finetune(cfg: DictConfig) -> None:
     def prepare_dataset(example: dict) -> dict:
         # Prepare audio
         audio = example["audio"]
-        example["input_features"] = processor(
-            audio["array"], sampling_rate=audio["sampling_rate"]
-        ).input_features[0]
+        processed = processor(audio["array"], sampling_rate=audio["sampling_rate"])
+        if "input_values" in processed:
+            example["input_values"] = processed.input_values[0]
+        if "input_features" in processed:
+            example["input_features"] = processed.input_features[0]
 
         # Prepare transcriptions
         example["labels"] = processor(
