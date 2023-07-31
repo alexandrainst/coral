@@ -102,6 +102,7 @@ def load_training_args(cfg: DictConfig) -> TrainingArguments:
         use_mps_device=mps_is_available(),
         report_to=["wandb"] if cfg.wandb else [],
         ignore_data_skip=cfg.ignore_data_skip,
+        save_safetensors=True,
     )
 
 
