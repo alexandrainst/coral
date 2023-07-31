@@ -201,7 +201,7 @@ class WhisperModelSetup:
             load_best_model_at_end=self.cfg.model.early_stopping,
             metric_for_best_model="wer",
             greater_is_better=False,
-            seed=4242,
+            seed=self.cfg.seed,
             remove_unused_columns=False,
             optim=OptimizerNames.ADAMW_TORCH,
             use_mps_device=mps_is_available(),

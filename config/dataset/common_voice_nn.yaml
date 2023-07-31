@@ -1,0 +1,7 @@
+name: common_voice_nn
+id: mozilla-foundation/common_voice_13_0
+subset: nn-NO
+train_name: train
+val_name: validation
+test_name: test
+text_column: sentence

@@ -11,6 +11,8 @@ dirs:
   final: final
   models: models
 
+seed: 4242
+
 # Model parameters
 pipeline_id: ${model.name}-${dataset.name}
 hub_id: alexandrainst/${pipeline_id}

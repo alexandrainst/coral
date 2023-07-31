@@ -33,24 +33,29 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         streaming=True,
     )
 
-    # Only include the train, validation and test splits of the dataset, and rename
-    # these splits to the default split names.
+    assert isinstance(dataset, DatasetDict) or isinstance(
+        dataset, IterableDatasetDict
+    ), f"Unsupported dataset type: {type(dataset)}"
+
+    train = dataset[cfg.dataset.train_name]
+    if cfg.dataset.val_name is not None:
+        val = dataset[cfg.dataset.val_name]
+    else:
+        train_val = train.train_test_split(test_size=256, seed=cfg.seed)
+        train = train_val["train"]
+        val = train_val["test"]
+    if cfg.dataset.test_name is not None:
+        test = dataset[cfg.dataset.test_name]
+    else:
+        train_test = train.train_test_split(test_size=1024, seed=cfg.seed)
+        train = train_test["train"]
+        test = train_test["test"]
+
+    splits_dict = dict(train=train, val=val, test=test)
     if isinstance(dataset, DatasetDict):
-        return DatasetDict(
-            dict(
-                train=dataset[cfg.dataset.train_name],
-                val=dataset[cfg.dataset.val_name],
-                test=dataset[cfg.dataset.test_name],
-            )
-        )
+        return DatasetDict(splits_dict)
     elif isinstance(dataset, IterableDatasetDict):
-        return IterableDatasetDict(
-            dict(
-                train=dataset[cfg.dataset.train_name],
-                val=dataset[cfg.dataset.val_name],
-                test=dataset[cfg.dataset.test_name],
-            )
-        )
+        return IterableDatasetDict(splits_dict)
     else:
         raise ValueError(f"Unsupported dataset type: {type(dataset)}")
 
