@@ -23,7 +23,7 @@ def main(cfg: DictConfig) -> None:
     # Clean and tokenize the transcriptions
     dataset = clean_dataset(cfg, dataset=dataset)
     dataset = dataset.cast_column(
-        column="audio", feature=Audio(sampling_rate=cfg.dataset.sampling_rate)
+        column="audio", feature=Audio(sampling_rate=cfg.model.sampling_rate)
     )
     dataset = preprocess_transcriptions(
         dataset=dataset,

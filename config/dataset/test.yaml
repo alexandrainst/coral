@@ -5,4 +5,3 @@ train_name: train
 val_name: validation
 test_name: test
 text_column: sentence
-sampling_rate: 16_000
