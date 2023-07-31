@@ -1,0 +1,26 @@
+name: test_whisper
+type: whisper
+pretrained_model_id: openai/whisper-tiny
+freeze_feature_encoder: true
+
+# Data hyperparameters
+clean_dataset: false
+
+# Model hyperparameters
+sampling_rate: 16_000
+activation_dropout: 0.1
+attention_dropout: 0.1
+mask_time_prob: 0.5
+mask_feature_prob: 0.5
+mask_feature_length: 64
+
+# Training hyperparameters
+batch_size: 1
+gradient_accumulation: 1
+max_steps: 3
+learning_rate: 4e-5
+warmup_steps: 1
+early_stopping: true
+early_stopping_patience: 5
+fp16: false
+generation_max_length: 1

@@ -1,5 +1,5 @@
 defaults:
-  - model: wav2vec2
+  - model: xls_r_300m_danish
   - dataset: common_voice_da
   - override hydra/job_logging: custom
   - _self_
