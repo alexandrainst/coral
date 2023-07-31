@@ -1,13 +1,13 @@
 """Finetune a speech model.
 
 Usage:
-    python finetune.py <key>=<value> <key>=<value> ...
+    python finetune_model.py <key>=<value> <key>=<value> ...
 """
 
 import hydra
 from omegaconf import DictConfig
 
-from coral_models import finetune
+from coral_models.finetune import finetune
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)

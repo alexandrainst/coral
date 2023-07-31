@@ -1,4 +1,8 @@
-"""Evaluation of Wav2Vec 2.0 models on ASR datasets."""
+"""Evaluate a speech model.
+
+Usage:
+    python evaluate_model.py <key>=<value> <key>=<value> ...
+"""
 
 import hydra
 from datasets import Audio, DatasetDict, IterableDatasetDict, Sequence, Value
@@ -12,7 +16,7 @@ from coral_models.protocols import Processor
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
 def main(cfg: DictConfig) -> None:
-    """Evaluate ASR models on a dataset"""
+    """Evaluate a speech model on a dataset."""
     dataset: DatasetDict | IterableDatasetDict = load_data(cfg)
     model_data = load_model_setup(cfg).load_saved()
 
