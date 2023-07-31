@@ -6,7 +6,6 @@ import importlib.metadata
 import logging
 import sys
 
-from .finetune import finetune
 from .utils import block_terminal_output
 
 # Fetches the version of the package as defined in pyproject.toml
