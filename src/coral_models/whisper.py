@@ -1,6 +1,7 @@
 """Model setup for Whisper models."""
 
 import logging
+import sys
 from dataclasses import dataclass
 from functools import partial
 from typing import Callable, Type
@@ -146,8 +147,10 @@ class WhisperModelSetup:
             assert isinstance(model, WhisperForConditionalGeneration)
 
         if self.cfg.model.freeze_feature_encoder:
-            for param in model.wav2vec2.parameters():
+            for param in model.parameters():
                 param.requires_grad = False
+            for param in model.proj_out.parameters():
+                param.requires_grad = True
 
         # The Whisper model has token ids that are forced as model outputs before
         # autoregressive generation is started (forced_decoder_ids). These token ids
@@ -210,6 +213,7 @@ class WhisperModelSetup:
             save_safetensors=True,
             predict_with_generate=True,
             generation_max_length=self.cfg.model.generation_max_length,
+            no_cuda=hasattr(sys, "_called_from_test"),
         )
         return args
 

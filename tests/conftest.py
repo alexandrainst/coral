@@ -24,12 +24,12 @@ def pytest_unconfigure() -> None:
     delattr(sys, "_called_from_test")
 
 
-@pytest.fixture(scope="session")
-def cfg() -> Generator[DictConfig, None, None]:
+@pytest.fixture(scope="session", params=["test_wav2vec2", "test_whisper"])
+def cfg(request) -> Generator[DictConfig, None, None]:
     yield compose(
         config_name="config",
         overrides=[
-            "model=test",
+            f"model={request.param}",
             "dataset=test",
         ],
     )
@@ -44,4 +44,7 @@ def dataset(cfg) -> Generator[DatasetDict | IterableDatasetDict, None, None]:
 def cleaned_dataset(
     cfg, dataset
 ) -> Generator[DatasetDict | IterableDatasetDict, None, None]:
-    yield clean_dataset(cfg, dataset=dataset)
+    if cfg.model.clean_dataset:
+        yield clean_dataset(cfg, dataset=dataset)
+    else:
+        yield dataset
