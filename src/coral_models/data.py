@@ -31,6 +31,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         name=cfg.dataset.subset,
         token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
         streaming=True,
+        keep_in_memory=False,
     )
 
     assert isinstance(dataset, DatasetDict) or isinstance(
