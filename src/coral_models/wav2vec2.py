@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Callable, Type
 
 import torch
-import wandb
 from omegaconf import DictConfig
 from torch.backends.mps import is_available as mps_is_available
 from transformers import (
@@ -25,6 +24,7 @@ from transformers import (
 )
 from transformers.data.data_collator import DataCollatorMixin
 from transformers.trainer import OptimizerNames
+from wandb.sdk.wandb_init import init as wandb_init
 
 from .compute_metrics import compute_wer_metrics
 from .protocols import PreTrainedModelData, Processor
@@ -185,7 +185,7 @@ class Wav2Vec2ModelSetup:
 
     def load_training_arguments(self) -> TrainingArguments:
         if self.cfg.wandb:
-            wandb.init(project=self.cfg.pipeline_id, name=self.cfg.wandb_name)
+            wandb_init(project=self.cfg.pipeline_id, name=self.cfg.wandb_name)
 
         args = TrainingArguments(
             output_dir=self.cfg.model_dir,
