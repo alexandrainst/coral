@@ -46,6 +46,6 @@ class TestBlockTerminalOutput:
 
 
 def test_transformers_output_ignored() -> None:
-    assert hf_logging.get_verbosity() == hf_logging.WARNING
+    assert hf_logging.get_verbosity() == hf_logging.INFO
     with transformers_output_ignored():
         assert hf_logging.get_verbosity() == hf_logging.ERROR
