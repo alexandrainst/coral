@@ -1,4 +1,4 @@
-name: whisper-large
+name: whisper_large
 type: whisper
 pretrained_model_id: openai/whisper-large-v2
 freeze_feature_encoder: false
@@ -11,12 +11,13 @@ sampling_rate: 16_000
 activation_dropout: 0.1
 attention_dropout: 0.1
 mask_time_prob: 0.5
+mask_time_length: 10
 mask_feature_prob: 0.5
 mask_feature_length: 64
 
 # Training hyperparameters
-batch_size: 2
-gradient_accumulation: 16
+batch_size: 4
+gradient_accumulation: 8
 max_steps: 120_000
 learning_rate: 3e-5
 warmup_steps: 1000

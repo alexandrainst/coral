@@ -1,4 +1,4 @@
-name: wav2vec2-300m-ngram
+name: wav2vec2
 type: wav2vec2
 pretrained_model_id: chcaa/xls-r-300m-danish
 freeze_feature_encoder: false
@@ -15,6 +15,7 @@ hidden_dropout: 0.1
 feat_proj_dropout: 0.1
 final_dropout: 0.1
 mask_time_prob: 0.5
+mask_time_length: 10
 mask_feature_prob: 0.5
 mask_feature_length: 64
 layerdrop: 0.1
