@@ -135,14 +135,17 @@ class WhisperModelSetup:
         with transformers_output_ignored():
             model = WhisperForConditionalGeneration.from_pretrained(
                 self.cfg.model.pretrained_model_id,
+                dropout=self.cfg.model.dropout,
                 activation_dropout=self.cfg.model.activation_dropout,
                 attention_dropout=self.cfg.model.attention_dropout,
-                mask_time_prob=self.cfg.model.mask_time_prob,
-                mask_feature_prob=self.cfg.model.mask_feature_prob,
-                mask_feature_length=self.cfg.model.mask_feature_length,
                 pad_token_id=self.processor.tokenizer.pad_token_id,
                 bos_token_id=self.processor.tokenizer.bos_token_id,
                 eos_token_id=self.processor.tokenizer.eos_token_id,
+                apply_spec_augment=True,
+                mask_time_prob=self.cfg.model.mask_time_prob,
+                mask_time_length=self.cfg.model.mask_time_length,
+                mask_feature_prob=self.cfg.model.mask_feature_prob,
+                mask_feature_length=self.cfg.model.mask_feature_length,
             )
             assert isinstance(model, WhisperForConditionalGeneration)
 
