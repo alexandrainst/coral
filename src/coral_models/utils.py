@@ -1,5 +1,6 @@
 """General utility functions."""
 
+import logging
 import warnings
 
 import datasets.utils.logging as ds_logging
@@ -19,8 +20,9 @@ def block_terminal_output() -> None:
     # Ignore user warnings throughout the codebase
     warnings.filterwarnings("ignore", category=UserWarning)
 
-    # Disable logging from the `datasets` library
+    # Disable logging from Hugging Face libraries
     ds_logging.set_verbosity_error()
+    logging.getLogger("accelerate").setLevel(logging.ERROR)
 
     # Disable the tokeniser progress bars from the `datasets` library
     disable_progress_bar()
