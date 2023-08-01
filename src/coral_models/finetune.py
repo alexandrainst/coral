@@ -9,6 +9,7 @@ from transformers import EarlyStoppingCallback, TrainerCallback
 from .data import clean_dataset, load_data
 from .model_setup import load_model_setup
 from .protocols import ModelSetup
+from .utils import disable_tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,8 @@ def finetune(cfg: DictConfig) -> None:
         callbacks=load_callbacks(cfg),
     )
 
-    trainer.train(resume_from_checkpoint=cfg.resume_from_checkpoint)
+    with disable_tqdm():
+        trainer.train(resume_from_checkpoint=cfg.resume_from_checkpoint)
     model.save_pretrained(cfg.model_dir)
     if cfg.push_to_hub:
         trainer.push_to_hub()
