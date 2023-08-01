@@ -145,6 +145,7 @@ class Wav2Vec2ModelSetup:
                 feat_proj_dropout=self.cfg.model.feat_proj_dropout,
                 final_dropout=self.cfg.model.final_dropout,
                 mask_time_prob=self.cfg.model.mask_time_prob,
+                mask_time_length=self.cfg.model.mask_time_length,
                 mask_feature_prob=self.cfg.model.mask_feature_prob,
                 mask_feature_length=self.cfg.model.mask_feature_length,
                 layerdrop=self.cfg.model.layerdrop,
