@@ -15,10 +15,8 @@ from transformers import (
     Seq2SeqTrainingArguments,
     Trainer,
     TrainingArguments,
-    WhisperFeatureExtractor,
     WhisperForConditionalGeneration,
     WhisperProcessor,
-    WhisperTokenizer,
 )
 from transformers.data.data_collator import DataCollatorMixin
 from transformers.trainer import OptimizerNames
@@ -112,22 +110,8 @@ class WhisperModelSetup:
         self.processor: WhisperProcessor
 
     def load_processor(self) -> WhisperProcessor:
-        # We dump the vocabulary to a file since the tokenizer uses this file during
-        # initialisation
-        tokenizer: WhisperTokenizer = WhisperTokenizer.from_pretrained(
+        self.processor = WhisperProcessor.from_pretrained(
             self.cfg.model.pretrained_model_id, language="Danish", task="transcribe"
-        )
-
-        # Set the `model_max_length` attribute of the tokenizer, if it hasn't been set,
-        # to ensure that truncation is done correctly
-        if tokenizer.model_max_length is None or tokenizer.model_max_length > 1e6:
-            tokenizer.model_max_length = 512
-
-        extractor = WhisperFeatureExtractor.from_pretrained(
-            self.cfg.model.pretrained_model_id
-        )
-        self.processor = WhisperProcessor(
-            feature_extractor=extractor, tokenizer=tokenizer
         )
         return self.processor
 
@@ -195,7 +179,7 @@ class WhisperModelSetup:
             learning_rate=self.cfg.model.learning_rate,
             warmup_steps=self.cfg.model.warmup_steps,
             max_steps=self.cfg.model.max_steps,
-            fp16=self.cfg.model.fp16 and not mps_is_available(),
+            fp16=self.cfg.fp16 and not mps_is_available(),
             push_to_hub=self.cfg.push_to_hub,
             evaluation_strategy="steps",
             eval_steps=self.cfg.eval_steps,
@@ -204,7 +188,7 @@ class WhisperModelSetup:
             length_column_name="input_length",
             gradient_checkpointing=True,
             save_total_limit=self.cfg.save_total_limit,
-            load_best_model_at_end=self.cfg.model.early_stopping,
+            load_best_model_at_end=self.cfg.early_stopping,
             metric_for_best_model="wer",
             greater_is_better=False,
             seed=self.cfg.seed,
