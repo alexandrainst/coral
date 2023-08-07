@@ -31,6 +31,7 @@ def cfg(request) -> Generator[DictConfig, None, None]:
         overrides=[
             f"model={request.param}",
             "dataset=test_dataset",
+            "fp16=false",
         ],
     )
 
