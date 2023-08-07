@@ -1,25 +1,16 @@
-"""Script that pushes a compiled FTSpeech dataset to the Hugging Face Hub.
+"""Script that pushes a saved dataset to the Hugging Face Hub.
 
 Usage:
-    python push_ftspeech_to_hub.py <compiled_dataset_dir>
+    python push_to_hub.py <saved_dataset_dir> <hub_id> [--private]
 """
 
 import click
 from datasets import DatasetDict
 
 
-@click.command("Pushes a compiled FTSpeech dataset to the Hugging Face Hub.")
-@click.argument(
-    "compiled-data-dir",
-    type=click.Path(exists=True),
-)
-@click.option(
-    "--dataset-id",
-    type=str,
-    default="alexandrainst/ftspeech",
-    show_default=True,
-    help="The ID of the dataset on the Hugging Face Hub.",
-)
+@click.command("Pushes a saved dataset to the Hugging Face Hub.")
+@click.argument("saved-data-dir", type=click.Path(exists=True))
+@click.argument("--hub-id", type=str)
 @click.option(
     "--private",
     is_flag=True,
@@ -27,17 +18,17 @@ from datasets import DatasetDict
     show_default=True,
     help="Whether to make the dataset private on the Hugging Face Hub.",
 )
-def main(compiled_data_dir: str, dataset_id: str, private: bool) -> None:
+def main(saved_data_dir: str, hub_id: str, private: bool) -> None:
     """Builds and stores the FTSpeech dataset.
 
     This also catches RuntimeError exceptions which tends to happen during the upload
     of large datasets, and retries the upload until it succeeds.
     """
-    dataset = DatasetDict.load_from_disk(compiled_data_dir)
+    dataset = DatasetDict.load_from_disk(saved_data_dir)
     while True:
         try:
             dataset.push_to_hub(
-                repo_id=dataset_id,
+                repo_id=hub_id,
                 max_shard_size="50MB",
                 private=private,
             )
