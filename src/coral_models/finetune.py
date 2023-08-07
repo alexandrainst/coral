@@ -5,6 +5,7 @@ import logging
 from datasets import Audio
 from omegaconf import DictConfig
 from transformers import EarlyStoppingCallback, TrainerCallback
+from wandb.sdk.wandb_init import init as wandb_init
 
 from .data import clean_dataset, load_data
 from .model_setup import load_model_setup
@@ -50,6 +51,13 @@ def finetune(cfg: DictConfig) -> None:
 
     dataset = dataset.map(prepare_dataset, remove_columns=dataset["train"].column_names)
 
+    if cfg.wandb:
+        wandb_init(
+            project=cfg.wandb_project,
+            group=cfg.wandb_group,
+            name=cfg.wandb_name,
+        )
+
     trainer = model_setup.load_trainer_class()(
         model=model,
         data_collator=model_setup.load_data_collator(),
@@ -80,9 +88,9 @@ def load_callbacks(cfg: DictConfig) -> list[TrainerCallback]:
             The callbacks.
     """
     callbacks: list[TrainerCallback] = list()
-    if cfg.model.early_stopping:
+    if cfg.early_stopping:
         early_stopping_callback = EarlyStoppingCallback(
-            early_stopping_patience=cfg.model.early_stopping_patience
+            early_stopping_patience=cfg.early_stopping_patience
         )
         callbacks = [early_stopping_callback]
     return callbacks

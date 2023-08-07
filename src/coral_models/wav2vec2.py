@@ -25,7 +25,6 @@ from transformers import (
 )
 from transformers.data.data_collator import DataCollatorMixin
 from transformers.trainer import OptimizerNames
-from wandb.sdk.wandb_init import init as wandb_init
 
 from .compute_metrics import compute_wer_metrics
 from .protocols import PreTrainedModelData, Processor
@@ -173,9 +172,6 @@ class Wav2Vec2ModelSetup:
         return partial(compute_wer_metrics, processor=self.processor)
 
     def load_training_arguments(self) -> TrainingArguments:
-        if self.cfg.wandb:
-            wandb_init(project=self.cfg.pipeline_id, name=self.cfg.wandb_name)
-
         args = TrainingArguments(
             output_dir=self.cfg.model_dir,
             hub_model_id=self.cfg.hub_id,
@@ -185,7 +181,7 @@ class Wav2Vec2ModelSetup:
             learning_rate=self.cfg.model.learning_rate,
             warmup_steps=self.cfg.model.warmup_steps,
             max_steps=self.cfg.model.max_steps,
-            fp16=self.cfg.model.fp16 and not mps_is_available(),
+            fp16=self.cfg.fp16 and not mps_is_available(),
             push_to_hub=self.cfg.push_to_hub,
             evaluation_strategy="steps",
             eval_steps=self.cfg.eval_steps,
@@ -194,7 +190,7 @@ class Wav2Vec2ModelSetup:
             length_column_name="input_length",
             gradient_checkpointing=True,
             save_total_limit=self.cfg.save_total_limit,
-            load_best_model_at_end=self.cfg.model.early_stopping,
+            load_best_model_at_end=self.cfg.early_stopping,
             metric_for_best_model="wer",
             greater_is_better=False,
             seed=self.cfg.seed,
