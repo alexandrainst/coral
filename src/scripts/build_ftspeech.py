@@ -18,14 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 @click.command("Builds and stores the FTSpeech dataset.")
-@click.argument(
-    "raw_data_dir",
-    type=click.Path(exists=True),
-)
-@click.argument(
-    "output_dir",
-    type=click.Path(),
-)
+@click.argument("raw_data_dir", type=click.Path(exists=True))
+@click.argument("output_dir", type=click.Path())
 def main(raw_data_dir: str | Path, output_dir: str | Path) -> None:
     """Builds and stores the FTSpeech dataset.
 
