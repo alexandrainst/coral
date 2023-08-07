@@ -21,8 +21,5 @@ batch_size: 8
 gradient_accumulation: 4
 max_steps: 120_000
 learning_rate: 3e-5
-warmup_steps: 1000
-early_stopping: true
-early_stopping_patience: 10
-fp16: true
+warmup_steps: 500
 generation_max_length: 225
