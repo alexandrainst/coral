@@ -1,6 +1,5 @@
 """Functions related to the data loading and processing"""
 
-import itertools as it
 import logging
 import os
 import re
@@ -152,11 +151,6 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         seed=cfg.seed,
         stopping_strategy="first_exhausted",
     )
-
-    if cfg.max_val_samples is not None:
-        val = it.islice(val, cfg.max_val_samples)
-    if cfg.max_test_samples is not None:
-        test = test.select(range(cfg.max_test_samples))
 
     if isinstance(train, Dataset):
         return DatasetDict(dict(train=train, val=val, test=test))

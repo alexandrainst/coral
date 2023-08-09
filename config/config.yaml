@@ -20,8 +20,6 @@ dataset_probabilities:  # null = equal probability to every dataset
   train: null
   val: null
   test: null
-max_val_samples: 512  # null = no maximum
-max_test_samples: null  # null = no maximum
 
 # Model parameters
 pipeline_id: ${model.name}-finetuned
