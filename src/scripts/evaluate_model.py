@@ -37,7 +37,7 @@ def main(cfg: DictConfig) -> None:
         tokenizer=getattr(model_data.processor, "tokenizer"),
     )
 
-    metrics = trainer.evaluate(dataset)
+    metrics = trainer.evaluate(dataset["test"])
     wer = metrics["eval_wer"]
 
     print(f"\n*** RESULTS ON {eval_dataset_cfg.dataset.name} ***")
