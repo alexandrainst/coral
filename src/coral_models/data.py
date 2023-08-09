@@ -8,6 +8,7 @@ from unicodedata import normalize
 
 from datasets import (
     Audio,
+    Dataset,
     DatasetDict,
     IterableDatasetDict,
     interleave_datasets,
@@ -157,7 +158,10 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
     if cfg.max_test_samples is not None:
         test = test.select(range(cfg.max_test_samples))
 
-    return DatasetDict(dict(train=train, val=val, test=test))
+    if isinstance(train, Dataset):
+        return DatasetDict(dict(train=train, val=val, test=test))
+    else:
+        return IterableDatasetDict(dict(train=train, val=val, test=test))
 
 
 def clean_dataset(
