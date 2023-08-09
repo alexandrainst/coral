@@ -14,7 +14,7 @@ from datasets import (
 )
 from omegaconf import DictConfig
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__package__)
 
 
 def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:

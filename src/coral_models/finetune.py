@@ -11,7 +11,7 @@ from .model_setup import load_model_setup
 from .protocols import ModelSetup
 from .utils import disable_tqdm
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__package__)
 
 
 def finetune(cfg: DictConfig) -> None:
@@ -26,6 +26,7 @@ def finetune(cfg: DictConfig) -> None:
     processor.save_pretrained(cfg.model_dir)
     model = model_setup.load_model()
     dataset = load_data(cfg)
+    breakpoint()
 
     def prepare_dataset(example: dict) -> dict:
         # Prepare audio
