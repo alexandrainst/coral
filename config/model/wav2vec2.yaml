@@ -1,37 +1,37 @@
-name: wav2vec2
-type: wav2vec2
-pretrained_model_id: chcaa/xls-r-300m-danish
-freeze_feature_encoder: false
+wav2vec2:
+  type: wav2vec2
+  pretrained_model_id: chcaa/xls-r-300m-danish
+  freeze_feature_encoder: false
 
-# Data hyperparameters
-clean_dataset: true
-characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789é|'
+  # Data hyperparameters
+  clean_dataset: true
+  characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789é|'
 
-# Model hyperparameters
-sampling_rate: 16_000
-activation_dropout: 0.1
-attention_dropout: 0.1
-hidden_dropout: 0.1
-feat_proj_dropout: 0.1
-final_dropout: 0.1
-mask_time_prob: 0.5
-mask_time_length: 10
-mask_feature_prob: 0.5
-mask_feature_length: 64
-layerdrop: 0.1
-ctc_loss_reduction: sum
+  # Model hyperparameters
+  sampling_rate: 16_000
+  activation_dropout: 0.1
+  attention_dropout: 0.1
+  hidden_dropout: 0.1
+  feat_proj_dropout: 0.1
+  final_dropout: 0.1
+  mask_time_prob: 0.5
+  mask_time_length: 10
+  mask_feature_prob: 0.5
+  mask_feature_length: 64
+  layerdrop: 0.1
+  ctc_loss_reduction: sum
 
-# Decoder hyperparameters
-language_model_decoder: ngram
-decoder:
-  dataset_id: DDSC/reddit-da-asr-preprocessed
-  dataset_subset: null
-  dataset_split: train
-  n: 5
+  # Decoder hyperparameters
+  language_model_decoder: ngram
+  decoder:
+    dataset_id: DDSC/reddit-da-asr-preprocessed
+    dataset_subset: null
+    dataset_split: train
+    n: 5
 
-# Training hyperparameters
-batch_size: 2
-gradient_accumulation: 16
-max_steps: 120_000
-learning_rate: 3e-5
-warmup_steps: 500
+  # Training hyperparameters
+  batch_size: 2
+  gradient_accumulation: 16
+  max_steps: 120_000
+  learning_rate: 3e-5
+  warmup_steps: 500

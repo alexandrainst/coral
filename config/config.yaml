@@ -1,6 +1,8 @@
 defaults:
   - model: wav2vec2
-  - dataset: common_voice_da
+  - datasets:
+    - common_voice_da
+    - nst_da
   - override hydra/job_logging: custom
   - _self_
 
@@ -12,6 +14,11 @@ dirs:
   models: models
 
 seed: 4242
+
+# Dataset parameters
+dataset_probabilities: null  # null = equal probability to every dataset
+max_val_samples: null  # null = no maximum
+max_test_samples: null  # null = no maximum
 
 # Model parameters
 pipeline_id: ${model.name}-${dataset.name}
