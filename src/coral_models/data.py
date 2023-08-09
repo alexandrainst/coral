@@ -1,5 +1,6 @@
 """Functions related to the data loading and processing"""
 
+import itertools as it
 import logging
 import os
 import re
@@ -94,27 +95,30 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
 
     logger.info("Interleaving datasets")
 
-    if cfg.dataset_probabilities is None:
-        probabilities = [1 / len(all_datasets)] * len(all_datasets)
-        probabilities[-1] = 1 - sum(probabilities[:-1])
-    else:
-        probabilities = cfg.dataset_probabilities
-        if sum(probabilities) != 1:
+    probabilities: dict[str, list[float]] = dict()
+    for split_name, split_probs in cfg.dataset_probabilities.items():
+        if split_probs is None:
+            split_probs = [1 / len(all_datasets)] * len(all_datasets)
+            split_probs[-1] = 1 - sum(split_probs[:-1])
+        elif sum(split_probs) != 1:
             raise ValueError(
-                f"Dataset probabilities must sum to 1, but sum to {sum(probabilities)}."
+                f"Dataset probabilities must sum to 1, but sum to {sum(split_probs)} "
+                f"for split {split_name!r}"
             )
+        probabilities[split_name] = split_probs
 
     train = interleave_datasets(
         datasets=[dataset["train"] for dataset in all_datasets],
-        probabilities=probabilities,
+        probabilities=probabilities["train"],
         seed=cfg.seed,
+        stopping_strategy="all_exhausted",
     )
 
     # Interleave the validation sets, where we tweak the sampling probabilities in case
     # any of the datasets do not have a validation split
     has_vals = ["val" in dataset for dataset in all_datasets]
     val_probabilities = [
-        prob for has_val, prob in zip(has_vals, probabilities) if has_val
+        prob for has_val, prob in zip(has_vals, probabilities["val"]) if has_val
     ]
     val_probabilities = [prob / sum(val_probabilities) for prob in val_probabilities]
     val_probabilities[-1] = 1 - sum(val_probabilities[:-1])
@@ -126,13 +130,14 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         ],
         probabilities=val_probabilities,
         seed=cfg.seed,
+        stopping_strategy="first_exhausted",
     )
 
     # Interleave the test sets, where we tweak the sampling probabilities in case any
     # of the datasets do not have a test split
     has_tests = ["test" in dataset for dataset in all_datasets]
     test_probabilities = [
-        prob for has_test, prob in zip(has_tests, probabilities) if has_test
+        prob for has_test, prob in zip(has_tests, probabilities["test"]) if has_test
     ]
     test_probabilities = [prob / sum(test_probabilities) for prob in test_probabilities]
     test_probabilities[-1] = 1 - sum(test_probabilities[:-1])
@@ -144,10 +149,11 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         ],
         probabilities=test_probabilities,
         seed=cfg.seed,
+        stopping_strategy="first_exhausted",
     )
 
     if cfg.max_val_samples is not None:
-        val = val.select(range(cfg.max_val_samples))
+        val = it.islice(val, cfg.max_val_samples)
     if cfg.max_test_samples is not None:
         test = test.select(range(cfg.max_test_samples))
 
