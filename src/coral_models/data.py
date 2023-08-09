@@ -1,5 +1,6 @@
 """Functions related to the data loading and processing"""
 
+import logging
 import os
 import re
 from unicodedata import normalize
@@ -12,6 +13,8 @@ from datasets import (
     load_dataset,
 )
 from omegaconf import DictConfig
+
+logger = logging.getLogger(__name__)
 
 
 def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
@@ -27,10 +30,10 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         ValueError:
             If the dataset is not supported.
     """
-    dataset_cfgs: list[DictConfig] = list(cfg.datasets.values())
-
     all_datasets: list[DatasetDict | IterableDatasetDict] = list()
-    for dataset_cfg in dataset_cfgs:
+    for dataset_name, dataset_cfg in cfg.datasets.items():
+        logger.info(f"Loading dataset {dataset_name!r}")
+
         # Load dataset from the Hugging Face Hub. The HUGGINGFACE_HUB_TOKEN is only used
         # during CI - normally it is expected that the user is logged in to the Hugging
         # Face Hub using the `huggingface-cli login` command.
