@@ -93,36 +93,53 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
 
     if cfg.dataset_probabilities is None:
         probabilities = [1 / len(all_datasets)] * len(all_datasets)
+        probabilities[-1] = 1 - sum(probabilities[:-1])
     else:
         probabilities = cfg.dataset_probabilities
+        if sum(probabilities) != 1:
+            raise ValueError(
+                f"Dataset probabilities must sum to 1, but sum to {sum(probabilities)}."
+            )
 
     train = interleave_datasets(
         datasets=[dataset["train"] for dataset in all_datasets],
         probabilities=probabilities,
         seed=cfg.seed,
     )
+
+    # Interleave the validation sets, where we tweak the sampling probabilities in case
+    # any of the datasets do not have a validation split
     has_vals = ["val" in dataset for dataset in all_datasets]
+    val_probabilities = [
+        prob for has_val, prob in zip(has_vals, probabilities) if has_val
+    ]
+    val_probabilities = [prob / sum(val_probabilities) for prob in val_probabilities]
+    val_probabilities[-1] = 1 - sum(val_probabilities[:-1])
     val = interleave_datasets(
         datasets=[
             dataset["val"]
             for has_val, dataset in zip(has_vals, all_datasets)
             if has_val
         ],
-        probabilities=[
-            prob for has_val, prob in zip(has_vals, probabilities) if has_val
-        ],
+        probabilities=val_probabilities,
         seed=cfg.seed,
     )
+
+    # Interleave the test sets, where we tweak the sampling probabilities in case any
+    # of the datasets do not have a test split
     has_tests = ["test" in dataset for dataset in all_datasets]
+    test_probabilities = [
+        prob for has_test, prob in zip(has_tests, probabilities) if has_test
+    ]
+    test_probabilities = [prob / sum(test_probabilities) for prob in test_probabilities]
+    test_probabilities[-1] = 1 - sum(test_probabilities[:-1])
     test = interleave_datasets(
         datasets=[
             dataset["test"]
             for has_test, dataset in zip(has_tests, all_datasets)
             if has_test
         ],
-        probabilities=[
-            prob for has_test, prob in zip(has_tests, probabilities) if has_test
-        ],
+        probabilities=test_probabilities,
         seed=cfg.seed,
     )
 
