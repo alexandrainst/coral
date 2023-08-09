@@ -14,6 +14,7 @@ import zipfile
 from pathlib import Path
 
 import click
+import numpy as np
 import pandas as pd
 import requests as rq
 from datasets import Audio, Dataset, DatasetDict
@@ -45,6 +46,7 @@ def main(output_dir) -> None:
         uncompress_file(filename=destination_path)
     reorganise_files(dataset_dir=output_dir)
     dataset = build_huggingface_dataset()
+    dataset.push_to_hub(repo_id="alexandrainst/nst-da", max_shard_size="50MB")
 
     logger.info(f"Saving the dataset to {output_dir}...")
     dataset.save_to_disk(
@@ -191,6 +193,7 @@ def build_huggingface_dataset() -> DatasetDict:
     Returns:
         The Hugging Face dataset.
     """
+    rng = np.random.default_rng(seed=4242)
 
     def ensure_int(value: int | str | None) -> int | None:
         if value is None:
@@ -229,6 +232,9 @@ def build_huggingface_dataset() -> DatasetDict:
         metadata_df = metadata_df.convert_dtypes()
 
         audio_dir = Path(split) / "audio"
+        audio_filenames = pd.Series(
+            [str(audio_file) for audio_file in audio_dir.glob("*.wav")]
+        )
         recording_datetimes: list[str] = list()
         for idx, row in tqdm(
             iterable=metadata_df.iterrows(),
@@ -241,18 +247,20 @@ def build_huggingface_dataset() -> DatasetDict:
             original_filename = (
                 row.audio.lower().split("-")[-1].split("_")[-1].replace(".wav", "")
             )
-            file_name_content = datetime.strftime("%H%M") + "[-_]" + original_filename
-            file_name_candidates = sorted(
-                audio_dir.glob(f"*x{row.speaker_id:02d}*{file_name_content}*.wav")
+            filename_content = datetime.strftime("%H%M") + "[-_]" + original_filename
+            filename_candidate_idxs = (
+                audio_filenames.str.contains(filename_content).to_numpy().nonzero()[0]
             )
-            if len(file_name_candidates) == 0:
-                file_name = None
+            filename_candidates = audio_filenames[filename_candidate_idxs]
+            if len(filename_candidates) == 0:
+                filename = None
             else:
-                file_name = str(file_name_candidates[0])
-            metadata_df.loc[idx, "audio"] = file_name
+                filename = rng.choice(filename_candidates)
+            metadata_df.loc[idx, "audio"] = filename
             recording_datetimes.append(datetime.strftime("%Y-%m-%dT%H:%M:%S"))
 
         metadata_df["recording_datetime"] = recording_datetimes
+        metadata_df = metadata_df.dropna()
         metadata_df = metadata_df.drop(columns=["recording_date", "recording_time"])
 
         metadata_df.to_csv(metadata_path, index=False)
