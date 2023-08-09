@@ -37,9 +37,7 @@ def finetune(cfg: DictConfig) -> None:
             example["input_features"] = processed.input_features[0]
 
         # Prepare transcriptions
-        example["labels"] = processor(
-            text=example[cfg.dataset.text_column], truncation=True
-        ).input_ids
+        example["labels"] = processor(text=example["text"], truncation=True).input_ids
         example["input_length"] = len(example["labels"])
 
         return example
