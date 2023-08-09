@@ -4,7 +4,13 @@ import os
 import re
 from unicodedata import normalize
 
-from datasets import DatasetDict, IterableDatasetDict, load_dataset
+from datasets import (
+    Audio,
+    DatasetDict,
+    IterableDatasetDict,
+    interleave_datasets,
+    load_dataset,
+)
 from omegaconf import DictConfig
 
 
@@ -12,70 +18,108 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
     """Load an audio dataset.
 
     Args:
-        cfg (DictConfig):
-            The Hydra configuration object.
+        cfg: The Hydra configuration object.
 
     Returns:
-        DatasetDict or IterableDatasetDict:
-            The audio dataset.
+        The audio dataset.
 
     Raises:
         ValueError:
             If the dataset is not supported.
     """
-    # Load dataset from the Hugging Face Hub. The HUGGINGFACE_HUB_TOKEN is only used
-    # during CI - normally it is expected that the user is logged in to the Hugging
-    # Face Hub using the `huggingface-cli login` command.
-    dataset = load_dataset(
-        path=cfg.dataset.id,
-        name=cfg.dataset.subset,
-        token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-        streaming=True,
-        keep_in_memory=False,
+    dataset_cfgs: list[DictConfig] = list(cfg.datasets.values())
+
+    all_datasets: list[DatasetDict | IterableDatasetDict] = list()
+    for dataset_cfg in dataset_cfgs:
+        # Load dataset from the Hugging Face Hub. The HUGGINGFACE_HUB_TOKEN is only used
+        # during CI - normally it is expected that the user is logged in to the Hugging
+        # Face Hub using the `huggingface-cli login` command.
+        dataset = load_dataset(
+            path=dataset_cfg.id,
+            name=dataset_cfg.subset,
+            token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+            streaming=True,
+            keep_in_memory=False,
+        )
+
+        assert isinstance(dataset, DatasetDict) or isinstance(
+            dataset, IterableDatasetDict
+        ), f"Unsupported dataset type: {type(dataset)}"
+
+        train = dataset[dataset_cfg.train_name]
+        if dataset_cfg.val_name is not None:
+            val = dataset[dataset_cfg.val_name]
+        else:
+            train_val = train.train_test_split(test_size=256, seed=cfg.seed)
+            train = train_val["train"]
+            val = train_val["test"]
+        if dataset_cfg.test_name is not None:
+            test = dataset[dataset_cfg.test_name]
+        else:
+            train_test = train.train_test_split(test_size=1024, seed=cfg.seed)
+            train = train_test["train"]
+            test = train_test["test"]
+
+        splits_dict = dict(train=train, val=val, test=test)
+        if isinstance(dataset, DatasetDict):
+            dataset = DatasetDict(splits_dict)
+        elif isinstance(dataset, IterableDatasetDict):
+            dataset = IterableDatasetDict(splits_dict)
+        else:
+            raise ValueError(f"Unsupported dataset type: {type(dataset)}")
+
+        if cfg.model.clean_dataset:
+            dataset = clean_dataset(cfg, dataset=dataset)
+
+        dataset = dataset.cast_column(
+            column="audio", feature=Audio(sampling_rate=cfg.model.sampling_rate)
+        )
+        dataset = dataset.rename_column(dataset_cfg.text_column, "text")
+
+        all_datasets.append(dataset)
+
+    if cfg.dataset_probabilities is None:
+        probabilities = [1 / len(all_datasets)] * len(all_datasets)
+    else:
+        probabilities = cfg.dataset_probabilities
+
+    train = interleave_datasets(
+        datasets=[dataset["train"] for dataset in all_datasets],
+        probabilities=probabilities,
+        seed=cfg.seed,
+    )
+    val = interleave_datasets(
+        datasets=[dataset["val"] for dataset in all_datasets],
+        probabilities=probabilities,
+        seed=cfg.seed,
+    )
+    test = interleave_datasets(
+        datasets=[dataset["test"] for dataset in all_datasets],
+        probabilities=probabilities,
+        seed=cfg.seed,
     )
 
-    assert isinstance(dataset, DatasetDict) or isinstance(
-        dataset, IterableDatasetDict
-    ), f"Unsupported dataset type: {type(dataset)}"
+    if cfg.max_val_samples is not None:
+        val = val.select(range(cfg.max_val_samples))
+    if cfg.max_test_samples is not None:
+        test = test.select(range(cfg.max_test_samples))
 
-    train = dataset[cfg.dataset.train_name]
-    if cfg.dataset.val_name is not None:
-        val = dataset[cfg.dataset.val_name]
-    else:
-        train_val = train.train_test_split(test_size=256, seed=cfg.seed)
-        train = train_val["train"]
-        val = train_val["test"]
-    if cfg.dataset.test_name is not None:
-        test = dataset[cfg.dataset.test_name]
-    else:
-        train_test = train.train_test_split(test_size=1024, seed=cfg.seed)
-        train = train_test["train"]
-        test = train_test["test"]
-
-    splits_dict = dict(train=train, val=val, test=test)
-    if isinstance(dataset, DatasetDict):
-        return DatasetDict(splits_dict)
-    elif isinstance(dataset, IterableDatasetDict):
-        return IterableDatasetDict(splits_dict)
-    else:
-        raise ValueError(f"Unsupported dataset type: {type(dataset)}")
+    return DatasetDict(dict(train=train, val=val, test=test))
 
 
 def clean_dataset(
-    cfg: DictConfig,
-    dataset: DatasetDict | IterableDatasetDict,
+    cfg: DictConfig, dataset: DatasetDict | IterableDatasetDict
 ) -> DatasetDict | IterableDatasetDict:
     """Clean the transcriptions in a dataset.
 
     Args:
-        cfg (DictConfig):
-            The Hydra configuration object.
-        dataset (DatasetDict or IterableDatasetDict):
+        cfg:
+            The Hydra configuration object
+        dataset:
             The dataset to be cleaned.
 
     Returns:
-        DatasetDict or IterableDatasetDict:
-            The cleaned dataset.
+        The cleaned dataset.
     """
     # Dictionary that contains characters to be converted (from the key to the value).
     # Some values contain spaces to ensure that they're separated from other
@@ -128,8 +172,8 @@ def clean_dataset(
     )
 
     def clean_examples(example: dict) -> dict:
-        example[cfg.dataset.text_column] = clean_transcription(
-            doc=example[cfg.dataset.text_column],
+        example["text"] = clean_transcription(
+            doc=example["text"],
             non_standard_characters_regex=non_standard_characters_regex,
             conversion_dict=conversion_dict,
         )

@@ -2,12 +2,11 @@
 
 import logging
 
-from datasets import Audio
 from omegaconf import DictConfig
 from transformers import EarlyStoppingCallback, TrainerCallback
 from wandb.sdk.wandb_init import init as wandb_init
 
-from .data import clean_dataset, load_data
+from .data import load_data
 from .model_setup import load_model_setup
 from .protocols import ModelSetup
 from .utils import disable_tqdm
@@ -26,11 +25,7 @@ def finetune(cfg: DictConfig) -> None:
     processor = model_setup.load_processor()
     processor.save_pretrained(cfg.model_dir)
     model = model_setup.load_model()
-
     dataset = load_data(cfg)
-    if cfg.model.clean_dataset:
-        dataset = clean_dataset(cfg, dataset=dataset)
-    dataset = dataset.cast_column("audio", Audio(sampling_rate=cfg.model.sampling_rate))
 
     def prepare_dataset(example: dict) -> dict:
         # Prepare audio
@@ -71,6 +66,7 @@ def finetune(cfg: DictConfig) -> None:
 
     with disable_tqdm():
         trainer.train(resume_from_checkpoint=cfg.resume_from_checkpoint)
+
     model.save_pretrained(cfg.model_dir)
     if cfg.push_to_hub:
         trainer.push_to_hub()
