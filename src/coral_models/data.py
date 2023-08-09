@@ -79,6 +79,13 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
             column="audio", feature=Audio(sampling_rate=cfg.model.sampling_rate)
         )
         dataset = dataset.rename_column(dataset_cfg.text_column, "text")
+        dataset = dataset.remove_columns(
+            [
+                column
+                for column in dataset["train"].column_names
+                if column not in ["audio", "text"]
+            ]
+        )
 
         all_datasets.append(dataset)
 
