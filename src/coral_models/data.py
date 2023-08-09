@@ -81,6 +81,8 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
 
         all_datasets.append(dataset)
 
+    logger.info("Interleaving datasets")
+
     if cfg.dataset_probabilities is None:
         probabilities = [1 / len(all_datasets)] * len(all_datasets)
     else:
