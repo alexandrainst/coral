@@ -1,25 +1,25 @@
-whisper_small:
-  type: whisper
-  pretrained_model_id: openai/whisper-small
-  freeze_feature_encoder: false
+name: whisper_small
+type: whisper
+pretrained_model_id: openai/whisper-small
+freeze_feature_encoder: false
 
-  # Data hyperparameters
-  clean_dataset: false
+# Data hyperparameters
+clean_dataset: false
 
-  # Model hyperparameters
-  sampling_rate: 16_000
-  dropout: 0.1
-  activation_dropout: 0.1
-  attention_dropout: 0.1
-  mask_time_prob: 0.5
-  mask_time_length: 10
-  mask_feature_prob: 0.5
-  mask_feature_length: 64
+# Model hyperparameters
+sampling_rate: 16_000
+dropout: 0.1
+activation_dropout: 0.1
+attention_dropout: 0.1
+mask_time_prob: 0.5
+mask_time_length: 10
+mask_feature_prob: 0.5
+mask_feature_length: 64
 
-  # Training hyperparameters
-  batch_size: 32
-  gradient_accumulation: 1
-  max_steps: 120_000
-  learning_rate: 3e-5
-  warmup_steps: 500
-  generation_max_length: 225
+# Training hyperparameters
+batch_size: 32
+gradient_accumulation: 1
+max_steps: 120_000
+learning_rate: 3e-5
+warmup_steps: 500
+generation_max_length: 225
