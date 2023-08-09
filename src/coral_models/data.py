@@ -85,6 +85,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
                 if column not in ["audio", "text"]
             ]
         )
+        dataset = dataset.shuffle(seed=cfg.seed)
 
         if cfg.model.clean_dataset:
             dataset = clean_dataset(cfg, dataset=dataset)
