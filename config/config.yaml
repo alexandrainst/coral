@@ -16,8 +16,11 @@ dirs:
 seed: 4242
 
 # Dataset parameters
-dataset_probabilities: null  # null = equal probability to every dataset
-max_val_samples: null  # null = no maximum
+dataset_probabilities:  # null = equal probability to every dataset
+  train: null
+  val: null
+  test: null
+max_val_samples: 512  # null = no maximum
 max_test_samples: null  # null = no maximum
 
 # Model parameters
