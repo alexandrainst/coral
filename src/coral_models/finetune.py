@@ -26,7 +26,6 @@ def finetune(cfg: DictConfig) -> None:
     processor.save_pretrained(cfg.model_dir)
     model = model_setup.load_model()
     dataset = load_data(cfg)
-    breakpoint()
 
     def prepare_dataset(example: dict) -> dict:
         # Prepare audio
