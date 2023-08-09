@@ -53,17 +53,18 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         if dataset_cfg.val_name is not None:
             val = dataset[dataset_cfg.val_name]
         else:
-            train_val = train.train_test_split(test_size=256, seed=cfg.seed)
-            train = train_val["train"]
-            val = train_val["test"]
+            val = None
         if dataset_cfg.test_name is not None:
             test = dataset[dataset_cfg.test_name]
         else:
-            train_test = train.train_test_split(test_size=1024, seed=cfg.seed)
-            train = train_test["train"]
-            test = train_test["test"]
+            test = None
 
-        splits_dict = dict(train=train, val=val, test=test)
+        splits_dict = dict(train=train)
+        if val is not None:
+            splits_dict["val"] = val
+        if test is not None:
+            splits_dict["test"] = test
+
         if isinstance(dataset, DatasetDict):
             dataset = DatasetDict(splits_dict)
         elif isinstance(dataset, IterableDatasetDict):
@@ -93,14 +94,28 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         probabilities=probabilities,
         seed=cfg.seed,
     )
+    has_vals = ["val" in dataset for dataset in all_datasets]
     val = interleave_datasets(
-        datasets=[dataset["val"] for dataset in all_datasets],
-        probabilities=probabilities,
+        datasets=[
+            dataset["val"]
+            for has_val, dataset in zip(has_vals, all_datasets)
+            if has_val
+        ],
+        probabilities=[
+            prob for has_val, prob in zip(has_vals, probabilities) if has_val
+        ],
         seed=cfg.seed,
     )
+    has_tests = ["test" in dataset for dataset in all_datasets]
     test = interleave_datasets(
-        datasets=[dataset["test"] for dataset in all_datasets],
-        probabilities=probabilities,
+        datasets=[
+            dataset["test"]
+            for has_test, dataset in zip(has_tests, all_datasets)
+            if has_test
+        ],
+        probabilities=[
+            prob for has_test, prob in zip(has_tests, probabilities) if has_test
+        ],
         seed=cfg.seed,
     )
 
