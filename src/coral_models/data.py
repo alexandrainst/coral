@@ -72,7 +72,9 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         else:
             raise ValueError(f"Unsupported dataset type: {type(dataset)}")
 
-        dataset = dataset.rename_column(dataset_cfg.text_column, "text")
+        if dataset_cfg.text_column != "text":
+            dataset = dataset.rename_column(dataset_cfg.text_column, "text")
+
         dataset = dataset.cast_column(
             column="audio", feature=Audio(sampling_rate=cfg.model.sampling_rate)
         )
