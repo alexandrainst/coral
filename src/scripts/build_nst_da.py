@@ -45,8 +45,8 @@ def main(output_dir) -> None:
         stream_download(url=url, destination_path=destination_path)
         uncompress_file(filename=destination_path)
     reorganise_files(dataset_dir=output_dir)
+    remove_small_files()
     dataset = build_huggingface_dataset()
-    dataset.push_to_hub(repo_id="alexandrainst/nst-da", max_shard_size="50MB")
 
     logger.info(f"Saving the dataset to {output_dir}...")
     dataset.save_to_disk(
@@ -166,6 +166,20 @@ def reorganise_files(dataset_dir: str | Path) -> None:
                 shutil.rmtree(name)
             case "readme":
                 Path(name).rename("README.pdf")
+
+
+def remove_small_files() -> None:
+    """Remove audio files that are too small."""
+    for split in ["train", "test"]:
+        audio_dir = Path(split) / "audio"
+        for audio_file in audio_dir.glob("*.wav"):
+            file_size = audio_file.stat().st_size
+            if file_size < 8192:
+                logger.info(
+                    f"Removing {audio_file.name!r} as its size {file_size} bytes"
+                    " is too small."
+                )
+                audio_file.unlink()
 
 
 def get_suffix(string: str | Path) -> str:
