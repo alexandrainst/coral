@@ -172,6 +172,12 @@ class Wav2Vec2ModelSetup:
         return partial(compute_wer_metrics, processor=self.processor)
 
     def load_training_arguments(self) -> TrainingArguments:
+        do_eval = any(
+            [
+                dataset_cfg.val_name is not None
+                for dataset_cfg in self.cfg.datasets.values()
+            ]
+        )
         args = TrainingArguments(
             output_dir=self.cfg.model_dir,
             hub_model_id=self.cfg.hub_id,
@@ -183,16 +189,16 @@ class Wav2Vec2ModelSetup:
             max_steps=self.cfg.model.max_steps,
             fp16=self.cfg.fp16 and not mps_is_available(),
             push_to_hub=self.cfg.push_to_hub,
-            evaluation_strategy="steps",
-            eval_steps=self.cfg.eval_steps,
+            evaluation_strategy="steps" if do_eval else "no",
+            eval_steps=self.cfg.eval_steps if do_eval else None,
             save_steps=self.cfg.save_steps,
             logging_steps=self.cfg.logging_steps,
             length_column_name="input_length",
             gradient_checkpointing=True,
             save_total_limit=self.cfg.save_total_limit,
-            load_best_model_at_end=self.cfg.early_stopping,
-            metric_for_best_model="wer",
-            greater_is_better=False,
+            load_best_model_at_end=self.cfg.early_stopping if do_eval else False,
+            metric_for_best_model="wer" if do_eval else None,
+            greater_is_better=False if do_eval else None,
             seed=self.cfg.seed,
             remove_unused_columns=False,
             optim=OptimizerNames.ADAMW_TORCH,

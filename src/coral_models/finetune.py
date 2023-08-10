@@ -51,15 +51,18 @@ def finetune(cfg: DictConfig) -> None:
             name=cfg.wandb_name,
         )
 
+    if "val" not in dataset:
+        logger.info("No validation set found. Disabling early stopping.")
+
     trainer = model_setup.load_trainer_class()(
         model=model,
         data_collator=model_setup.load_data_collator(),
         args=model_setup.load_training_arguments(),
         compute_metrics=model_setup.load_compute_metrics(),
         train_dataset=dataset["train"],
-        eval_dataset=dataset["val"],
+        eval_dataset=dataset["val"] if "val" in dataset else None,
         tokenizer=getattr(processor, "tokenizer"),
-        callbacks=load_callbacks(cfg),
+        callbacks=load_early_stopping_callback(cfg) if "val" in dataset else None,
     )
 
     with disable_tqdm():
@@ -70,8 +73,8 @@ def finetune(cfg: DictConfig) -> None:
         trainer.push_to_hub()
 
 
-def load_callbacks(cfg: DictConfig) -> list[TrainerCallback]:
-    """Load the callbacks for the Trainer.
+def load_early_stopping_callback(cfg: DictConfig) -> list[TrainerCallback]:
+    """Load the early stopping callback for the trainer.
 
     Args:
         cfg (DictConfig):
