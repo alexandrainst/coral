@@ -93,69 +93,82 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
 
         all_datasets.append(dataset)
 
-    logger.info("Interleaving datasets")
+    assert len(all_datasets) > 0, "No datasets were loaded"
 
-    probabilities: dict[str, list[float]] = dict()
-    for split_name, split_probs in cfg.dataset_probabilities.items():
-        if split_probs is None:
-            split_probs = [1 / len(all_datasets)] * len(all_datasets)
-            split_probs[-1] = 1 - sum(split_probs[:-1])
-        elif sum(split_probs) != 1:
-            raise ValueError(
-                f"Dataset probabilities must sum to 1, but sum to {sum(split_probs)} "
-                f"for split {split_name!r}"
-            )
-        probabilities[split_name] = split_probs
+    if len(all_datasets) > 1:
+        logger.info("Interleaving datasets")
 
-    train = interleave_datasets(
-        datasets=[dataset["train"] for dataset in all_datasets],
-        probabilities=probabilities["train"],
-        seed=cfg.seed,
-        stopping_strategy="all_exhausted",
-    )
+        probabilities: dict[str, list[float]] = dict()
+        for split_name, split_probs in cfg.dataset_probabilities.items():
+            if split_probs is None:
+                split_probs = [1 / len(all_datasets)] * len(all_datasets)
+                split_probs[-1] = 1 - sum(split_probs[:-1])
+            elif sum(split_probs) != 1:
+                raise ValueError(
+                    f"Dataset probabilities must sum to 1, but sum to "
+                    f"{sum(split_probs)} for split {split_name!r}"
+                )
+            probabilities[split_name] = split_probs
 
-    # Interleave the validation sets, where we tweak the sampling probabilities in case
-    # any of the datasets do not have a validation split
-    has_vals = ["val" in dataset for dataset in all_datasets]
-    val_probabilities = [
-        prob for has_val, prob in zip(has_vals, probabilities["val"]) if has_val
-    ]
-    val_probabilities = [prob / sum(val_probabilities) for prob in val_probabilities]
-    val_probabilities[-1] = 1 - sum(val_probabilities[:-1])
-    val = interleave_datasets(
-        datasets=[
-            dataset["val"]
-            for has_val, dataset in zip(has_vals, all_datasets)
-            if has_val
-        ],
-        probabilities=val_probabilities,
-        seed=cfg.seed,
-        stopping_strategy="first_exhausted",
-    )
+        train = interleave_datasets(
+            datasets=[dataset["train"] for dataset in all_datasets],
+            probabilities=probabilities["train"],
+            seed=cfg.seed,
+            stopping_strategy="all_exhausted",
+        )
 
-    # Interleave the test sets, where we tweak the sampling probabilities in case any
-    # of the datasets do not have a test split
-    has_tests = ["test" in dataset for dataset in all_datasets]
-    test_probabilities = [
-        prob for has_test, prob in zip(has_tests, probabilities["test"]) if has_test
-    ]
-    test_probabilities = [prob / sum(test_probabilities) for prob in test_probabilities]
-    test_probabilities[-1] = 1 - sum(test_probabilities[:-1])
-    test = interleave_datasets(
-        datasets=[
-            dataset["test"]
-            for has_test, dataset in zip(has_tests, all_datasets)
-            if has_test
-        ],
-        probabilities=test_probabilities,
-        seed=cfg.seed,
-        stopping_strategy="first_exhausted",
-    )
+        # Interleave the validation sets, where we tweak the sampling probabilities in
+        # case any of the datasets do not have a validation split
+        has_vals = ["val" in dataset for dataset in all_datasets]
+        val_probabilities = [
+            prob for has_val, prob in zip(has_vals, probabilities["val"]) if has_val
+        ]
+        val_probabilities = [
+            prob / sum(val_probabilities) for prob in val_probabilities
+        ]
+        val_probabilities[-1] = 1 - sum(val_probabilities[:-1])
+        val = interleave_datasets(
+            datasets=[
+                dataset["val"]
+                for has_val, dataset in zip(has_vals, all_datasets)
+                if has_val
+            ],
+            probabilities=val_probabilities,
+            seed=cfg.seed,
+            stopping_strategy="first_exhausted",
+        )
+
+        # Interleave the test sets, where we tweak the sampling probabilities in case
+        # any of the datasets do not have a test split
+        has_tests = ["test" in dataset for dataset in all_datasets]
+        test_probabilities = [
+            prob for has_test, prob in zip(has_tests, probabilities["test"]) if has_test
+        ]
+        test_probabilities = [
+            prob / sum(test_probabilities) for prob in test_probabilities
+        ]
+        test_probabilities[-1] = 1 - sum(test_probabilities[:-1])
+        test = interleave_datasets(
+            datasets=[
+                dataset["test"]
+                for has_test, dataset in zip(has_tests, all_datasets)
+                if has_test
+            ],
+            probabilities=test_probabilities,
+            seed=cfg.seed,
+            stopping_strategy="first_exhausted",
+        )
+
+    data_dict = dict(train=train)
+    if val is not None:
+        data_dict["val"] = val
+    if test is not None:
+        data_dict["test"] = test
 
     if isinstance(train, Dataset):
-        return DatasetDict(dict(train=train, val=val, test=test))
+        return DatasetDict(data_dict)
     else:
-        return IterableDatasetDict(dict(train=train, val=val, test=test))
+        return IterableDatasetDict(data_dict)
 
 
 def clean_dataset(
