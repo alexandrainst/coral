@@ -45,7 +45,7 @@ def main(output_dir) -> None:
         stream_download(url=url, destination_path=destination_path)
         uncompress_file(filename=destination_path)
     reorganise_files(dataset_dir=output_dir)
-    remove_small_files()
+    remove_bad_files()
     dataset = build_huggingface_dataset()
 
     logger.info(f"Saving the dataset to {output_dir}...")
@@ -168,11 +168,26 @@ def reorganise_files(dataset_dir: str | Path) -> None:
                 Path(name).rename("README.pdf")
 
 
-def remove_small_files() -> None:
-    """Remove audio files that are too small."""
+def remove_bad_files() -> None:
+    """Remove audio files that cannot be opened."""
+    bad_file_prefixes = [
+        "dk11x242-18072000-1149_u0047",
+        "dk16xx41-24092000-1951_u0042",
+    ]
     for split in ["train", "test"]:
         audio_dir = Path(split) / "audio"
         for audio_file in audio_dir.glob("*.wav"):
+            if any(
+                [
+                    audio_file.stem.startswith(bad_prefix)
+                    for bad_prefix in bad_file_prefixes
+                ]
+            ):
+                logger.info(f"Removing {audio_file} as it cannot be opened.")
+                audio_file.unlink()
+                continue
+
+            # Small files are also bad
             file_size = audio_file.stat().st_size
             if file_size < 8192:
                 logger.info(
