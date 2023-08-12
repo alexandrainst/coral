@@ -159,16 +159,21 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
             stopping_strategy="first_exhausted",
         )
 
-    data_dict = dict(train=train)
-    if val is not None:
-        data_dict["val"] = val
-    if test is not None:
-        data_dict["test"] = test
+        data_dict = dict(train=train)
+        if val is not None:
+            data_dict["val"] = val
+        if test is not None:
+            data_dict["test"] = test
 
-    if isinstance(train, Dataset):
-        return DatasetDict(data_dict)
+        if isinstance(train, Dataset):
+            dataset = DatasetDict(data_dict)
+        else:
+            dataset = IterableDatasetDict(data_dict)
+
     else:
-        return IterableDatasetDict(data_dict)
+        dataset = all_datasets[0]
+
+    return dataset
 
 
 def clean_dataset(
