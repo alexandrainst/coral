@@ -1,5 +1,6 @@
 """General functions and fixtures related to `pytest`."""
 
+import itertools as it
 import sys
 from typing import Generator
 
@@ -8,7 +9,7 @@ from datasets import DatasetDict, IterableDatasetDict
 from hydra import compose, initialize
 from omegaconf import DictConfig
 
-from coral_models.data import clean_dataset, load_data
+from coral_models.data import load_data
 
 # Initialise Hydra
 initialize(config_path="../config", version_base=None)
@@ -24,13 +25,23 @@ def pytest_unconfigure() -> None:
     delattr(sys, "_called_from_test")
 
 
-@pytest.fixture(scope="session", params=["test_wav2vec2", "test_whisper"])
+@pytest.fixture(
+    scope="session",
+    params=list(
+        it.product(
+            ["test_wav2vec2", "test_whisper"],
+            ["test_dataset", "[test_dataset,test_dataset]"],
+        )
+    ),
+    ids=lambda x: f"model: {x[0]}, dataset: {x[1]}",
+)
 def cfg(request) -> Generator[DictConfig, None, None]:
+    model, datasets = request.param
     yield compose(
         config_name="config",
         overrides=[
-            f"model={request.param}",
-            "dataset=test_dataset",
+            f"model={model}",
+            f"datasets={datasets}",
             "fp16=false",
         ],
     )
@@ -39,13 +50,3 @@ def cfg(request) -> Generator[DictConfig, None, None]:
 @pytest.fixture(scope="session")
 def dataset(cfg) -> Generator[DatasetDict | IterableDatasetDict, None, None]:
     yield load_data(cfg)
-
-
-@pytest.fixture(scope="session")
-def cleaned_dataset(
-    cfg, dataset
-) -> Generator[DatasetDict | IterableDatasetDict, None, None]:
-    if cfg.model.clean_dataset:
-        yield clean_dataset(cfg, dataset=dataset)
-    else:
-        yield dataset

@@ -14,32 +14,18 @@ class TestLoadData:
             dataset, IterableDatasetDict
         )
 
-    def test_splits_are_in_dataset(self, dataset) -> None:
-        assert "train" in dataset
-        assert "val" in dataset
-        assert "test" in dataset
+    def test_split_names(self, dataset) -> None:
+        assert set(dataset.keys()) == {"train", "val", "test"}
 
-
-class TestCleanDataset:
-    def test_dtype(self, cleaned_dataset) -> None:
-        assert isinstance(cleaned_dataset, DatasetDict) or isinstance(
-            cleaned_dataset, IterableDatasetDict
-        )
-
-    def test_split_names(self, cleaned_dataset) -> None:
-        assert set(cleaned_dataset.keys()) == {"train", "val", "test"}
-
-    def test_train_samples(self, cleaned_dataset, cfg) -> None:
+    def test_train_samples(self, dataset, cfg) -> None:
         if cfg.model.clean_dataset:
-            samples = [
-                sample[cfg.dataset.text_column] for sample in cleaned_dataset["train"]
-            ]
+            samples = [sample["text"] for sample in dataset["train"]]
             assert samples == [
+                "hver|rose|på|træet|i|haven|havde|sin|historie",
                 "min|fortræffelige|lille|nattergal",
+                "her|er|kommet|gode|klæder|at|slide|for|de|fire|børn",
                 "jeg|venter|grumme|meget|af|den",
                 "men|hendes|vilje|var|fast|som|hendes|tillid|til|vorherre",
-                "her|er|kommet|gode|klæder|at|slide|for|de|fire|børn",
-                "hver|rose|på|træet|i|haven|havde|sin|historie",
             ]
 
 
