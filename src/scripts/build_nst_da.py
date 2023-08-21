@@ -260,7 +260,7 @@ def build_huggingface_dataset() -> DatasetDict:
         metadata_df = metadata_df[columns_to_keep.keys()]
         metadata_df = metadata_df.rename(columns=columns_to_keep)
         metadata_df.age = metadata_df.age.map(ensure_int)
-        metadata_df.speaker_id = metadata_df.age.map(ensure_int)
+        metadata_df.speaker_id = metadata_df.speaker_id.map(ensure_int)
         metadata_df.text = metadata_df.text.map(fix_text_column)
         metadata_df = metadata_df.dropna()
         metadata_df = metadata_df.convert_dtypes()
