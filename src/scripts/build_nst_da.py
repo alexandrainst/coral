@@ -136,6 +136,9 @@ def reorganise_files(dataset_dir: str | Path) -> None:
                     for audio_file in audio_dir.glob("*.wav"):
                         Path(audio_file).rename(train_audio_dir / audio_file.name)
                 shutil.rmtree(name)
+
+            # This file contains the test set as well as some corrections of errors in
+            # the training dataset
             case "test_and_errors":
                 data_dir = Path(name) / "supplement_dk"
 
@@ -170,6 +173,8 @@ def reorganise_files(dataset_dir: str | Path) -> None:
 
 def remove_bad_files() -> None:
     """Remove audio files that cannot be opened."""
+    # These filename prefixes were found by running the `find_faulty_audio_clips.py`
+    # script
     bad_file_prefixes = [
         "dk11x242-18072000-1149_u0047",
         "dk16xx41-24092000-1951_u0042",
@@ -187,7 +192,7 @@ def remove_bad_files() -> None:
                 audio_file.unlink()
                 continue
 
-            # Small files are also bad
+            # Small files are also bad, as they are likely to be empty
             file_size = audio_file.stat().st_size
             if file_size < 8192:
                 logger.info(
