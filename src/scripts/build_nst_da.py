@@ -257,6 +257,9 @@ def build_huggingface_dataset() -> DatasetDict:
     for split in ["train", "test"]:
         metadata_path = Path(split) / "metadata.csv"
         metadata_df = pd.read_csv(metadata_path, low_memory=False)
+
+        # Keep the desired columns, rename them, ensure that the datatypes are correct
+        # and drop rows with missing values
         metadata_df = metadata_df[columns_to_keep.keys()]
         metadata_df = metadata_df.rename(columns=columns_to_keep)
         metadata_df.age = metadata_df.age.map(ensure_int)
@@ -265,6 +268,9 @@ def build_huggingface_dataset() -> DatasetDict:
         metadata_df = metadata_df.dropna()
         metadata_df = metadata_df.convert_dtypes()
 
+        # The filenames in the metadata file does not correspond 1-to-1 with the actual
+        # names of the audio files, so we extract the audio filename from the
+        # information within the metadata filename
         audio_dir = Path(split) / "audio"
         audio_filenames = pd.Series(
             [str(audio_file) for audio_file in audio_dir.glob("*.wav")]
@@ -278,18 +284,33 @@ def build_huggingface_dataset() -> DatasetDict:
             datetime = dt.datetime.strptime(
                 f"{row.recording_date}T{row.recording_time}", "%d %b %YT%H:%M:%S"
             )
+
+            # This version of NST is the "reorganized" version, where the files have
+            # been renamed to be independent of the surrounding folder structure.
+            # Within these new filenames the old filenames are included, so we extract
+            # these
             original_filename = (
                 row.audio.lower().split("-")[-1].split("_")[-1].replace(".wav", "")
             )
+
+            # We next get the filename candidates which has the same old filename as
+            # well as the same timestamp
             filename_content = datetime.strftime("%H%M") + "[-_]" + original_filename
             filename_candidate_idxs = (
                 audio_filenames.str.contains(filename_content).to_numpy().nonzero()[0]
             )
             filename_candidates = audio_filenames[filename_candidate_idxs]
+
+            # If no such filename exists then we set the filename to None, and we will
+            # later remove these rows
             if len(filename_candidates) == 0:
                 filename = None
+
+            # If there is one candidate then we simply pick that one. If there are
+            # multiple candidates then we pick one at random
             else:
                 filename = rng.choice(filename_candidates)
+
             metadata_df.loc[idx, "audio"] = filename
             recording_datetimes.append(datetime.strftime("%Y-%m-%dT%H:%M:%S"))
 
@@ -299,6 +320,7 @@ def build_huggingface_dataset() -> DatasetDict:
 
         metadata_df.to_csv(metadata_path, index=False)
 
+        # Build a Hugging Face dataset from the Pandas dataframe
         split_dataset = Dataset.from_pandas(metadata_df, preserve_index=False)
         split_dataset = split_dataset.cast_column("audio", Audio(sampling_rate=16_000))
         dataset_dict[split] = split_dataset
