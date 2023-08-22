@@ -39,5 +39,5 @@ eval_steps: 100
 save_steps: 100
 save_total_limit: 2
 early_stopping: true
-early_stopping_patience: 100
+early_stopping_patience: 50
 fp16: true
