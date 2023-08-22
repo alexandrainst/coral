@@ -50,6 +50,7 @@ def finetune(cfg: DictConfig) -> None:
             project=cfg.wandb_project,
             group=cfg.wandb_group,
             name=cfg.wandb_name,
+            config=dict(cfg),
         )
 
     if "val" not in dataset:
