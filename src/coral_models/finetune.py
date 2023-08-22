@@ -5,6 +5,7 @@ import logging
 from omegaconf import DictConfig
 from transformers import EarlyStoppingCallback, TrainerCallback
 from wandb.sdk.wandb_init import init as wandb_init
+from wandb.sdk.wandb_run import finish as wandb_finish
 
 from .data import load_data
 from .model_setup import load_model_setup
@@ -67,6 +68,7 @@ def finetune(cfg: DictConfig) -> None:
 
     with disable_tqdm():
         trainer.train(resume_from_checkpoint=cfg.resume_from_checkpoint)
+    wandb_finish()
 
     model.save_pretrained(cfg.model_dir)
     if cfg.push_to_hub:
