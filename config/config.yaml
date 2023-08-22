@@ -31,7 +31,7 @@ push_to_hub: false
 wandb: false
 wandb_project: CoRal
 wandb_group: default
-wandb_name: ${pipeline_id}
+wandb_name: null
 resume_from_checkpoint: false
 ignore_data_skip: false
 logging_steps: 10
@@ -39,5 +39,5 @@ eval_steps: 100
 save_steps: 100
 save_total_limit: 2
 early_stopping: true
-early_stopping_patience: 50
+early_stopping_patience: 100
 fp16: true
