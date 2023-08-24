@@ -77,8 +77,8 @@ def main():
         else:
             # Get text and file name
             text_danish = row["text"]
-            file_name = os.path.join(folder, row["audio"])
-            generate_speech_from_text(text_danish, file_name)
+            filename = os.path.join(folder, row["audio"])
+            generate_speech_from_text(text=text_danish, filename=filename)
 
 
 if __name__ == "__main__":
