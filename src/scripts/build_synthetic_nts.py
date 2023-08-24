@@ -2,7 +2,7 @@
 the nst dataset. 
 
 Usage:
-    python build_syntethic_nts.py 
+    python src/scripts/build_syntethic_nts.py 
 """
 
 import os
