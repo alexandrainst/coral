@@ -1,8 +1,8 @@
-"""Script that builds a synthetic vocie audio from reading 
+"""Script that builds a synthetic voice audio from reading 
 the nst dataset. 
 
 Usage:
-    python src/scripts/build_synthetic_nts.py --method gtts ./data/raw_data/nst-da-train-metadata.csv ./data/raw_data/
+    python src/scripts/build_syntethic_nts.py 
 """
 
 from pathlib import Path
