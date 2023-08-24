@@ -1,4 +1,4 @@
-"""Script that builds a synthetic vocie audio from reading 
+"""Script that builds a synthetic voice audio from reading 
 the nst dataset. 
 
 Usage:
