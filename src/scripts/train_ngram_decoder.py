@@ -33,7 +33,7 @@ def train_ngram_model(cfg: DictConfig) -> None:
         path=cfg.model.decoder.dataset_id,
         name=cfg.model.decoder.dataset_subset,
         split=cfg.model.decoder.dataset_split,
-        use_auth_token=os.getenv("HUGGINGFACE_HUB_TOKEN"),
+        token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
     )
     assert isinstance(dataset, Dataset)
 

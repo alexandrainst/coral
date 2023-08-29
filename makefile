@@ -125,6 +125,7 @@ tree:  ## Print directory tree
 		-I dist \
 		-I .gitkeep \
 		-I docs \
+		-I .mypy_cache \
 		-I .pytest_cache \
 		-I outputs \
 		-I .DS_Store \
@@ -136,4 +137,6 @@ tree:  ## Print directory tree
 		-I .coverage* \
 		-I .DS_Store \
 		-I __pycache__ \
+		-I multirun \
+		-I wandb \
 		.

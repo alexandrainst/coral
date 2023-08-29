@@ -1,6 +1,6 @@
-name: common_voice_da
+name: common_voice_sv
 id: mozilla-foundation/common_voice_13_0
-subset: da
+subset: sv-SE
 train_name: train
 val_name: validation
 test_name: test

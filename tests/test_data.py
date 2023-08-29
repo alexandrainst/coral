@@ -29,17 +29,18 @@ class TestCleanDataset:
     def test_split_names(self, cleaned_dataset) -> None:
         assert set(cleaned_dataset.keys()) == {"train", "val", "test"}
 
-    def test_train_samples(self, cfg, cleaned_dataset) -> None:
-        samples = [
-            sample[cfg.dataset.text_column] for sample in cleaned_dataset["train"]
-        ]
-        assert samples == [
-            "min|fortræffelige|lille|nattergal",
-            "jeg|venter|grumme|meget|af|den",
-            "men|hendes|vilje|var|fast|som|hendes|tillid|til|vorherre",
-            "her|er|kommet|gode|klæder|at|slide|for|de|fire|børn",
-            "hver|rose|på|træet|i|haven|havde|sin|historie",
-        ]
+    def test_train_samples(self, cleaned_dataset, cfg) -> None:
+        if cfg.model.clean_dataset:
+            samples = [
+                sample[cfg.dataset.text_column] for sample in cleaned_dataset["train"]
+            ]
+            assert samples == [
+                "min|fortræffelige|lille|nattergal",
+                "jeg|venter|grumme|meget|af|den",
+                "men|hendes|vilje|var|fast|som|hendes|tillid|til|vorherre",
+                "her|er|kommet|gode|klæder|at|slide|for|de|fire|børn",
+                "hver|rose|på|træet|i|haven|havde|sin|historie",
+            ]
 
 
 class TestCleanTranscription:

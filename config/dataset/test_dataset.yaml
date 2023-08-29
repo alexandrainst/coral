@@ -1,8 +1,7 @@
-name: test
+name: test_dataset
 id: alexandrainst/audio_test_dataset
 subset: null
 train_name: train
 val_name: validation
 test_name: test
 text_column: sentence
-sampling_rate: 16_000

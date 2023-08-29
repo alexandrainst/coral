@@ -1,4 +1,8 @@
-"""Evaluation of Wav2Vec 2.0 models on ASR datasets."""
+"""Evaluate a speech model.
+
+Usage:
+    python evaluate_model.py <key>=<value> <key>=<value> ...
+"""
 
 import hydra
 from datasets import Audio, DatasetDict, IterableDatasetDict, Sequence, Value
@@ -6,19 +10,20 @@ from omegaconf import DictConfig
 from transformers import Trainer, TrainingArguments
 
 from coral_models.data import clean_dataset, load_data
-from coral_models.model_setup import Processor, load_model_setup
+from coral_models.model_setup import load_model_setup
+from coral_models.protocols import Processor
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
 def main(cfg: DictConfig) -> None:
-    """Evaluate ASR models on a dataset"""
+    """Evaluate a speech model on a dataset."""
     dataset: DatasetDict | IterableDatasetDict = load_data(cfg)
     model_data = load_model_setup(cfg).load_saved()
 
     # Clean and tokenize the transcriptions
     dataset = clean_dataset(cfg, dataset=dataset)
     dataset = dataset.cast_column(
-        column="audio", feature=Audio(sampling_rate=cfg.dataset.sampling_rate)
+        column="audio", feature=Audio(sampling_rate=cfg.model.sampling_rate)
     )
     dataset = preprocess_transcriptions(
         dataset=dataset,
@@ -32,14 +37,14 @@ def main(cfg: DictConfig) -> None:
         data_collator=model_data.data_collator,
         compute_metrics=model_data.compute_metrics,
         eval_dataset=dataset,
-        tokenizer=model_data.processor.tokenizer,
+        tokenizer=getattr(model_data.processor, "tokenizer"),
     )
 
     metrics = trainer.evaluate(dataset)
-    wer = 100 * metrics["eval_wer"]
+    wer = metrics["eval_wer"]
 
     print(f"\n*** RESULTS ON {cfg.dataset.name} ***")
-    print(f"{cfg.hub_id} achieved a WER of {wer:.2f}.\n")
+    print(f"{cfg.hub_id} achieved a WER of {wer:.2%}.\n")
 
 
 def preprocess_transcriptions(

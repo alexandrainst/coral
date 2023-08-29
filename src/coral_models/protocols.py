@@ -10,8 +10,8 @@ from transformers import (
     BatchEncoding,
     EvalPrediction,
     PreTrainedModel,
-    PreTrainedTokenizerBase,
     Trainer,
+    TrainingArguments,
 )
 from transformers.data.data_collator import DataCollatorMixin
 from transformers.models.wav2vec2_with_lm.processing_wav2vec2_with_lm import (
@@ -20,8 +20,6 @@ from transformers.models.wav2vec2_with_lm.processing_wav2vec2_with_lm import (
 
 
 class Processor(Protocol):
-    tokenizer: PreTrainedTokenizerBase
-
     def __call__(self, *args, **kwargs) -> BatchEncoding:
         ...
 
@@ -75,6 +73,9 @@ class ModelSetup(Protocol):
         ...
 
     def load_compute_metrics(self) -> Callable[[EvalPrediction], dict]:
+        ...
+
+    def load_training_arguments(self) -> TrainingArguments:
         ...
 
     def load_saved(self) -> PreTrainedModelData:
