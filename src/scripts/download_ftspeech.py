@@ -14,11 +14,17 @@ except ImportError:
         "`pip install selenium` or `poetry add selenium`."
     )
 
+import logging
 import time
 from getpass import getpass
 from pathlib import Path
 
 import click
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s ⋅ %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+)
+logger = logging.getLogger(__name__)
 
 
 @click.command("Downloads the FTSpeech corpus.")
@@ -44,6 +50,11 @@ def main(download_dir) -> None:
     access_token_input = driver.find_element(By.XPATH, '//input[@name="token"]')
 
     # Get the access token
+    logger.info(
+        "Please enter your access token, which can be obtained by filling in the form "
+        "at https://docs.google.com/forms/d/e/1FAIpQLSdv0OweHtKh__u0J0M8cjtm9hg3Yo_y8b"
+        "WxVjQLLUeEyCAxjw/viewform."
+    )
     access_token = getpass("Access token: ")
 
     # Enter the access token
