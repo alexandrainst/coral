@@ -37,20 +37,23 @@ DATA_URLS = dict(
 
 
 @click.command("Builds and stores the Danish part of the NST dataset.")
-@click.argument("output_dir", type=click.Path())
-def main(output_dir) -> None:
+@click.argument("destination_dir", type=click.Path())
+def main(destination_dir) -> None:
+    raw_dir = Path(destination_dir) / "raw"
+    huggingface_dir = Path(destination_dir) / "huggingface"
+
     for name, url in DATA_URLS.items():
         filename = name + get_suffix(url)
-        destination_path = Path(output_dir) / filename
+        destination_path = Path(raw_dir) / filename
         stream_download(url=url, destination_path=destination_path)
         uncompress_file(filename=destination_path)
-    reorganise_files(dataset_dir=output_dir)
-    remove_bad_files(dataset_dir=output_dir)
-    dataset = build_huggingface_dataset(dataset_dir=output_dir)
+    reorganise_files(dataset_dir=raw_dir)
+    remove_bad_files(dataset_dir=raw_dir)
+    dataset = build_huggingface_dataset(dataset_dir=raw_dir)
 
-    logger.info(f"Saving the dataset to {output_dir}...")
+    logger.info(f"Saving the dataset to {huggingface_dir}...")
     dataset.save_to_disk(
-        str(output_dir),
+        str(huggingface_dir),
         max_shard_size="50MB",
         num_proc=mp.cpu_count() - 1,
     )
