@@ -29,13 +29,6 @@ def compute_wer_metrics(pred: EvalPrediction, processor: Processor) -> dict[str,
     predictions: NDArray[np.int_] | NDArray[np.float_] = pred.predictions
 
     if len(predictions.shape) == 3:
-        # In cases where the prediction logits are -100 for all characters, convert the
-        # logits for the padding character to be 100, to make sure that padding is
-        # chosen
-        # TODO: Does this actually do what we want it to do?
-        pad_arr = predictions[:, :, pad_token]
-        predictions[:, :, pad_token] = np.where(pad_arr == -100, 100, pad_arr)
-
         # Decode the predictions to get the transcriptions. When a language model is
         # attached to the processor then we get the predicted string directly from the
         # logits. If the vocabulary dimension of the predictions is too small then we
