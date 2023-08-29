@@ -2,17 +2,17 @@
 
 import logging
 
-from datasets import Audio
 from omegaconf import DictConfig
 from transformers import EarlyStoppingCallback, TrainerCallback
 from wandb.sdk.wandb_init import init as wandb_init
+from wandb.sdk.wandb_run import finish as wandb_finish
 
-from .data import clean_dataset, load_data
+from .data import load_data
 from .model_setup import load_model_setup
 from .protocols import ModelSetup
 from .utils import disable_tqdm
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__package__)
 
 
 def finetune(cfg: DictConfig) -> None:
@@ -26,11 +26,7 @@ def finetune(cfg: DictConfig) -> None:
     processor = model_setup.load_processor()
     processor.save_pretrained(cfg.model_dir)
     model = model_setup.load_model()
-
     dataset = load_data(cfg)
-    if cfg.model.clean_dataset:
-        dataset = clean_dataset(cfg, dataset=dataset)
-    dataset = dataset.cast_column("audio", Audio(sampling_rate=cfg.model.sampling_rate))
 
     def prepare_dataset(example: dict) -> dict:
         # Prepare audio
@@ -42,9 +38,7 @@ def finetune(cfg: DictConfig) -> None:
             example["input_features"] = processed.input_features[0]
 
         # Prepare transcriptions
-        example["labels"] = processor(
-            text=example[cfg.dataset.text_column], truncation=True
-        ).input_ids
+        example["labels"] = processor(text=example["text"], truncation=True).input_ids
         example["input_length"] = len(example["labels"])
 
         return example
@@ -56,7 +50,11 @@ def finetune(cfg: DictConfig) -> None:
             project=cfg.wandb_project,
             group=cfg.wandb_group,
             name=cfg.wandb_name,
+            config=dict(cfg),
         )
+
+    if "val" not in dataset:
+        logger.info("No validation set found. Disabling early stopping.")
 
     trainer = model_setup.load_trainer_class()(
         model=model,
@@ -64,20 +62,22 @@ def finetune(cfg: DictConfig) -> None:
         args=model_setup.load_training_arguments(),
         compute_metrics=model_setup.load_compute_metrics(),
         train_dataset=dataset["train"],
-        eval_dataset=dataset["val"],
+        eval_dataset=dataset["val"] if "val" in dataset else None,
         tokenizer=getattr(processor, "tokenizer"),
-        callbacks=load_callbacks(cfg),
+        callbacks=load_early_stopping_callback(cfg) if "val" in dataset else None,
     )
 
     with disable_tqdm():
         trainer.train(resume_from_checkpoint=cfg.resume_from_checkpoint)
+    wandb_finish()
+
     model.save_pretrained(cfg.model_dir)
     if cfg.push_to_hub:
         trainer.push_to_hub()
 
 
-def load_callbacks(cfg: DictConfig) -> list[TrainerCallback]:
-    """Load the callbacks for the Trainer.
+def load_early_stopping_callback(cfg: DictConfig) -> list[TrainerCallback]:
+    """Load the early stopping callback for the trainer.
 
     Args:
         cfg (DictConfig):
