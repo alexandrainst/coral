@@ -45,8 +45,8 @@ def main(output_dir) -> None:
         stream_download(url=url, destination_path=destination_path)
         uncompress_file(filename=destination_path)
     reorganise_files(dataset_dir=output_dir)
-    remove_bad_files()
-    dataset = build_huggingface_dataset()
+    remove_bad_files(dataset_dir=output_dir)
+    dataset = build_huggingface_dataset(dataset_dir=output_dir)
 
     logger.info(f"Saving the dataset to {output_dir}...")
     dataset.save_to_disk(
@@ -171,8 +171,14 @@ def reorganise_files(dataset_dir: str | Path) -> None:
                 Path(name).rename("README.pdf")
 
 
-def remove_bad_files() -> None:
-    """Remove audio files that cannot be opened."""
+def remove_bad_files(dataset_dir: Path | str) -> None:
+    """Remove audio files that cannot be opened.
+
+    Args:
+        dataset_dir: The directory that should contain the dataset.
+    """
+    dataset_dir = Path(dataset_dir)
+
     # These filename prefixes were found by running the `find_faulty_audio_clips.py`
     # script
     bad_file_prefixes = [
@@ -180,7 +186,7 @@ def remove_bad_files() -> None:
         "dk16xx41-24092000-1951_u0042",
     ]
     for split in ["train", "test"]:
-        audio_dir = Path(split) / "audio"
+        audio_dir = dataset_dir / split / "audio"
         for audio_file in audio_dir.glob("*.wav"):
             if any(
                 [
@@ -221,12 +227,16 @@ def get_suffix(string: str | Path) -> str:
         return ""
 
 
-def build_huggingface_dataset() -> DatasetDict:
+def build_huggingface_dataset(dataset_dir: Path | str) -> DatasetDict:
     """Sets up the metadata files and builds the Hugging Face dataset.
+
+    Args:
+        dataset_dir: The directory that should contain the dataset.
 
     Returns:
         The Hugging Face dataset.
     """
+    dataset_dir = Path(dataset_dir)
     rng = np.random.default_rng(seed=4242)
 
     def ensure_int(value: int | str | None) -> int | None:
@@ -255,7 +265,7 @@ def build_huggingface_dataset() -> DatasetDict:
 
     dataset_dict: dict[str, Dataset] = dict()
     for split in ["train", "test"]:
-        metadata_path = Path(split) / "metadata.csv"
+        metadata_path = dataset_dir / split / "metadata.csv"
         metadata_df = pd.read_csv(metadata_path, low_memory=False)
 
         # Keep the desired columns, rename them, ensure that the datatypes are correct
@@ -271,7 +281,7 @@ def build_huggingface_dataset() -> DatasetDict:
         # The filenames in the metadata file does not correspond 1-to-1 with the actual
         # names of the audio files, so we extract the audio filename from the
         # information within the metadata filename
-        audio_dir = Path(split) / "audio"
+        audio_dir = dataset_dir / split / "audio"
         audio_filenames = pd.Series(
             [str(audio_file) for audio_file in audio_dir.glob("*.wav")]
         )
