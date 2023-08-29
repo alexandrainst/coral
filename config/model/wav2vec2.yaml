@@ -5,7 +5,7 @@ freeze_feature_encoder: false
 
 # Data hyperparameters
 clean_dataset: true
-characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789é|'
+characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü '
 
 # Model hyperparameters
 sampling_rate: 16_000
@@ -19,7 +19,7 @@ mask_time_length: 10
 mask_feature_prob: 0.5
 mask_feature_length: 64
 layerdrop: 0.1
-ctc_loss_reduction: sum
+ctc_loss_reduction: mean
 
 # Decoder hyperparameters
 language_model_decoder: ngram
