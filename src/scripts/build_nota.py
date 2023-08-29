@@ -39,12 +39,14 @@ URL_SUFFIXES = [
 @click.command("Builds and stores the Nota dataset.")
 @click.argument("destination_dir", type=click.Path())
 def main(destination_dir) -> None:
-    download_nota(destination_dir=destination_dir)
-    dataset = build_huggingface_dataset(dataset_dir=destination_dir)
+    raw_dir = Path(destination_dir) / "raw"
+    huggingface_dir = Path(destination_dir) / "huggingface"
+    download_nota(destination_dir=raw_dir)
+    dataset = build_huggingface_dataset(dataset_dir=raw_dir)
 
-    logger.info(f"Saving the dataset to {destination_dir}...")
+    logger.info(f"Saving the dataset to {huggingface_dir}...")
     dataset.save_to_disk(
-        str(destination_dir),
+        str(huggingface_dir),
         max_shard_size="50MB",
         num_proc=mp.cpu_count() - 1,
     )
@@ -78,7 +80,9 @@ def download_nota(destination_dir: Path | str) -> None:
 
         # Remove already downloaded files
         downloaded_files = {
-            f"{path.stem}.zip" for path in Path.cwd().iterdir() if path.is_dir()
+            f"{path.stem}.zip"
+            for path in Path(destination_dir).iterdir()
+            if path.is_dir()
         }
         all_files_filtered = list(set(all_files_filtered) - downloaded_files)
 
