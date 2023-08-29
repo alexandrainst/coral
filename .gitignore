@@ -105,5 +105,5 @@ data/
 # Models
 models/
 
-# Weights and biases
+# Weights and Biases experiment tracking
 wandb/
