@@ -39,7 +39,7 @@ URL_SUFFIXES = [
 @click.command("Builds and stores the Nota dataset.")
 @click.argument("destination_dir", type=click.Path())
 def main(destination_dir) -> None:
-    # download_nota(destination_dir=destination_dir)
+    download_nota(destination_dir=destination_dir)
     dataset = build_huggingface_dataset(dataset_dir=destination_dir)
 
     logger.info(f"Saving the dataset to {destination_dir}...")
@@ -112,6 +112,8 @@ def build_huggingface_dataset(dataset_dir: Path | str) -> DatasetDict:
     """
     dataset_dir = Path(dataset_dir)
 
+    logger.info("Building the HuggingFace dataset...")
+
     # Build metadata file for the dataset
     metadata_dict: dict[str, list[str]] = dict(audio=[], text=[])
     for folder in dataset_dir.iterdir():
@@ -121,7 +123,6 @@ def build_huggingface_dataset(dataset_dir: Path | str) -> DatasetDict:
             wav_filename = text_file.stem + ".wav"
             metadata_dict["audio"].append(str(folder / wav_filename))
             metadata_dict["text"].append(text_file.read_text(encoding="utf-8"))
-
     metadata_df = pd.DataFrame(metadata_dict)
 
     # Build the dataset
