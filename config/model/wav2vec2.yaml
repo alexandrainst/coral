@@ -5,7 +5,7 @@ freeze_feature_encoder: false
 
 # Data hyperparameters
 clean_dataset: true
-characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789é|'
+characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789é|ü'
 
 # Model hyperparameters
 sampling_rate: 16_000
