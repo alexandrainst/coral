@@ -43,7 +43,6 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
             name=dataset_cfg.subset,
             token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
             streaming=True,
-            keep_in_memory=False,
         )
 
         assert isinstance(dataset, DatasetDict) or isinstance(
@@ -213,7 +212,6 @@ def clean_dataset(
         "ş": "s",
         "ê": "e",
         "ã": "a",
-        "ü": "ue",
         "ë": "e",
         "ć": "c",
         "ä": "æ",
@@ -283,7 +281,7 @@ def clean_transcription(
     for key, value in conversion_dict.items():
         doc = doc.replace(key, value)
 
-    # Replace spaces with a pipe, to emphasise the word boundaries
-    doc = re.sub(r" +", "|", doc)
+    # Replace superfluous spaces
+    doc = re.sub(r" +", " ", doc)
 
-    return re.sub(non_standard_characters_regex, "", doc.lower().strip().strip("|"))
+    return re.sub(non_standard_characters_regex, "", doc.lower().strip())
