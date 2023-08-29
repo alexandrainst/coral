@@ -96,6 +96,13 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
 
     if len(all_datasets) > 1:
         logger.info("Interleaving datasets")
+        if cfg.dataset_probabilities["train"] is None and len(all_datasets) > 1:
+            logger.warning(
+                "No dataset probabilities were specified for the training split. "
+                "This means that each dataset will be sampled with equal probability, "
+                "which means that the smaller datasets will be sampled more often than "
+                "the larger datasets. This is probably not what you want."
+            )
 
         probabilities: dict[str, list[float]] = dict()
         for split_name, split_probs in cfg.dataset_probabilities.items():
