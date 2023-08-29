@@ -21,11 +21,11 @@ class TestLoadData:
         if cfg.model.clean_dataset:
             samples = [sample["text"] for sample in dataset["train"]]
             assert samples == [
-                "hver|rose|på|træet|i|haven|havde|sin|historie",
-                "min|fortræffelige|lille|nattergal",
-                "her|er|kommet|gode|klæder|at|slide|for|de|fire|børn",
-                "jeg|venter|grumme|meget|af|den",
-                "men|hendes|vilje|var|fast|som|hendes|tillid|til|vorherre",
+                "hver rose på træet i haven havde sin historie",
+                "min fortræffelige lille nattergal",
+                "her er kommet gode klæder at slide for de fire børn",
+                "jeg venter grumme meget af den",
+                "men hendes vilje var fast som hendes tillid til vorherre",
             ]
 
 
@@ -58,55 +58,55 @@ class TestCleanTranscription:
                 transcription,
                 empty_regex,
                 empty_conversion_dict,
-                "this|is|a|(test)|[sentence]\u0301|with|\n{aa}|and|ğ.",
+                "this is a (test) [sentence]\u0301 with \n{aa} and ğ.",
             ),
             (
                 transcription,
                 empty_regex,
                 diacritics_conversion_dict,
-                "this|is|a|(test)|[sentence]\u0301|with|\n{å}|and|g.",
+                "this is a (test) [sentence]\u0301 with \n{å} and g.",
             ),
             (
                 transcription,
                 empty_regex,
                 empty_whitespace_conversion_dict,
-                "this|is|a|(test)|[sentence]|with|\n{aa}|and|ğ.",
+                "this is a (test) [sentence] with \n{aa} and ğ.",
             ),
             (
                 transcription,
                 parens_regex,
                 empty_conversion_dict,
-                "this|is|a|test|sentence\u0301|with|\naa|and|ğ.",
+                "this is a test sentence\u0301 with \naa and ğ.",
             ),
             (
                 transcription,
                 parens_regex,
                 diacritics_conversion_dict,
-                "this|is|a|test|sentence\u0301|with|\nå|and|g.",
+                "this is a test sentence\u0301 with \nå and g.",
             ),
             (
                 transcription,
                 parens_regex,
                 empty_whitespace_conversion_dict,
-                "this|is|a|test|sentence|with|\naa|and|ğ.",
+                "this is a test sentence with \naa and ğ.",
             ),
             (
                 transcription,
                 newline_regex,
                 empty_conversion_dict,
-                "this|is|a|(test)|[sentence]\u0301|with|{aa}|and|ğ.",
+                "this is a (test) [sentence]\u0301 with {aa} and ğ.",
             ),
             (
                 transcription,
                 newline_regex,
                 diacritics_conversion_dict,
-                "this|is|a|(test)|[sentence]\u0301|with|{å}|and|g.",
+                "this is a (test) [sentence]\u0301 with {å} and g.",
             ),
             (
                 transcription,
                 newline_regex,
                 empty_whitespace_conversion_dict,
-                "this|is|a|(test)|[sentence]|with|{aa}|and|ğ.",
+                "this is a (test) [sentence] with {aa} and ğ.",
             ),
         ],
     )
