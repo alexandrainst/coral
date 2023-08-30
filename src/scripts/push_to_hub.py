@@ -10,7 +10,7 @@ from datasets import DatasetDict
 
 @click.command("Pushes a saved dataset to the Hugging Face Hub.")
 @click.argument("saved-data-dir", type=click.Path(exists=True))
-@click.argument("--hub-id", type=str)
+@click.argument("hub-id", type=str)
 @click.option(
     "--private",
     is_flag=True,
@@ -19,7 +19,7 @@ from datasets import DatasetDict
     help="Whether to make the dataset private on the Hugging Face Hub.",
 )
 def main(saved_data_dir: str, hub_id: str, private: bool) -> None:
-    """Builds and stores the FTSpeech dataset.
+    """Pushes a saved dataset to the Hugging Face Hub.
 
     This also catches RuntimeError exceptions which tends to happen during the upload
     of large datasets, and retries the upload until it succeeds.
