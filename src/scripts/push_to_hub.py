@@ -6,6 +6,7 @@ Usage:
 
 import click
 from datasets import DatasetDict
+from requests import HTTPError
 
 
 @click.command("Pushes a saved dataset to the Hugging Face Hub.")
@@ -33,7 +34,7 @@ def main(saved_data_dir: str, hub_id: str, private: bool) -> None:
                 private=private,
             )
             break
-        except RuntimeError:
+        except (RuntimeError, HTTPError):
             pass
 
 
