@@ -21,14 +21,17 @@ def main(audio_dir: str | Path) -> None:
         audio_dir: Path to directory containing audio clips.
     """
     audio_dir = Path(audio_dir)
-    for audio_file in tqdm(list(audio_dir.glob("*.wav")), desc=f"Checking {audio_dir}"):
-        try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", category=UserWarning)
-                warnings.simplefilter("ignore", category=FutureWarning)
-                librosa.load(audio_file)
-        except Exception as e:
-            print(audio_file, e)
+    folders = [folder for folder in audio_dir.iterdir() if folder.is_dir()]
+    folders += [audio_dir]
+    for folder in folders:
+        for audio_file in tqdm(list(folder.glob("*.wav")), desc=f"Checking {folder}"):
+            try:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", category=UserWarning)
+                    warnings.simplefilter("ignore", category=FutureWarning)
+                    librosa.load(audio_file)
+            except Exception as e:
+                print(audio_file, e)
 
 
 if __name__ == "__main__":
