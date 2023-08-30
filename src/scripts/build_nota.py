@@ -36,6 +36,9 @@ URL_SUFFIXES = [
 ]
 
 
+SAMPLE_RATE = 16_000
+
+
 @click.command("Builds and stores the Nota dataset.")
 @click.argument("destination_dir", type=click.Path())
 def main(destination_dir) -> None:
@@ -131,7 +134,7 @@ def build_huggingface_dataset(dataset_dir: Path | str) -> DatasetDict:
 
     # Build the dataset
     dataset = Dataset.from_pandas(metadata_df, preserve_index=False)
-    dataset = dataset.cast_column("audio", Audio(sampling_rate=16000))
+    dataset = dataset.cast_column("audio", Audio(sampling_rate=SAMPLE_RATE))
 
     return DatasetDict(dict(train=dataset))
 
