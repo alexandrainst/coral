@@ -345,7 +345,7 @@ def prepare_raw_data(
         # New filename is in the format is for conversations:
         # "recording_id_speaker_id1_speaker_id2_recorder_speaker_id_conversation.wav"
         # and for read aloud data:
-        # "recording_id_speaker_id_recorder_id_sentence_id.wav"
+        # "recording_id_speaker_id_sentence_id.wav"
         if len(row["speaker_id"].split(",")) > 1:
             speaker_id = "_".join(row["speaker_id"].split(","))
             sentence_id = "conversation"
@@ -558,19 +558,19 @@ def make_readme() -> str:
     The recordings are stored in the `processed_audio` folder. The recordings are
     stored in the following format:
 
-    `recording_id_speaker_id1_speaker_id2_recorder_speaker_id_conversation.wav`
+    `[recording_id]_[speaker_id1]_[speaker_id2]_[recorder_speaker_id]_conversation.wav`
 
     for conversations, and
 
-    `recording_id_speaker_id_recorder_id_sentence_id.wav`
+    `[recording_id]_[speaker_id]_[sentence_id].wav`
 
     for read aloud data.
 
     A `recording_id` is a unique id for each recording. A `speaker_id` is a unique id
-    for each speaker. A `recorder_id` is a unique id for each recorder, i.e.
-    the person which performed the recording. A `sentence_id` is a unique id for each
-    sentence. The prefix `conversation` indicates that a recording is of two people
-    having a conversation.
+    for each speaker. The `recorder_speaker_id` is the unique `speaker_id` associated
+    with each recorder, i.e. the person which performed the recording. A `sentence_id`
+    is a unique id for each sentence. The prefix `conversation` indicates that a
+    recording is of two people having a conversation.
 
     The metadata for the recordings are stored in the `recordings.csv` file. The
     metadata for the speakers are stored in the `speakers.csv` file. The metadata for
