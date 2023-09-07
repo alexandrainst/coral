@@ -11,6 +11,7 @@ from zlib import adler32
 import pandas as pd
 import pycountry
 from pydub import AudioSegment
+from pydub.exceptions import CouldntDecodeError
 from tqdm import tqdm
 
 DB_TO_EXCEL_METADATA_NAMES = {
@@ -416,6 +417,11 @@ def prepare_raw_data(
         index=[0],
     )
 
+    # Write a README file
+    readme = make_readme()
+    with open(output_path / "README.md", "w") as f:
+        f.write(readme)
+
     # Save the dataframes
     data_stats.to_csv(output_path / "data_stats.csv", index=False)
     speakers.to_csv(output_path / "speakers.csv", index=False)
@@ -525,6 +531,8 @@ def recording_id(filename: str, data_folder: Path) -> str:
     use the adler32 hash function because it is fast and has a low collision
     rate for short strings, and produces hash-values which are integers with 8
     or 9 digits, we use the first 8 digits as the id.
+    If the recording cannot be decoded, we use the adler32 hash function on the
+    filename instead.
     Args:
         filename (str): The filename of the recording
 
@@ -532,4 +540,39 @@ def recording_id(filename: str, data_folder: Path) -> str:
         str: The recording id
     """
     file_path = data_folder / filename
-    return str(adler32(AudioSegment.from_file(file_path).raw_data))[0:8]
+    try:
+        return str(adler32(AudioSegment.from_file(file_path).raw_data))[0:8]
+    except CouldntDecodeError:
+        return str(adler32(bytes(filename, "utf-8")))[0:8]
+
+
+def make_readme():
+    """Makes a README.md file"""
+    return """# CoRal data
+
+    The CoRal data is a collection of recordings of people reading aloud and having
+    conversations. The data was collected by the Alexandra Institute in 2023-2025.
+
+    ## Data
+
+    The recordings are stored in the `processed_audio` folder. The recordings are
+    stored in the following format:
+
+    `recording_id_speaker_id1_speaker_id2_recorder_speaker_id_conversation.wav`
+
+    for conversations, and
+
+    `recording_id_speaker_id_recorder_id_sentence_id.wav`
+
+    for read aloud data.
+
+    A `recording_id` is a unique id for each recording. A `speaker_id` is a unique id
+    for each speaker. A `recorder_id` is a unique id for each recorder, i.e.
+    the person which performed the recording. A `sentence_id` is a unique id for each
+    sentence. The prefix `conversation` indicates that a recording is of two people
+    having a conversation.
+
+    The metadata for the recordings are stored in the `recordings.csv` file. The
+    metadata for the speakers are stored in the `speakers.csv` file. The metadata for
+    the sentences are stored in the `sentences.csv` file.
+    """
