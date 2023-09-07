@@ -541,9 +541,9 @@ def recording_id(filename: str, data_folder: Path) -> str:
     """
     file_path = data_folder / filename
     try:
-        return str(adler32(AudioSegment.from_file(file_path).raw_data))[0:8]
+        return "r" + str(adler32(AudioSegment.from_file(file_path).raw_data))[0:8]
     except CouldntDecodeError:
-        return str(adler32(bytes(filename, "utf-8")))[0:8]
+        return "r" + str(adler32(bytes(filename, "utf-8")))[0:8]
 
 
 def make_readme() -> str:
