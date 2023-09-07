@@ -264,7 +264,7 @@ def make_recording_metadata(
     ].astype(str)
 
     # Start and Stop columns are in the format "HHMM-DD-MM-YY" and
-    # "DD/MM/YYYY HH:MM:SS" and need to be converted to
+    # "DD/MM/YYYY, HH:MM:SS" and need to be converted to
     # "DD/MM/YYYY HH:MM:SS+02:00"
     all_recording_metadata["start"] = all_recording_metadata["start"].apply(
         correct_timestamp
@@ -281,9 +281,9 @@ def make_recording_metadata(
 
     # The noise column has both "none", "ingen", "trafik", "traffic", which needs to be
     # only "none" or "traffic".
-    all_recording_metadata["background_noise_level"] = all_recording_metadata[
-        "background_noise_level"
-    ].apply(lambda x: dict(ingen="none", trafik="traffic").get(x, x))
+    all_recording_metadata["noise"] = all_recording_metadata["noise"].apply(
+        lambda x: dict(ingen="none", trafik="traffic").get(x, x)
+    )
 
     return all_recording_metadata, sentences
 
@@ -479,7 +479,7 @@ def correct_timestamp(timestamp: str) -> str:
         str: The converted timestamp
     """
     if ":" in timestamp:
-        format = "%d/%m/%Y %H:%M:%S"
+        format = "%d/%m/%Y, %H:%M:%S"
     else:
         format = "%H%M-%d-%m-%y"
     try:
