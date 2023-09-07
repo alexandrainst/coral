@@ -546,7 +546,7 @@ def recording_id(filename: str, data_folder: Path) -> str:
         return str(adler32(bytes(filename, "utf-8")))[0:8]
 
 
-def make_readme():
+def make_readme() -> str:
     """Makes a README.md file"""
     return """# CoRal data
 
