@@ -115,7 +115,7 @@ class Wav2Vec2ModelSetup:
             pad_token="<pad>",
             bos_token="<s>",
             eos_token="</s>",
-            word_delimiter_token="|",
+            word_delimiter_token=" ",
         )
 
         # Set the `model_max_length` attribute of the tokenizer, if it hasn't been set,
