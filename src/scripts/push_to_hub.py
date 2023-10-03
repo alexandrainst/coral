@@ -4,9 +4,15 @@ Usage:
     python push_to_hub.py <saved_dataset_dir> <hub_id> [--private]
 """
 
+import logging
+import time
+
 import click
 from datasets import DatasetDict
 from requests import HTTPError
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(message)s")
+logger = logging.getLogger(__name__)
 
 
 @click.command("Pushes a saved dataset to the Hugging Face Hub.")
@@ -30,12 +36,15 @@ def main(saved_data_dir: str, hub_id: str, private: bool) -> None:
         try:
             dataset.push_to_hub(
                 repo_id=hub_id,
-                max_shard_size="50MB",
+                max_shard_size="500MB",
                 private=private,
             )
             break
-        except (RuntimeError, HTTPError):
-            pass
+        except (RuntimeError, HTTPError) as e:
+            logger.error(f"Error while pushing to hub: {e}")
+            logger.info("Waiting a minute before trying again...")
+            time.sleep(60)
+            logger.info("Retrying...")
 
 
 if __name__ == "__main__":

@@ -106,7 +106,7 @@ def main(raw_data_dir: str | Path, output_dir: str | Path) -> None:
     logger.info(f"Saving the dataset to {output_dir}...")
     dataset.save_to_disk(
         str(output_dir),
-        max_shard_size="50MB",
+        max_shard_size="500MB",
         num_proc=mp.cpu_count() - 1,
     )
 

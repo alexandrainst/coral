@@ -10,6 +10,7 @@ from datasets import (
     Dataset,
     DatasetDict,
     IterableDatasetDict,
+    NamedSplit,
     interleave_datasets,
     load_dataset,
 )
@@ -120,6 +121,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
             datasets=[dataset["train"] for dataset in all_datasets],
             probabilities=probabilities["train"],
             seed=cfg.seed,
+            split=NamedSplit("train"),
             stopping_strategy="all_exhausted",
         )
 
@@ -141,6 +143,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
             ],
             probabilities=val_probabilities,
             seed=cfg.seed,
+            split=NamedSplit("val"),
             stopping_strategy="first_exhausted",
         )
 
@@ -162,6 +165,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
             ],
             probabilities=test_probabilities,
             seed=cfg.seed,
+            split=NamedSplit("test"),
             stopping_strategy="first_exhausted",
         )
 
