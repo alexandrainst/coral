@@ -50,7 +50,7 @@ def main(destination_dir) -> None:
     logger.info(f"Saving the dataset to {huggingface_dir}...")
     dataset.save_to_disk(
         str(huggingface_dir),
-        max_shard_size="50MB",
+        max_shard_size="500MB",
         num_proc=mp.cpu_count() - 1,
     )
 
