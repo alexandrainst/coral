@@ -36,6 +36,9 @@ DATA_URLS = dict(
 )
 
 
+SAMPLE_RATE = 16_000
+
+
 @click.command("Builds and stores the Danish part of the NST dataset.")
 @click.argument("destination_dir", type=click.Path())
 def main(destination_dir) -> None:
@@ -337,7 +340,9 @@ def build_huggingface_dataset(dataset_dir: Path | str) -> DatasetDict:
 
         # Build a Hugging Face dataset from the Pandas dataframe
         split_dataset = Dataset.from_pandas(metadata_df, preserve_index=False)
-        split_dataset = split_dataset.cast_column("audio", Audio(sampling_rate=16_000))
+        split_dataset = split_dataset.cast_column(
+            "audio", Audio(sampling_rate=SAMPLE_RATE)
+        )
         dataset_dict[split] = split_dataset
 
     return DatasetDict(dataset_dict)
