@@ -130,53 +130,54 @@ def reorganise_files(dataset_dir: str | Path) -> None:
     test_audio_dir.mkdir(parents=True, exist_ok=True)
 
     for name in DATA_URLS:
-        if not Path(name).exists():
+        name_dir = data_dir / name
+        if not name_dir.exists():
             continue
         match name:
             case "train_metadata":
-                Path(name).rename("metadata")
-                shutil.move("metadata", train_dir)
+                name_dir.rename(data_dir / "metadata")
+                shutil.move(data_dir / "metadata", train_dir)
             case "train_audio":
-                data_dir = Path(name) / "dk"
-                for audio_dir in data_dir.iterdir():
+                raw_dir = name_dir / "dk"
+                for audio_dir in raw_dir.iterdir():
                     if not audio_dir.is_dir():
                         continue
                     for audio_file in audio_dir.glob("*.wav"):
                         Path(audio_file).rename(train_audio_dir / audio_file.name)
-                shutil.rmtree(name)
+                shutil.rmtree(name_dir)
 
             # This file contains the test set as well as some corrections of errors in
             # the training dataset
             case "test_and_errors":
-                data_dir = Path(name) / "supplement_dk"
+                raw_dir = name_dir / "supplement_dk"
 
-                temp_test_audio_dir = data_dir / "testdata" / "audio"
+                temp_test_audio_dir = raw_dir / "testdata" / "audio"
                 for audio_dir in temp_test_audio_dir.iterdir():
                     if not audio_dir.is_dir():
                         continue
                     for audio_file in audio_dir.glob("*.wav"):
                         Path(audio_file).rename(test_audio_dir / audio_file.name)
-                temp_test_metadata_dir = data_dir / "testdata" / "metadata"
+                temp_test_metadata_dir = raw_dir / "testdata" / "metadata"
                 shutil.move(temp_test_metadata_dir, test_dir)
 
-                test_log_file = data_dir / "testdata" / "sprakbanken_0611_transform.log"
+                test_log_file = raw_dir / "testdata" / "sprakbanken_0611_transform.log"
                 Path(test_log_file).rename(data_dir / "test" / "log.log")
 
-                error_file = data_dir / "dk_errorfiles_train.json"
+                error_file = raw_dir / "dk_errorfiles_train.json"
                 Path(error_file).rename(train_dir / "errorfiles.json")
 
-                test_manifest_file = data_dir / "dk_manifest_test.json"
+                test_manifest_file = raw_dir / "testdata" / "dk_manifest_test.json"
                 Path(test_manifest_file).rename(test_dir / "manifest.json")
 
-                shutil.rmtree(name)
+                shutil.rmtree(name_dir)
             case "metadata_csvs":
-                train_metadata_csv = Path(name) / "NST_dk.csv"
+                train_metadata_csv = name_dir / "NST_dk.csv"
                 Path(train_metadata_csv).rename(train_dir / "metadata.csv")
-                test_metadata_csv = Path(name) / "supplement_dk.csv"
+                test_metadata_csv = name_dir / "supplement_dk.csv"
                 Path(test_metadata_csv).rename(test_dir / "metadata.csv")
-                shutil.rmtree(name)
+                shutil.rmtree(name_dir)
             case "readme":
-                Path(name).rename("README.pdf")
+                name_dir.rename(data_dir / "README.pdf")
 
 
 def remove_bad_files(dataset_dir: Path | str) -> None:
