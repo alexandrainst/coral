@@ -206,6 +206,8 @@ class Wav2Vec2ModelSetup:
             seed=self.cfg.seed,
             remove_unused_columns=False,
             optim=OptimizerNames.ADAMW_TORCH,
+            adam_beta1=self.cfg.model.adam_first_momentum,
+            adam_beta2=self.cfg.model.adam_second_momentum,
             use_mps_device=mps_is_available(),
             report_to=["wandb"] if self.cfg.wandb else [],
             ignore_data_skip=self.cfg.ignore_data_skip,
