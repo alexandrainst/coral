@@ -17,7 +17,7 @@ seed: 4242
 
 # Dataset parameters
 dataset_probabilities:  # null = equal probability to every dataset
-  train: [0.99,0.01]
+  train: null
   val: null
   test: null
 
