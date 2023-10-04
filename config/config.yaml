@@ -1,5 +1,5 @@
 defaults:
-  - model: wav2vec2_alvenir_config
+  - model: wav2vec2
   - datasets:
     - nst_da
     - common_voice_9_da
