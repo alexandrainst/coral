@@ -41,6 +41,8 @@ DATA_URLS = dict(
 def main(destination_dir) -> None:
     raw_dir = Path(destination_dir) / "raw"
     huggingface_dir = Path(destination_dir) / "huggingface"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    huggingface_dir.mkdir(parents=True, exist_ok=True)
 
     for name, url in DATA_URLS.items():
         filename = name + get_suffix(url)
