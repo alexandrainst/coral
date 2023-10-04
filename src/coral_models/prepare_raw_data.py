@@ -203,7 +203,7 @@ def make_recording_metadata(
             }
         )
 
-        # Make speaker mails in to speaker ids
+        # Convert speaker emails to speaker IDs
         read_aloud_data["speaker_id"] = read_aloud_data[["name", "email"]].apply(
             lambda x: speaker_id(x[0], x[1]), axis=1
         )
