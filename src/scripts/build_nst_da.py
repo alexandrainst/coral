@@ -255,9 +255,13 @@ def build_huggingface_dataset(dataset_dir: Path | str) -> DatasetDict:
         except ValueError:
             return None
 
-    def fix_text_column(text: str) -> str:
-        if text == "( ... tavshed under denne indspilning ...)":
-            return ""
+    def fix_text_column(text: str | float | None) -> str | None:
+        if (
+            text == "( ... tavshed under denne indspilning ...)"
+            or text == ""
+            or not isinstance(text, str)
+        ):
+            return None
         return text
 
     columns_to_keep = {
