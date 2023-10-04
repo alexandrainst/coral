@@ -155,6 +155,7 @@ class Wav2Vec2ModelSetup:
                 bos_token_id=self.processor.tokenizer.bos_token_id,
                 eos_token_id=self.processor.tokenizer.eos_token_id,
                 vocab_size=len(self.processor.tokenizer.get_vocab()),
+                ctc_zero_infinity=True,
             )
             assert isinstance(model, Wav2Vec2ForCTC)
 
