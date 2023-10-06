@@ -3,6 +3,7 @@
 import logging
 import os
 import re
+from pathlib import Path
 from unicodedata import normalize
 
 from datasets import (
@@ -36,15 +37,20 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
     for dataset_name, dataset_cfg in cfg.datasets.items():
         logger.info(f"Loading dataset {dataset_name!r}")
 
+        # Load from disk if the dataset ID is a path
+        if Path(dataset_cfg.id).exists():
+            dataset = DatasetDict.load_from_disk(dataset_cfg.id)
+
         # Load dataset from the Hugging Face Hub. The HUGGINGFACE_HUB_TOKEN is only used
         # during CI - normally it is expected that the user is logged in to the Hugging
         # Face Hub using the `huggingface-cli login` command.
-        dataset = load_dataset(
-            path=dataset_cfg.id,
-            name=dataset_cfg.subset,
-            token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-            streaming=True,
-        )
+        else:
+            dataset = load_dataset(
+                path=dataset_cfg.id,
+                name=dataset_cfg.subset,
+                token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+                streaming=True,
+            )
 
         assert isinstance(dataset, DatasetDict) or isinstance(
             dataset, IterableDatasetDict
@@ -211,7 +217,6 @@ def clean_dataset(
         "ń": "n",
         "è": "e",
         "kg": " kilo ",
-        "μg": " mikrogram ",
         "μg": " mikrogram ",
         "-": " minus ",
         "+": " plus ",
