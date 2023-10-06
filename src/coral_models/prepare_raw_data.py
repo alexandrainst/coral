@@ -249,6 +249,12 @@ def make_recording_metadata(
         "filename"
     ].progress_apply(lambda x: recording_id(x, raw_path))
 
+    # Remove rows with no recording id. Sometimes recorders did not submit their
+    # all their recordings.
+    all_recording_metadata = all_recording_metadata[
+        all_recording_metadata["recording_id"].notna()
+    ].reset_index(drop=True)
+
     # We have updated the sentence_content_to_id dict, so we also need to update the
     # sentences dataframe with the new sentence ids
     sentences = (
@@ -524,7 +530,7 @@ def speaker_id(name: str, email: str) -> str:
     return "t" + str(adler32(bytes(name + email, "utf-8")))[0:8]
 
 
-def recording_id(filename: str, data_folder: Path) -> str:
+def recording_id(filename: str, data_folder: Path) -> str | None:
     """Creates a recording id from the content of the recording.
 
     We use the adler32 hash function on the raw data to create a unique id. We
@@ -544,6 +550,8 @@ def recording_id(filename: str, data_folder: Path) -> str:
         return "r" + str(adler32(AudioSegment.from_file(file_path).raw_data))[0:8]
     except CouldntDecodeError:
         return "r" + str(adler32(bytes(filename, "utf-8")))[0:8]
+    except FileNotFoundError:
+        return None
 
 
 def make_readme() -> str:
