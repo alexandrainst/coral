@@ -39,7 +39,30 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
 
         # Load from disk if the dataset ID is a path
         if Path(dataset_cfg.id).exists():
-            dataset = DatasetDict.load_from_disk(dataset_cfg.id)
+            dataset_paths = {
+                dataset_cfg.train_name: Path(dataset_cfg.id) / dataset_cfg.train_name
+            }
+            if dataset_cfg.val_name is not None:
+                dataset_paths[dataset_cfg.val_name] = (
+                    Path(dataset_cfg.id) / dataset_cfg.val_name
+                )
+            if dataset_cfg.test_name is not None:
+                dataset_paths[dataset_cfg.test_name] = (
+                    Path(dataset_cfg.id) / dataset_cfg.test_name
+                )
+            data_files = {
+                split: list(map(str, split_path.glob("data-*.arrow")))
+                for split, split_path in dataset_paths.items()
+            }
+            for split, files in data_files.items():
+                if len(files) == 0:
+                    raise FileNotFoundError(
+                        f"No data files found for split {split!r} in dataset "
+                        f"{dataset_name!r}. Please check that the provided dataset "
+                        "directory {dataset_paths[split]!r} contains arrow files of "
+                        "the form 'data-*.arrow'."
+                    )
+            dataset = load_dataset("arrow", data_files=data_files, streaming=True)
 
         # Load dataset from the Hugging Face Hub. The HUGGINGFACE_HUB_TOKEN is only used
         # during CI - normally it is expected that the user is logged in to the Hugging
