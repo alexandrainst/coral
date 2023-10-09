@@ -211,6 +211,7 @@ class Wav2Vec2ModelSetup:
             ignore_data_skip=self.cfg.ignore_data_skip,
             save_safetensors=True,
             use_cpu=hasattr(sys, "_called_from_test"),
+            dataloader_num_workers=self.cfg.dataloader_num_workers,
         )
         return args
 
