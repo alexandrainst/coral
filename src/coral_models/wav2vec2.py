@@ -184,13 +184,13 @@ class Wav2Vec2ModelSetup:
         args = TrainingArguments(
             output_dir=self.cfg.model_dir,
             hub_model_id=self.cfg.hub_id,
-            per_device_train_batch_size=self.cfg.model.batch_size,
-            per_device_eval_batch_size=self.cfg.model.batch_size,
-            gradient_accumulation_steps=self.cfg.model.gradient_accumulation,
-            learning_rate=self.cfg.model.learning_rate,
+            per_device_train_batch_size=self.cfg.batch_size,
+            per_device_eval_batch_size=self.cfg.batch_size,
+            gradient_accumulation_steps=self.cfg.gradient_accumulation,
+            learning_rate=self.cfg.learning_rate,
             lr_scheduler_type=SchedulerType.COSINE,
-            warmup_steps=self.cfg.model.warmup_steps,
-            max_steps=self.cfg.model.max_steps,
+            warmup_steps=self.cfg.warmup_steps,
+            max_steps=self.cfg.max_steps,
             fp16=self.cfg.fp16 and not mps_is_available(),
             push_to_hub=self.cfg.push_to_hub,
             evaluation_strategy="steps" if do_eval else "no",
@@ -206,8 +206,8 @@ class Wav2Vec2ModelSetup:
             seed=self.cfg.seed,
             remove_unused_columns=False,
             optim=OptimizerNames.ADAMW_TORCH,
-            adam_beta1=self.cfg.model.adam_first_momentum,
-            adam_beta2=self.cfg.model.adam_second_momentum,
+            adam_beta1=self.cfg.adam_first_momentum,
+            adam_beta2=self.cfg.adam_second_momentum,
             report_to=["wandb"] if self.cfg.wandb else [],
             ignore_data_skip=self.cfg.ignore_data_skip,
             save_safetensors=True,
@@ -255,7 +255,7 @@ def dump_vocabulary(cfg: DictConfig) -> None:
             The Hydra configuration object.
     """
     # Build the set of all unique characters in the dataset
-    unique_characters: set[str] = set(cfg.model.characters_to_keep)
+    unique_characters: set[str] = set(cfg.characters_to_keep)
 
     # Build vocabulary
     vocab = {char: idx for idx, char in enumerate(unique_characters)}

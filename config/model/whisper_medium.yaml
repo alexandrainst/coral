@@ -15,11 +15,3 @@ mask_time_prob: 0.5
 mask_time_length: 10
 mask_feature_prob: 0.5
 mask_feature_length: 64
-
-# Training hyperparameters
-batch_size: 8
-gradient_accumulation: 4
-max_steps: 120_000
-learning_rate: 3e-5
-warmup_steps: 500
-generation_max_length: 225
