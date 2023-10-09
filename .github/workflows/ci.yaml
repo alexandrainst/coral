@@ -25,6 +25,9 @@ jobs:
       - name: Install Poetry
         run: pipx install poetry==1.4.0
 
+      - name: Install NVIDIA dependencies
+        run: apt-get install -y libcufft
+
       - name: Setup ffmpeg
         uses: FedericoCarboni/setup-ffmpeg@v2
 
