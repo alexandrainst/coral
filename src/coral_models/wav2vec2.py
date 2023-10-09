@@ -79,11 +79,10 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
             audio_features, padding=self.padding, return_tensors="pt"
         )
 
-        with self.processor.as_target_processor():
-            label_features = [dict(input_ids=feature["labels"]) for feature in features]
-            labels_batch: BatchEncoding = self.processor.pad(
-                label_features, padding=self.padding, return_tensors="pt"
-            )
+        label_features = [dict(input_ids=feature["labels"]) for feature in features]
+        labels_batch: BatchEncoding = self.processor.tokenizer.pad(
+            label_features, padding=self.padding, return_tensors="pt"
+        )
 
         # Replace padding with -100 to ignore loss correctly
         non_one_entries: torch.Tensor = labels_batch.attention_mask.ne(1)
