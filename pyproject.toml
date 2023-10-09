@@ -30,18 +30,18 @@ pycountry = "^22.3.5"
 wave = ">=0.0.2,<1.0.0"
 kenlm = {url = "https://github.com/kpu/kenlm/archive/master.zip"}
 matplotlib = "3.7.3"
-nvidia-cublas-cu11 = {version = "^11.11.3.6", platform = "linux"}
-nvidia-cuda-cupti-cu11 = {version = "^11.8.87", platform = "linux"}
-nvidia-cuda-nvrtc-cu11 = {version = "^11.8.89", platform = "linux"}
-nvidia-cuda-runtime-cu11 = {version = "^11.8.89", platform = "linux"}
-nvidia-cudnn-cu11 = {version = "^8.9.4.25", platform = "linux"}
-nvidia-cufft-cu11 = {version = "^10.9.0.58", platform = "linux"}
-nvidia-curand-cu11 = {version = "^10.3.0.86", platform = "linux"}
-nvidia-cusolver-cu11 = {version = "^11.4.1.48", platform = "linux"}
-nvidia-cusparse-cu11 = {version = "^11.7.5.86", platform = "linux"}
-nvidia-nccl-cu11 = {version = "^2.18.3", platform = "linux"}
-nvidia-nvtx-cu11 = {version = "^11.8.86", platform = "linux"}
-triton = {version = "^2.1.0", platform = "linux"}
+nvidia-cublas-cu11 = {version = "^11", platform = "linux"}
+nvidia-cuda-cupti-cu11 = {version = "^11", platform = "linux"}
+nvidia-cuda-nvrtc-cu11 = {version = "^11", platform = "linux"}
+nvidia-cuda-runtime-cu11 = {version = "^11", platform = "linux"}
+nvidia-cudnn-cu11 = {version = "^8", platform = "linux"}
+nvidia-cufft-cu11 = {version = "^10", platform = "linux"}
+nvidia-curand-cu11 = {version = "^10", platform = "linux"}
+nvidia-cusolver-cu11 = {version = "^11", platform = "linux"}
+nvidia-cusparse-cu11 = {version = "^11", platform = "linux"}
+nvidia-nccl-cu11 = {version = "^2", platform = "linux"}
+nvidia-nvtx-cu11 = {version = "^11", platform = "linux"}
+triton = {version = "^2.0.0", platform = "linux"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0.0"
