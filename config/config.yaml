@@ -16,6 +16,7 @@ seed: 4242
 
 # Dataset parameters
 characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü '
+max_seconds_per_example: 10
 dataset_probabilities:  # null = equal probability to every dataset
   train: null
   val: null

@@ -31,11 +31,14 @@ def finetune(cfg: DictConfig) -> None:
     def prepare_dataset(example: dict) -> dict:
         # Prepare audio
         audio = example["audio"]
-        processed = processor(audio["array"], sampling_rate=audio["sampling_rate"])
+        sr = audio["sampling_rate"]
+        processed = processor(audio["array"], sampling_rate=sr)
         if "input_values" in processed:
             example["input_values"] = processed.input_values[0]
+            example["num_seconds"] = len(example["input_values"]) / sr
         if "input_features" in processed:
             example["input_features"] = processed.input_features[0]
+            example["num_seconds"] = len(example["input_features"]) / sr
 
         # Prepare transcriptions
         example["labels"] = processor(text=example["text"], truncation=True).input_ids
@@ -44,6 +47,9 @@ def finetune(cfg: DictConfig) -> None:
         return example
 
     dataset = dataset.map(prepare_dataset, remove_columns=dataset["train"].column_names)
+    dataset = dataset.filter(
+        function=lambda example: example["num_seconds"] <= cfg.max_seconds_per_example
+    )
 
     if cfg.wandb:
         wandb_init(
