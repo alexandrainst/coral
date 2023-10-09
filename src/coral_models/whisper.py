@@ -197,13 +197,13 @@ class WhisperModelSetup:
             seed=self.cfg.seed,
             remove_unused_columns=False,
             optim=OptimizerNames.ADAMW_TORCH,
-            use_mps_device=mps_is_available(),
             report_to=["wandb"] if self.cfg.wandb else [],
             ignore_data_skip=self.cfg.ignore_data_skip,
             save_safetensors=True,
             predict_with_generate=True,
             generation_max_length=self.cfg.model.generation_max_length,
-            no_cuda=hasattr(sys, "_called_from_test"),
+            use_cpu=hasattr(sys, "_called_from_test"),
+            auto_find_batch_size=True,
         )
         return args
 
