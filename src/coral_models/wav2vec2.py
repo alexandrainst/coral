@@ -144,6 +144,7 @@ class Wav2Vec2ModelSetup:
                 hidden_dropout=self.cfg.model.hidden_dropout,
                 feat_proj_dropout=self.cfg.model.feat_proj_dropout,
                 final_dropout=self.cfg.model.final_dropout,
+                apply_spec_augment=True,
                 mask_time_prob=self.cfg.model.mask_time_prob,
                 mask_time_length=self.cfg.model.mask_time_length,
                 mask_feature_prob=self.cfg.model.mask_feature_prob,
@@ -154,6 +155,7 @@ class Wav2Vec2ModelSetup:
                 bos_token_id=self.processor.tokenizer.bos_token_id,
                 eos_token_id=self.processor.tokenizer.eos_token_id,
                 vocab_size=len(self.processor.tokenizer.get_vocab()),
+                ctc_zero_infinity=True,
             )
             assert isinstance(model, Wav2Vec2ForCTC)
 
@@ -204,11 +206,13 @@ class Wav2Vec2ModelSetup:
             seed=self.cfg.seed,
             remove_unused_columns=False,
             optim=OptimizerNames.ADAMW_TORCH,
-            use_mps_device=mps_is_available(),
+            adam_beta1=self.cfg.model.adam_first_momentum,
+            adam_beta2=self.cfg.model.adam_second_momentum,
             report_to=["wandb"] if self.cfg.wandb else [],
             ignore_data_skip=self.cfg.ignore_data_skip,
             save_safetensors=True,
-            no_cuda=hasattr(sys, "_called_from_test"),
+            use_cpu=hasattr(sys, "_called_from_test"),
+            auto_find_batch_size=True,
         )
         return args
 

@@ -1,4 +1,4 @@
-name: wav2vec2
+name: wav2vec2_no_reg
 type: wav2vec2
 pretrained_model_id: chcaa/xls-r-300m-danish
 freeze_feature_encoder: false
@@ -9,17 +9,17 @@ characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü '
 
 # Model hyperparameters
 sampling_rate: 16_000
-activation_dropout: 0.1
-attention_dropout: 0.0
+activation_dropout: 0.0
 hidden_dropout: 0.0
+attention_dropout: 0.0
 feat_proj_dropout: 0.0
 feat_quantizer_dropout: 0.0
 final_dropout: 0.0
-mask_time_prob: 0.5
+mask_time_prob: 0.0
 mask_time_length: 10
-mask_feature_prob: 0.5
+mask_feature_prob: 0.0
 mask_feature_length: 64
-layerdrop: 0.1
+layerdrop: 0.0
 ctc_loss_reduction: mean
 
 # Decoder hyperparameters
@@ -33,8 +33,8 @@ decoder:
 # Training hyperparameters
 batch_size: 8
 gradient_accumulation: 32
-max_steps: 13_000  # Based on the XLS-R paper, section 4.3
-warmup_steps: 1_300  # Based on the XLS-R paper, section 4.3
+max_steps: 13_000
 learning_rate: 3e-5
 adam_first_momentum: 0.9
 adam_second_momentum: 0.98
+warmup_steps: 1_300

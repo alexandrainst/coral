@@ -3,6 +3,7 @@
 import logging
 import os
 import re
+from pathlib import Path
 from unicodedata import normalize
 
 from datasets import (
@@ -36,15 +37,43 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
     for dataset_name, dataset_cfg in cfg.datasets.items():
         logger.info(f"Loading dataset {dataset_name!r}")
 
+        # Load from disk if the dataset ID is a path
+        if Path(dataset_cfg.id).exists():
+            dataset_paths = {
+                dataset_cfg.train_name: Path(dataset_cfg.id) / dataset_cfg.train_name
+            }
+            if dataset_cfg.val_name is not None:
+                dataset_paths[dataset_cfg.val_name] = (
+                    Path(dataset_cfg.id) / dataset_cfg.val_name
+                )
+            if dataset_cfg.test_name is not None:
+                dataset_paths[dataset_cfg.test_name] = (
+                    Path(dataset_cfg.id) / dataset_cfg.test_name
+                )
+            data_files = {
+                split: list(map(str, split_path.glob("data-*.arrow")))
+                for split, split_path in dataset_paths.items()
+            }
+            for split, files in data_files.items():
+                if len(files) == 0:
+                    raise FileNotFoundError(
+                        f"No data files found for split {split!r} in dataset "
+                        f"{dataset_name!r}. Please check that the provided dataset "
+                        f"directory {dataset_paths[split]!r} contains arrow files of "
+                        "the form 'data-*.arrow'."
+                    )
+            dataset = load_dataset("arrow", data_files=data_files, streaming=True)
+
         # Load dataset from the Hugging Face Hub. The HUGGINGFACE_HUB_TOKEN is only used
         # during CI - normally it is expected that the user is logged in to the Hugging
         # Face Hub using the `huggingface-cli login` command.
-        dataset = load_dataset(
-            path=dataset_cfg.id,
-            name=dataset_cfg.subset,
-            token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-            streaming=True,
-        )
+        else:
+            dataset = load_dataset(
+                path=dataset_cfg.id,
+                name=dataset_cfg.subset,
+                token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+                streaming=True,
+            )
 
         assert isinstance(dataset, DatasetDict) or isinstance(
             dataset, IterableDatasetDict
@@ -211,7 +240,6 @@ def clean_dataset(
         "ń": "n",
         "è": "e",
         "kg": " kilo ",
-        "μg": " mikrogram ",
         "μg": " mikrogram ",
         "-": " minus ",
         "+": " plus ",
