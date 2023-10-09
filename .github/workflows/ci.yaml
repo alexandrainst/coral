@@ -26,7 +26,7 @@ jobs:
         run: pipx install poetry==1.4.0
 
       - name: Install NVIDIA dependencies
-        if: runner.os == 'Ubuntu'
+        if: runner.os == 'Linux'
         uses: Jimver/cuda-toolkit@v0.2.11
 
       - name: Setup ffmpeg
