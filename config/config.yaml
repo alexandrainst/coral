@@ -1,11 +1,7 @@
 defaults:
   - model: wav2vec2
-  - datasets:  # 1283k samples in total
-    - nst_da  # 183k samples
-    - nota  # 98.6k samples
-    - ftspeech  # 996k samples
-    - fleurs_da  # 2.5k samples
-    - common_voice_13_da  # 2.75 samples
+  - datasets:
+    - common_voice_13_da
   - override hydra/job_logging: custom
   - _self_
 
@@ -21,12 +17,7 @@ seed: 4242
 # Dataset parameters
 characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü '
 dataset_probabilities:  # null = equal probability to every dataset
-  train:
-    - 0.20
-    - 0.20
-    - 0.20
-    - 0.05
-    - 0.05
+  train: null
   val: null
   test: null
 
