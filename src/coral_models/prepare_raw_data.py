@@ -6,9 +6,12 @@ import sqlite3
 import subprocess
 import wave
 from pathlib import Path
+from zlib import adler32
 
 import pandas as pd
 import pycountry
+from pydub import AudioSegment
+from pydub.exceptions import CouldntDecodeError
 from tqdm import tqdm
 
 DB_TO_EXCEL_METADATA_NAMES = {
@@ -99,9 +102,10 @@ def make_speaker_metadata(raw_path: Path, metadata_path: Path) -> pd.DataFrame:
         lambda x: dict(M="male", K="female").get(x, x)
     )
 
-    # Create a speaker id column
-    speakers["speaker_id"] = "t" + speakers.index.astype(str)
-
+    # Create a speaker id column.
+    speakers["speaker_id"] = speakers[["name", "mail"]].apply(
+        lambda x: speaker_id(x[0], x[1]), axis=1
+    )
     return speakers
 
 
@@ -126,7 +130,16 @@ def make_recording_metadata(
     speaker_metadata = pd.read_excel(metadata_path, index_col=0)
 
     # Get the columns that contain information about the recording environment
-    # but not about the speakers and recorders, except their email.
+    # but not about the speakers and recorders, except their email and name, which
+    # we need to create their speaker ids.
+    cols_needed_for_ids = [
+        "subject_a_name",
+        "subject_b_name",
+        "recorder_name",
+        "subject_a_mail",
+        "subject_b_mail",
+        "recorder_mail",
+    ]
     recording_metadata = speaker_metadata[
         [
             col
@@ -138,31 +151,31 @@ def make_recording_metadata(
                 ]
             )
         ]
-        + ["subject_a_mail", "subject_b_mail", "recorder_mail"]
+        + cols_needed_for_ids
     ]
-
-    # Make a dict from speaker mail to speaker id in the speakers dataframe
-    speaker_mail_to_id = dict(zip(speakers["mail"], speakers["speaker_id"]))
 
     # Make a speaker_id column for the recording metadata, with ids separated by a comma
     # Subject A is the first speaker id, subject B is the second speaker id
     recording_metadata["speaker_id"] = recording_metadata[
-        ["subject_a_mail", "subject_b_mail"]
-    ].apply(lambda x: ",".join([str(speaker_mail_to_id[mail]) for mail in x]), axis=1)
+        ["subject_a_name", "subject_a_mail", "subject_b_name", "subject_b_mail"]
+    ].apply(lambda x: (speaker_id(x[0], x[1]) + "," + speaker_id(x[2], x[3])), axis=1)
 
     # Make a recorder_id column for the recording metadata
-    recording_metadata["recorder_id"] = recording_metadata["recorder_mail"].apply(
-        lambda x: str(speaker_mail_to_id[x])
-    )
+    recording_metadata["recorder_id"] = recording_metadata[
+        ["recorder_name", "recorder_mail"]
+    ].apply(lambda x: speaker_id(x[0], x[1]), axis=1)
 
-    recording_metadata = recording_metadata.drop(
-        columns=["subject_a_mail", "subject_b_mail", "recorder_mail"]
-    )
+    recording_metadata = recording_metadata.drop(columns=cols_needed_for_ids)
 
     # Make a sentence_id column for the recording metadata, sentence_id is -1 if the
     # recorder does not contain a sentences from the sentence dataframe, i.e. if
     # recording is a conversation.
+    # Sentences are fixed throughout the project, so we do not need to use a hash
+    # function to create a unique id for each sentence.
     recording_metadata["sentence_id"] = -1
+
+    # We need filenames for later, when we want to create recording ids.
+    recording_metadata["filename"] = recording_metadata.index.astype(str)
 
     # Make a sentence content to sentence_id dict
     sentence_content_to_id = dict(zip(sentences["text"], sentences["sentence_id"]))
@@ -190,8 +203,10 @@ def make_recording_metadata(
             }
         )
 
-        # Make speaker mails in to speaker ids
-        read_aloud_data["speaker_id"] = read_aloud_data["email"].map(speaker_mail_to_id)
+        # Convert speaker emails to speaker IDs
+        read_aloud_data["speaker_id"] = read_aloud_data[["name", "email"]].apply(
+            lambda x: speaker_id(x[0], x[1]), axis=1
+        )
 
         # Make sentence_id columns from content
         # We changed the set of sentences during the project, so we need to check if
@@ -229,9 +244,16 @@ def make_recording_metadata(
     )
 
     # Make a recording id column
-    all_recording_metadata["recording_id"] = "r" + all_recording_metadata.index.astype(
-        str
-    )
+    tqdm.pandas()
+    all_recording_metadata["recording_id"] = all_recording_metadata[
+        "filename"
+    ].progress_apply(lambda x: recording_id(x, raw_path))
+
+    # Remove rows with no recording id. Sometimes recorders did not submit their
+    # all their recordings.
+    all_recording_metadata = all_recording_metadata[
+        all_recording_metadata["recording_id"].notna()
+    ].reset_index(drop=True)
 
     # We have updated the sentence_content_to_id dict, so we also need to update the
     # sentences dataframe with the new sentence ids
@@ -248,7 +270,7 @@ def make_recording_metadata(
     ].astype(str)
 
     # Start and Stop columns are in the format "HHMM-DD-MM-YY" and
-    # "DD/MM/YYYY HH:MM:SS" and need to be converted to
+    # "DD/MM/YYYY, HH:MM:SS" and need to be converted to
     # "DD/MM/YYYY HH:MM:SS+02:00"
     all_recording_metadata["start"] = all_recording_metadata["start"].apply(
         correct_timestamp
@@ -265,9 +287,9 @@ def make_recording_metadata(
 
     # The noise column has both "none", "ingen", "trafik", "traffic", which needs to be
     # only "none" or "traffic".
-    all_recording_metadata["background_noise_level"] = all_recording_metadata[
-        "background_noise_level"
-    ].apply(lambda x: dict(ingen="none", trafik="traffic").get(x, x))
+    all_recording_metadata["noise"] = all_recording_metadata["noise"].apply(
+        lambda x: dict(ingen="none", trafik="traffic").get(x, x)
+    )
 
     return all_recording_metadata, sentences
 
@@ -329,7 +351,7 @@ def prepare_raw_data(
         # New filename is in the format is for conversations:
         # "recording_id_speaker_id1_speaker_id2_recorder_speaker_id_conversation.wav"
         # and for read aloud data:
-        # "recording_id_speaker_id_recorder_id_sentence_id.wav"
+        # "recording_id_speaker_id_sentence_id.wav"
         if len(row["speaker_id"].split(",")) > 1:
             speaker_id = "_".join(row["speaker_id"].split(","))
             sentence_id = "conversation"
@@ -401,6 +423,11 @@ def prepare_raw_data(
         index=[0],
     )
 
+    # Write a README file
+    readme = make_readme()
+    with open(output_path / "README.md", "w") as f:
+        f.write(readme)
+
     # Save the dataframes
     data_stats.to_csv(output_path / "data_stats.csv", index=False)
     speakers.to_csv(output_path / "speakers.csv", index=False)
@@ -458,7 +485,7 @@ def correct_timestamp(timestamp: str) -> str:
         str: The converted timestamp
     """
     if ":" in timestamp:
-        format = "%d/%m/%Y %H:%M:%S"
+        format = "%d/%m/%Y, %H:%M:%S"
     else:
         format = "%H%M-%d-%m-%y"
     try:
@@ -484,3 +511,76 @@ def get_data_from_db(db_folder: Path) -> pd.DataFrame:
         sql="SELECT * FROM CoRal_recording", con=connection
     )
     return read_aloud_data
+
+
+def speaker_id(name: str, email: str) -> str:
+    """Creates a speaker id from a name and email.
+
+    We use the adler32 hash function on the speakers name and email to create a
+    unique id. We use the adler32 hash function because it is fast and has a
+    low collision rate for short strings, and produces hash-values which are
+    integers with 8 or 9 digits, we use the first 8 digits as the id.
+    Args:
+        name (str): The name of the speaker
+        email (str): The email of the speaker
+
+    Returns:
+        str: The speaker id
+    """
+    return "t" + str(adler32(bytes(name + email, "utf-8")))[0:8]
+
+
+def recording_id(filename: str, data_folder: Path) -> str | None:
+    """Creates a recording id from the content of the recording.
+
+    We use the adler32 hash function on the raw data to create a unique id. We
+    use the adler32 hash function because it is fast and has a low collision
+    rate for short strings, and produces hash-values which are integers with 8
+    or 9 digits, we use the first 8 digits as the id.
+    If the recording cannot be decoded, we use the adler32 hash function on the
+    filename instead.
+    Args:
+        filename (str): The filename of the recording
+
+    Returns:
+        str: The recording id
+    """
+    file_path = data_folder / filename
+    try:
+        return "r" + str(adler32(AudioSegment.from_file(file_path).raw_data))[0:8]
+    except CouldntDecodeError:
+        return "r" + str(adler32(bytes(filename, "utf-8")))[0:8]
+    except FileNotFoundError:
+        return None
+
+
+def make_readme() -> str:
+    """Makes a README.md file"""
+    return """# CoRal data
+
+    The CoRal data is a collection of recordings of people reading aloud and having
+    conversations. The data was collected by the Alexandra Institute in 2023-2025.
+
+    ## Data
+
+    The recordings are stored in the `processed_audio` folder. The recordings are
+    stored in the following format:
+
+    `[recording_id]_[speaker_id1]_[speaker_id2]_[recorder_speaker_id]_conversation.wav`
+
+    for conversations, and
+
+    `[recording_id]_[speaker_id]_[sentence_id].wav`
+
+    for read aloud data.
+
+    A `recording_id` is a unique id for each recording. A `speaker_id` is a unique id
+    for each speaker. The `recorder_speaker_id` is the unique `speaker_id` associated
+    with each recorder, i.e. the person which performed the recording. A `sentence_id`
+    is a unique id for each sentence. The prefix `conversation` indicates that a
+    recording is of two people having a conversation.
+
+    The metadata for the recordings are stored in the `recordings.csv` file. The
+    metadata for the speakers are stored in the `speakers.csv` file. The metadata for
+    the sentences are stored in the `sentences.csv` file.
+    """
