@@ -11,6 +11,7 @@ from torch.backends.mps import is_available as mps_is_available
 from transformers import (
     BatchFeature,
     EvalPrediction,
+    SchedulerType,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
     Trainer,
@@ -180,6 +181,7 @@ class WhisperModelSetup:
             per_device_eval_batch_size=self.cfg.model.batch_size,
             gradient_accumulation_steps=self.cfg.model.gradient_accumulation,
             learning_rate=self.cfg.model.learning_rate,
+            lr_scheduler_type=SchedulerType.COSINE,
             warmup_steps=self.cfg.model.warmup_steps,
             max_steps=self.cfg.model.max_steps,
             fp16=self.cfg.fp16 and not mps_is_available(),
@@ -197,13 +199,13 @@ class WhisperModelSetup:
             seed=self.cfg.seed,
             remove_unused_columns=False,
             optim=OptimizerNames.ADAMW_TORCH,
-            use_mps_device=mps_is_available(),
             report_to=["wandb"] if self.cfg.wandb else [],
             ignore_data_skip=self.cfg.ignore_data_skip,
             save_safetensors=True,
             predict_with_generate=True,
             generation_max_length=self.cfg.model.generation_max_length,
-            no_cuda=hasattr(sys, "_called_from_test"),
+            use_cpu=hasattr(sys, "_called_from_test"),
+            auto_find_batch_size=True,
         )
         return args
 
