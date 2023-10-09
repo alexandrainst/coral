@@ -59,7 +59,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
                     raise FileNotFoundError(
                         f"No data files found for split {split!r} in dataset "
                         f"{dataset_name!r}. Please check that the provided dataset "
-                        "directory {dataset_paths[split]!r} contains arrow files of "
+                        f"directory {dataset_paths[split]!r} contains arrow files of "
                         "the form 'data-*.arrow'."
                     )
             dataset = load_dataset("arrow", data_files=data_files, streaming=True)
