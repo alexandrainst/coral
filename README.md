@@ -3,10 +3,10 @@
 Danish ASR and TTS models associated with the CoRal project.
 
 ______________________________________________________________________
-[![Documentation](https://img.shields.io/badge/docs-passing-green)](https://alexandrainst.github.io/CoRal-models/coral_models.html)
-[![License](https://img.shields.io/github/license/alexandrainst/CoRal-models)](https://github.com/alexandrainst/CoRal-models/blob/main/LICENSE)
-[![LastCommit](https://img.shields.io/github/last-commit/alexandrainst/CoRal-models)](https://github.com/alexandrainst/CoRal-models/commits/main)
-[![Code Coverage](https://img.shields.io/badge/Coverage-60%25-yellow.svg)](https://github.com/alexandrainst/CoRal-models/tree/main/tests)
+[![Documentation](https://img.shields.io/badge/docs-passing-green)](https://alexandrainst.github.io/coral_models/coral_models.html)
+[![License](https://img.shields.io/github/license/alexandrainst/coral_models)](https://github.com/alexandrainst/coral_models/blob/main/LICENSE)
+[![LastCommit](https://img.shields.io/github/last-commit/alexandrainst/coral_models)](https://github.com/alexandrainst/coral_models/commits/main)
+[![Code Coverage](https://img.shields.io/badge/Coverage-60%25-yellow.svg)](https://github.com/alexandrainst/coral_models/tree/main/tests)
 
 
 Developers:
