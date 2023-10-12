@@ -209,12 +209,10 @@ class WhisperModelSetup:
 
     def load_saved(self) -> PreTrainedModelData:
         processor: Processor
-        processor = WhisperProcessor.from_pretrained(
-            self.cfg.hub_id, use_auth_token=True
-        )
+        processor = WhisperProcessor.from_pretrained(self.cfg.hub_id, token=True)
 
         model = WhisperForConditionalGeneration.from_pretrained(
-            self.cfg.hub_id, use_auth_token=True
+            self.cfg.hub_id, token=True
         )
         data_collator = DataCollatorSpeechSeq2SeqWithPadding(
             processor=processor, padding="longest"

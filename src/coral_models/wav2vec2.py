@@ -73,7 +73,8 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
                 A dictionary of the collated features.
         """
         audio_features = [
-            dict(input_values=feature["input_values"]) for feature in features
+            dict(input_values=feature.get("input_values", feature["audio"]["array"]))
+            for feature in features
         ]
         batch: BatchFeature = self.processor.pad(
             audio_features, padding=self.padding, return_tensors="pt"
@@ -220,18 +221,16 @@ class Wav2Vec2ModelSetup:
         if self.cfg.model.language_model_decoder is not None:
             try:
                 processor = Wav2Vec2ProcessorWithLM.from_pretrained(
-                    self.cfg.hub_id, use_auth_token=True
+                    self.cfg.hub_id, token=True
                 )
             except (FileNotFoundError, ValueError):
                 processor = Wav2Vec2Processor.from_pretrained(
-                    self.cfg.hub_id, use_auth_token=True
+                    self.cfg.hub_id, token=True
                 )
         else:
-            processor = Wav2Vec2Processor.from_pretrained(
-                self.cfg.hub_id, use_auth_token=True
-            )
+            processor = Wav2Vec2Processor.from_pretrained(self.cfg.hub_id, token=True)
 
-        model = Wav2Vec2ForCTC.from_pretrained(self.cfg.hub_id, use_auth_token=True)
+        model = Wav2Vec2ForCTC.from_pretrained(self.cfg.hub_id, token=True)
         data_collator = DataCollatorCTCWithPadding(
             processor=processor, padding="longest"
         )
