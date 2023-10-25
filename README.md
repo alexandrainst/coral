@@ -54,7 +54,6 @@ publishing the code as a package and more.
 ## Project structure
 ```
 .
-├── .flake8
 ├── .github
 │   └── workflows
 │       ├── ci.yaml
@@ -66,22 +65,35 @@ publishing the code as a package and more.
 ├── config
 │   ├── __init__.py
 │   ├── config.yaml
-│   ├── dataset
-│   │   ├── common_voice_da.yaml
+│   ├── datasets
+│   │   ├── alvenir_test_set.yaml
+│   │   ├── common_voice_13_da.yaml
+│   │   ├── common_voice_13_nn.yaml
+│   │   ├── common_voice_13_sv.yaml
+│   │   ├── common_voice_9_da.yaml
+│   │   ├── fleurs_da.yaml
+│   │   ├── fleurs_nb.yaml
+│   │   ├── fleurs_sv.yaml
 │   │   ├── ftspeech.yaml
-│   │   └── test.yaml
+│   │   ├── nota.yaml
+│   │   ├── nst_da.yaml
+│   │   └── test_dataset.yaml
 │   ├── hydra
 │   │   └── job_logging
 │   │       └── custom.yaml
 │   └── model
-│       ├── test.yaml
+│       ├── test_wav2vec2.yaml
+│       ├── test_whisper.yaml
 │       ├── wav2vec2.yaml
-│       ├── wav2vec2_with_lm.yaml
-│       └── whisper.yaml
-├── data
+│       ├── whisper_large.yaml
+│       ├── whisper_medium.yaml
+│       ├── whisper_small.yaml
+│       ├── whisper_xsmall.yaml
+│       └── whisper_xxsmall.yaml
+├── docs
+│   └── .gitkeep
 ├── makefile
-├── models
-├── notebooks
+├── poetry.lock
 ├── poetry.toml
 ├── pyproject.toml
 ├── src
@@ -90,15 +102,25 @@ publishing the code as a package and more.
 │   │   ├── compute_metrics.py
 │   │   ├── data.py
 │   │   ├── finetune.py
+│   │   ├── model_setup.py
+│   │   ├── plot.py
+│   │   ├── prepare_raw_data.py
 │   │   ├── protocols.py
 │   │   ├── utils.py
-│   │   └── wav2vec2.py
+│   │   ├── wav2vec2.py
+│   │   └── whisper.py
 │   └── scripts
+│       ├── build_coral_data.py
 │       ├── build_ftspeech.py
-│       ├── evaluate.py
-│       ├── finetune.py
+│       ├── build_nota.py
+│       ├── build_nst_da.py
+│       ├── download_ftspeech.py
+│       ├── evaluate_model.py
+│       ├── find_faulty_audio_clips.py
+│       ├── finetune_model.py
 │       ├── fix_dot_env_file.py
-│       ├── push_ftspeech_to_hub.py
+│       ├── plot_training_trajectory.py
+│       ├── push_to_hub.py
 │       ├── train_ngram_decoder.py
 │       └── versioning.py
 └── tests
@@ -109,5 +131,6 @@ publishing the code as a package and more.
     ├── test_finetune.py
     ├── test_protocols.py
     ├── test_utils.py
-    └── test_wav2vec2.py
+    ├── test_wav2vec2.py
+    └── test_whisper.py
 ```
