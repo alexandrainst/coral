@@ -44,7 +44,6 @@ install: ## Install dependencies
 	@$(MAKE) --quiet setup-poetry
 	@$(MAKE) --quiet setup-environment-variables
 	@$(MAKE) --quiet setup-git
-	@$(MAKE) --quiet add-repo-to-git
 	@echo "Installed the 'coral_models' project."
 
 install-brew:
@@ -98,7 +97,7 @@ install-poetry:
 	fi
 
 setup-poetry:
-	@poetry env use python3.10 && poetry install
+	@poetry env use python3.11 && poetry install
 
 setup-environment-variables:
 	@poetry run python src/scripts/fix_dot_env_file.py
@@ -120,17 +119,6 @@ setup-git:
 		echo "Signed with GPG key ID ${GPG_KEY_ID}."; \
 	fi
 	@poetry run pre-commit install
-
-add-repo-to-git:
-	@export GPG_TTY=$(tty)
-	@gpgconf --kill gpg-agent
-	@git add .
-	@if [ ! "$(shell git status --short)" = "" ]; then \
-		git commit --quiet -m "Initial commit"; \
-	fi
-	@if [ "$(shell git remote)" = "" ]; then \
-		git remote add origin git@github.com:alexandrainst/coral_models.git; \
-	fi
 
 docs:  ## Generate documentation
 	@poetry run pdoc --docformat google src/coral_models -o docs
