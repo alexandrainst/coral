@@ -45,12 +45,24 @@ def prepare_dataset_example(example: dict, processor: Callable) -> dict:
     return example
 
 
+def example_audio_is_short(example: dict, max_seconds_per_example: int) -> bool:
+    """Check if the example audio is too short.
+
+    Args:
+        example: The example from the dataset.
+        max_seconds_per_example: The maximum number of seconds per example.
+
+    Returns:
+        Whether the example audio is too short.
+    """
+    return example["num_seconds"] <= max_seconds_per_example
+
+
 def finetune(cfg: DictConfig) -> None:
     """Finetune a model on a dataset.
 
     Args:
-        cfg (DictConfig):
-            The Hydra cfguration object.
+        cfg: The Hydra cfguration object.
     """
     model_setup: ModelSetup = load_model_setup(cfg)
     processor = model_setup.load_processor()
@@ -63,7 +75,10 @@ def finetune(cfg: DictConfig) -> None:
         remove_columns=dataset["train"].column_names,
     )
     dataset = dataset.filter(
-        function=lambda example: example["num_seconds"] <= cfg.max_seconds_per_example
+        function=partial(
+            example_audio_is_short,
+            max_seconds_per_example=cfg.max_seconds_per_example,
+        ),
     )
 
     if cfg.wandb:
@@ -101,12 +116,10 @@ def load_early_stopping_callback(cfg: DictConfig) -> list[TrainerCallback]:
     """Load the early stopping callback for the trainer.
 
     Args:
-        cfg (DictConfig):
-            The Hydra configuration object.
+        cfg: The Hydra configuration object.
 
     Returns:
-        list of TrainerCallback:
-            The callbacks.
+        The callbacks.
     """
     callbacks: list[TrainerCallback] = list()
     if cfg.early_stopping:
