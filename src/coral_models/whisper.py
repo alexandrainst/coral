@@ -67,7 +67,9 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
                 A dictionary of the collated features.
         """
         if "input_features" in features[0]:
-            audio_features = [dict(input_values=f["input_features"]) for f in features]
+            audio_features = [
+                dict(input_features=f["input_features"]) for f in features
+            ]
         elif "audio" in features[0]:
             audio_features = [dict(audio=f["audio"]["array"]) for f in features]
         else:
