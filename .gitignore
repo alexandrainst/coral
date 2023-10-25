@@ -89,6 +89,12 @@ target/
 # pytest cache
 .pytest_cache/
 
+# Linting cache
+.ruff_cache/
+
+# Python cache
+**/__pycache__
+
 # Hydra logs
 outputs/
 multirun/
