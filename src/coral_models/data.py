@@ -1,5 +1,6 @@
 """Functions related to the data loading and processing"""
 
+from functools import partial
 import logging
 import os
 import re
@@ -277,21 +278,45 @@ def clean_dataset(
         f"[^{re.escape(cfg.characters_to_keep)}]"
     )
 
-    def clean_examples(example: dict) -> dict:
-        example["text"] = clean_transcription(
-            doc=example["text"],
+    mapped = dataset.map(
+        partial(
+            clean_example,
             non_standard_characters_regex=non_standard_characters_regex,
             conversion_dict=conversion_dict,
         )
-        return example
-
-    mapped = dataset.map(clean_examples)
+    )
 
     # After calling `map` the DatasetInfo is lost, so we need to add it back in
     for split in dataset.keys():
         mapped[split]._info = dataset[split]._info
 
     return mapped
+
+
+def clean_example(
+    example: dict,
+    non_standard_characters_regex: re.Pattern[str],
+    conversion_dict: dict[str, str],
+) -> dict:
+    """Helper function which cleans a single example.
+
+    Args:
+        example:
+            The example to be cleaned.
+        non_standard_characters_regex:
+            A compiled regex expression that matches all non-standard characters.
+        conversion_dict:
+            A dictionary of characters to be converted.
+
+    Returns:
+        The cleaned example.
+    """
+    example["text"] = clean_transcription(
+        doc=example["text"],
+        non_standard_characters_regex=non_standard_characters_regex,
+        conversion_dict=conversion_dict,
+    )
+    return example
 
 
 def clean_transcription(
@@ -302,11 +327,11 @@ def clean_transcription(
     """Cleans the transcription of a document.
 
     Args:
-        doc (str):
+        doc:
             A document to be cleaned.
-        non_standard_characters_regex (compiled regex expression):
+        non_standard_characters_regex:
             A compiled regex expression that matches all non-standard characters.
-        conversion_dict (dict[str, str]):
+        conversion_dict:
             A dictionary of characters to be converted.
 
     Returns:
