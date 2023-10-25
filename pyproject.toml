@@ -51,6 +51,12 @@ addopts = [
     '--cov=src/coral_models',
 ]
 xfail_strict = true
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+    "ignore::ImportWarning",
+]
 log_cli_level = "info"
 testpaths = ["tests", "src/coral_models"]
 
