@@ -66,14 +66,16 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
             BatchFeature:
                 A dictionary of the collated features.
         """
-        # Split inputs and labels since they have to be of different lengths and need
-        # different padding methods. First treat the audio inputs by simply returning
-        # torch tensors
-        input_features = [
-            {"input_features": feature["input_features"]} for feature in features
-        ]
+        if "input_features" in features[0]:
+            audio_features = [dict(input_values=f["input_features"]) for f in features]
+        elif "audio" in features[0]:
+            audio_features = [dict(audio=f["audio"]["array"]) for f in features]
+        else:
+            raise ValueError(
+                "Features must contain either 'input_features' or 'audio' key."
+            )
         batch = self.processor.feature_extractor.pad(
-            input_features, return_tensors="pt"
+            audio_features, return_tensors="pt"
         )
 
         # Get the tokenized label sequences

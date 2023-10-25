@@ -72,10 +72,14 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
             BatchFeature:
                 A dictionary of the collated features.
         """
-        audio_features = [
-            dict(input_values=feature.get("input_values", feature["audio"]["array"]))
-            for feature in features
-        ]
+        if "input_values" in features[0]:
+            audio_features = [dict(input_values=f["input_values"]) for f in features]
+        elif "audio" in features[0]:
+            audio_features = [dict(audio=f["audio"]["array"]) for f in features]
+        else:
+            raise ValueError(
+                "Features must contain either 'input_values' or 'audio' key."
+            )
         batch: BatchFeature = self.processor.pad(
             audio_features, padding=self.padding, return_tensors="pt"
         )
