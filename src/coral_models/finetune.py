@@ -30,10 +30,7 @@ def prepare_dataset_example(example: dict, processor: Callable) -> dict:
     # Prepare audio
     audio = example["audio"]
     sampling_rate = audio["sampling_rate"]
-    processed = processor(
-        audio["array"],
-        sampling_rate=sampling_rate
-    )
+    processed = processor(audio["array"], sampling_rate=sampling_rate)
     if "input_values" in processed:
         example["input_values"] = processed.input_values[0]
         example["num_seconds"] = len(example["input_values"]) / sampling_rate
