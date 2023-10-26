@@ -81,12 +81,12 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
                 "Features must contain either 'input_values' or 'audio' key."
             )
         batch: BatchFeature = self.processor.pad(
-            audio_features, padding=self.padding, return_tensors="pt"
+            audio_features, padding=self.padding, return_tensors="pt", max_length=512
         )
 
         label_features = [dict(input_ids=feature["labels"]) for feature in features]
         labels_batch: BatchEncoding = self.processor.tokenizer.pad(
-            label_features, padding=self.padding, return_tensors="pt"
+            label_features, padding=self.padding, return_tensors="pt", max_length=512
         )
 
         # Replace padding with -100 to ignore loss correctly
