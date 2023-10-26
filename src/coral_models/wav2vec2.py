@@ -187,6 +187,13 @@ class Wav2Vec2ModelSetup:
         return partial(compute_wer_metrics, processor=self.processor)
 
     def load_training_arguments(self) -> TrainingArguments:
+        # Compute the gradient accumulation based on the total batch size in the config
+        num_gpus_available = torch.cuda.device_count()
+        per_device_total_batch_size = self.cfg.total_batch_size // num_gpus_available
+        gradient_accumulation_steps = (
+            per_device_total_batch_size // self.cfg.per_device_batch_size
+        )
+
         do_eval = any(
             [
                 dataset_cfg.val_name is not None
@@ -198,7 +205,7 @@ class Wav2Vec2ModelSetup:
             hub_model_id=self.cfg.hub_id,
             per_device_train_batch_size=self.cfg.batch_size,
             per_device_eval_batch_size=self.cfg.batch_size,
-            gradient_accumulation_steps=self.cfg.gradient_accumulation,
+            gradient_accumulation_steps=gradient_accumulation_steps,
             learning_rate=self.cfg.learning_rate,
             lr_scheduler_type=SchedulerType.COSINE,
             warmup_steps=self.cfg.warmup_steps,

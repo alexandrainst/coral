@@ -46,8 +46,8 @@ save_total_limit: 2
 learning_rate: 3e-5
 adam_first_momentum: 0.9
 adam_second_momentum: 0.98
-batch_size: 8
-gradient_accumulation: 32
+total_batch_size: 256
+per_device_batch_size: 32
 max_steps: 50_000
 warmup_steps: 1_000
 logging_steps: 10
