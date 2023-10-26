@@ -10,7 +10,7 @@ from transformers import EarlyStoppingCallback, TrainerCallback
 from wandb.sdk.wandb_init import init as wandb_init
 from wandb.sdk.wandb_run import finish as wandb_finish
 
-from .utils import disable_tqdm
+from .utils import block_terminal_output, disable_tqdm
 from .data import load_data
 from .model_setup import load_model_setup
 from .protocols import ModelSetup
@@ -67,6 +67,9 @@ def finetune(cfg: DictConfig) -> None:
     """
     # Note if we're on the main process, if we are running in a distributed setting
     is_main_process = os.getenv("LOCAL_RANK", "0") == "0"
+
+    if not is_main_process:
+        block_terminal_output()
 
     model_setup: ModelSetup = load_model_setup(cfg)
     processor = model_setup.load_processor()
