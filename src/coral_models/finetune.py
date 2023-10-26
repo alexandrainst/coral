@@ -75,7 +75,6 @@ def finetune(cfg: DictConfig) -> None:
     dataset = dataset.map(
         function=partial(prepare_dataset_example, processor=processor),
         remove_columns=dataset["train"].column_names,
-        load_from_cache_file=False,
     )
     dataset = dataset.filter(
         function=partial(
