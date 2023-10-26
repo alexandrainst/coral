@@ -58,7 +58,7 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
     """
 
     processor: Wav2Vec2Processor
-    padding: bool | str = "max_length"
+    padding: bool | str
     return_tensors: str = "pt"
 
     def torch_call(self, features: list[dict]) -> BatchFeature:
@@ -170,7 +170,9 @@ class Wav2Vec2ModelSetup:
         return model
 
     def load_data_collator(self) -> DataCollatorCTCWithPadding:
-        return DataCollatorCTCWithPadding(processor=self.processor, padding=True)
+        return DataCollatorCTCWithPadding(
+            processor=self.processor, padding="max_length"
+        )
 
     def load_trainer_class(self) -> Type[Trainer]:
         return Trainer
@@ -237,7 +239,7 @@ class Wav2Vec2ModelSetup:
 
         model = Wav2Vec2ForCTC.from_pretrained(self.cfg.hub_id, token=True)
         data_collator = DataCollatorCTCWithPadding(
-            processor=processor, padding="longest"
+            processor=processor, padding="max_length"
         )
         compute_metrics = partial(compute_wer_metrics, processor=processor)
         return PreTrainedModelData(
