@@ -58,7 +58,7 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
     """
 
     processor: Wav2Vec2Processor
-    padding: bool | str = True
+    padding: bool | str = "max_length"
     return_tensors: str = "pt"
 
     def torch_call(self, features: list[dict]) -> BatchFeature:

@@ -39,9 +39,7 @@ def prepare_dataset_example(example: dict, processor: Callable) -> dict:
         example["num_seconds"] = len(example["input_features"]) / sampling_rate
 
     # Prepare transcriptions
-    example["labels"] = processor(
-        text=example["text"], truncation=True, padding="max_length"
-    ).input_ids
+    example["labels"] = processor(text=example["text"], truncation=True).input_ids
     example["input_length"] = len(example["labels"])
 
     return example
