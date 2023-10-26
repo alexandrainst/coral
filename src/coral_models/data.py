@@ -36,6 +36,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
     """
     # Note if we're on the main process, if we are running in a distributed setting
     is_main_process = os.getenv("LOCAL_RANK", 0) == 0
+    breakpoint()
 
     all_datasets: list[DatasetDict | IterableDatasetDict] = list()
     for dataset_name, dataset_cfg in cfg.datasets.items():
