@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 from typing import Callable, Type
+import time
 
 import torch
 from omegaconf import DictConfig
@@ -118,15 +119,20 @@ class Wav2Vec2ModelSetup:
     def load_processor(self) -> Wav2Vec2Processor:
         # We dump the vocabulary to a file since the tokenizer uses this file during
         # initialisation
-        dump_vocabulary(self.cfg)
-        tokenizer: Wav2Vec2CTCTokenizer = Wav2Vec2CTCTokenizer.from_pretrained(
-            self.cfg.model_dir,
-            unk_token="<unk>",
-            pad_token="<pad>",
-            bos_token="<s>",
-            eos_token="</s>",
-            word_delimiter_token=" ",
-        )
+        while True:
+            try:
+                dump_vocabulary(self.cfg)
+                tokenizer: Wav2Vec2CTCTokenizer = Wav2Vec2CTCTokenizer.from_pretrained(
+                    self.cfg.model_dir,
+                    unk_token="<unk>",
+                    pad_token="<pad>",
+                    bos_token="<s>",
+                    eos_token="</s>",
+                    word_delimiter_token=" ",
+                )
+                break
+            except json.decoder.JSONDecodeError:
+                time.sleep(1)
 
         # Set the `model_max_length` attribute of the tokenizer, if it hasn't been set,
         # to ensure that truncation is done correctly
