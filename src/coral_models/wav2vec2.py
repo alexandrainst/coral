@@ -217,6 +217,7 @@ class Wav2Vec2ModelSetup:
             save_safetensors=True,
             use_cpu=hasattr(sys, "_called_from_test"),
             dataloader_num_workers=self.cfg.dataloader_num_workers,
+            ddp_find_unused_parameters=True,
         )
         return args
 
