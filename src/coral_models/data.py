@@ -34,13 +34,9 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         ValueError:
             If the dataset is not supported.
     """
-    # Note if we're on the main process, if we are running in a distributed setting
-    is_main_process = os.getenv("LOCAL_RANK", "0") == "0"
-
     all_datasets: list[DatasetDict | IterableDatasetDict] = list()
     for dataset_name, dataset_cfg in cfg.datasets.items():
-        if is_main_process:
-            logger.info(f"Loading dataset {dataset_name!r}")
+        logger.info(f"Loading dataset {dataset_name!r}")
 
         # Load from disk if the dataset ID is a path
         if Path(dataset_cfg.id).exists():
@@ -130,16 +126,15 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
     assert len(all_datasets) > 0, "No datasets were loaded"
 
     if len(all_datasets) > 1:
-        if is_main_process:
-            logger.info("Interleaving datasets")
-            if cfg.dataset_probabilities["train"] is None and len(all_datasets) > 1:
-                logger.warning(
-                    "No dataset probabilities were specified for the training split. "
-                    "This means that each dataset will be sampled with equal "
-                    "probability, which means that the smaller datasets will be "
-                    "sampled more often than the larger datasets. This is probably "
-                    "not what you want."
-                )
+        logger.info("Interleaving datasets")
+        if cfg.dataset_probabilities["train"] is None and len(all_datasets) > 1:
+            logger.warning(
+                "No dataset probabilities were specified for the training split. "
+                "This means that each dataset will be sampled with equal "
+                "probability, which means that the smaller datasets will be "
+                "sampled more often than the larger datasets. This is probably "
+                "not what you want."
+            )
 
         probabilities: dict[str, list[float]] = dict()
         for split_name, split_probs in cfg.dataset_probabilities.items():
