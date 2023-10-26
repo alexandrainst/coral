@@ -29,14 +29,17 @@ def prepare_dataset_example(example: dict, processor: Callable) -> dict:
     """
     # Prepare audio
     audio = example["audio"]
-    sr = audio["sampling_rate"]
-    processed = processor(audio["array"], sampling_rate=sr)
+    sampling_rate = audio["sampling_rate"]
+    processed = processor(
+        audio["array"],
+        sampling_rate=sampling_rate
+    )
     if "input_values" in processed:
         example["input_values"] = processed.input_values[0]
-        example["num_seconds"] = len(example["input_values"]) / sr
+        example["num_seconds"] = len(example["input_values"]) / sampling_rate
     if "input_features" in processed:
         example["input_features"] = processed.input_features[0]
-        example["num_seconds"] = len(example["input_features"]) / sr
+        example["num_seconds"] = len(example["input_features"]) / sampling_rate
 
     # Prepare transcriptions
     example["labels"] = processor(text=example["text"], truncation=True).input_ids
