@@ -169,9 +169,9 @@ class Wav2Vec2ModelSetup:
             )
             assert isinstance(model, Wav2Vec2ForCTC)
 
-        if self.cfg.model.freeze_feature_encoder:
-            for param in model.wav2vec2.parameters():
-                param.requires_grad = False
+        # if self.cfg.model.freeze_feature_encoder:
+        #     for param in model.wav2vec2.parameters():
+        #         param.requires_grad = False
 
         return model
 
