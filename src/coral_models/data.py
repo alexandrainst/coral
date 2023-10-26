@@ -311,33 +311,8 @@ def clean_example(
     Returns:
         The cleaned example.
     """
-    example["text"] = clean_transcription(
-        doc=example["text"],
-        non_standard_characters_regex=non_standard_characters_regex,
-        conversion_dict=conversion_dict,
-    )
-    return example
+    doc = example["text"]
 
-
-def clean_transcription(
-    doc: str,
-    non_standard_characters_regex: re.Pattern[str],
-    conversion_dict: dict[str, str],
-) -> str:
-    """Cleans the transcription of a document.
-
-    Args:
-        doc:
-            A document to be cleaned.
-        non_standard_characters_regex:
-            A compiled regex expression that matches all non-standard characters.
-        conversion_dict:
-            A dictionary of characters to be converted.
-
-    Returns:
-        str:
-            The cleaned document.
-    """
     # Normalise the transcription, which uniformises the characters. For instance, the
     # "long dash" (－) is converted to the normal dash (-).
     doc = normalize("NFKC", doc)
@@ -348,4 +323,10 @@ def clean_transcription(
     # Replace superfluous spaces
     doc = re.sub(r" +", " ", doc)
 
-    return re.sub(non_standard_characters_regex, "", doc.lower().strip())
+    # Remove all non-standard characters, and make the document lower case
+    doc = re.sub(non_standard_characters_regex, "", doc.lower().strip())
+
+    # Re-assign the cleaned transcription
+    example["text"] = doc
+
+    return example
