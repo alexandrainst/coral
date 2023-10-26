@@ -18,7 +18,7 @@ mask_time_prob: 0.3
 mask_time_length: 10
 mask_feature_prob: 0.3
 mask_feature_length: 64
-layerdrop: 0.1
+layerdrop: 0.0  # NOTE: This parameter cannot be used in a multi-gpu setting!
 ctc_loss_reduction: mean
 
 # Decoder hyperparameters
