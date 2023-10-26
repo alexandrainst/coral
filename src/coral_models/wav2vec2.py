@@ -8,6 +8,7 @@ from functools import partial
 from pathlib import Path
 from typing import Callable, Type
 import time
+import os
 
 import torch
 from omegaconf import DictConfig
@@ -132,6 +133,11 @@ class Wav2Vec2ModelSetup:
                 )
                 break
             except json.decoder.JSONDecodeError:
+                process_id = os.getenv("LOCAL_RANK", 0)
+                logger.warning(
+                    f"JSONDecodeError while loading tokenizer on process {process_id}. "
+                    "Retrying in a second."
+                )
                 time.sleep(1)
 
         # Set the `model_max_length` attribute of the tokenizer, if it hasn't been set,
