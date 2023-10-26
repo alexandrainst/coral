@@ -12,7 +12,6 @@ from wandb.sdk.wandb_run import finish as wandb_finish
 from .data import load_data
 from .model_setup import load_model_setup
 from .protocols import ModelSetup
-from .utils import disable_tqdm
 
 logger = logging.getLogger(__package__)
 
@@ -103,8 +102,8 @@ def finetune(cfg: DictConfig) -> None:
         callbacks=load_early_stopping_callback(cfg) if "val" in dataset else None,
     )
 
-    with disable_tqdm():
-        trainer.train(resume_from_checkpoint=cfg.resume_from_checkpoint)
+    # with disable_tqdm():
+    trainer.train(resume_from_checkpoint=cfg.resume_from_checkpoint)
     wandb_finish()
 
     model.save_pretrained(cfg.model_dir)
