@@ -43,6 +43,10 @@ def cfg(request) -> Generator[DictConfig, None, None]:
             f"model={model}",
             f"datasets={datasets}",
             "fp16=false",
+            "batch_size=2",
+            "gradient_accumulation=1",
+            "max_steps=2",
+            "save_total_limit=0",
         ],
     )
 

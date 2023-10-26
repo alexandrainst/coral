@@ -5,7 +5,6 @@ freeze_feature_encoder: false
 
 # Data hyperparameters
 clean_dataset: true
-characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü '
 
 # Model hyperparameters
 sampling_rate: 16_000
@@ -15,9 +14,9 @@ hidden_dropout: 0.0
 feat_proj_dropout: 0.0
 feat_quantizer_dropout: 0.0
 final_dropout: 0.0
-mask_time_prob: 0.5
+mask_time_prob: 0.3
 mask_time_length: 10
-mask_feature_prob: 0.5
+mask_feature_prob: 0.3
 mask_feature_length: 64
 layerdrop: 0.1
 ctc_loss_reduction: mean
@@ -29,12 +28,3 @@ decoder:
   dataset_subset: null
   dataset_split: train
   n: 5
-
-# Training hyperparameters
-batch_size: 8
-gradient_accumulation: 32
-max_steps: 13_000  # Based on the XLS-R paper, section 4.3
-warmup_steps: 1_300  # Based on the XLS-R paper, section 4.3
-learning_rate: 3e-5
-adam_first_momentum: 0.9
-adam_second_momentum: 0.98

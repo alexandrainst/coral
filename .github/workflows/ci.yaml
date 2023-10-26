@@ -17,7 +17,7 @@ jobs:
     strategy:
         matrix:
             os: [windows-latest, macos-latest, ubuntu-latest]
-            python-version: ["3.10", "3.11"]
+            python-version: ["3.11"]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +26,7 @@ jobs:
         uses: FedericoCarboni/setup-ffmpeg@v2
 
       - name: Install Poetry
-        run: pipx install poetry==1.4.0
+        run: pip3 install poetry==1.5.1
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -38,9 +38,6 @@ jobs:
         run: |
           poetry env use "${{ matrix.python-version }}"
           poetry install --no-interaction --no-cache
-
-      - name: Fix PyTorch bug
-        run: poetry add torch==2.0.0
 
       - name: Test with pytest
         run: poetry run pytest

@@ -1,8 +1,7 @@
 defaults:
   - model: wav2vec2
   - datasets:
-    - nst_da
-    - common_voice_9_da
+    - common_voice_13_da
   - override hydra/job_logging: custom
   - _self_
 
@@ -16,7 +15,13 @@ dirs:
 seed: 4242
 
 # Dataset parameters
-dataset_probabilities:  # null = equal probability to every dataset
+characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü '
+max_seconds_per_example: 10
+dataloader_num_workers: 8
+
+# This is a list of the sampling probability of each dataset, where null means that
+# each dataset will be sampled equally often
+dataset_probabilities:
   train: null
   val: null
   test: null
@@ -26,6 +31,7 @@ pipeline_id: ${model.name}-finetuned
 hub_id: alexandrainst/${pipeline_id}
 model_dir: ${dirs.models}/${pipeline_id}
 push_to_hub: false
+fp16: true
 
 # Training parameters
 wandb: false
@@ -34,10 +40,18 @@ wandb_group: default
 wandb_name: null
 resume_from_checkpoint: false
 ignore_data_skip: false
+save_total_limit: 2
+
+# Optimisation parameters
+learning_rate: 3e-5
+adam_first_momentum: 0.9
+adam_second_momentum: 0.98
+batch_size: 8
+gradient_accumulation: 32
+max_steps: 50_000
+warmup_steps: 1_000
 logging_steps: 10
 eval_steps: 100
 save_steps: 100
-save_total_limit: 2
 early_stopping: false
 early_stopping_patience: 50
-fp16: true

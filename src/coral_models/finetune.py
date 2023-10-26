@@ -1,6 +1,8 @@
 """Functions related to the finetuning of Wav2Vec 2.0 models on ASR datasets."""
 
+from functools import partial
 import logging
+from typing import Callable
 
 from omegaconf import DictConfig
 from transformers import EarlyStoppingCallback, TrainerCallback
@@ -15,12 +17,52 @@ from .utils import disable_tqdm
 logger = logging.getLogger(__package__)
 
 
+def prepare_dataset_example(example: dict, processor: Callable) -> dict:
+    """Prepare a dataset example for the model.
+
+    Args:
+        example: The example from the dataset.
+        processor: The processor to use.
+
+    Returns:
+        The prepared example.
+    """
+    # Prepare audio
+    audio = example["audio"]
+    sampling_rate = audio["sampling_rate"]
+    processed = processor(audio["array"], sampling_rate=sampling_rate)
+    if "input_values" in processed:
+        example["input_values"] = processed.input_values[0]
+        example["num_seconds"] = len(example["input_values"]) / sampling_rate
+    if "input_features" in processed:
+        example["input_features"] = processed.input_features[0]
+        example["num_seconds"] = len(example["input_features"]) / sampling_rate
+
+    # Prepare transcriptions
+    example["labels"] = processor(text=example["text"], truncation=True).input_ids
+    example["input_length"] = len(example["labels"])
+
+    return example
+
+
+def example_audio_is_short(example: dict, max_seconds_per_example: int) -> bool:
+    """Check if the example audio is too short.
+
+    Args:
+        example: The example from the dataset.
+        max_seconds_per_example: The maximum number of seconds per example.
+
+    Returns:
+        Whether the example audio is too short.
+    """
+    return example["num_seconds"] <= max_seconds_per_example
+
+
 def finetune(cfg: DictConfig) -> None:
     """Finetune a model on a dataset.
 
     Args:
-        cfg (DictConfig):
-            The Hydra cfguration object.
+        cfg: The Hydra cfguration object.
     """
     model_setup: ModelSetup = load_model_setup(cfg)
     processor = model_setup.load_processor()
@@ -28,22 +70,16 @@ def finetune(cfg: DictConfig) -> None:
     model = model_setup.load_model()
     dataset = load_data(cfg)
 
-    def prepare_dataset(example: dict) -> dict:
-        # Prepare audio
-        audio = example["audio"]
-        processed = processor(audio["array"], sampling_rate=audio["sampling_rate"])
-        if "input_values" in processed:
-            example["input_values"] = processed.input_values[0]
-        if "input_features" in processed:
-            example["input_features"] = processed.input_features[0]
-
-        # Prepare transcriptions
-        example["labels"] = processor(text=example["text"], truncation=True).input_ids
-        example["input_length"] = len(example["labels"])
-
-        return example
-
-    dataset = dataset.map(prepare_dataset, remove_columns=dataset["train"].column_names)
+    dataset = dataset.map(
+        function=partial(prepare_dataset_example, processor=processor),
+        remove_columns=dataset["train"].column_names,
+    )
+    dataset = dataset.filter(
+        function=partial(
+            example_audio_is_short,
+            max_seconds_per_example=cfg.max_seconds_per_example,
+        ),
+    )
 
     if cfg.wandb:
         wandb_init(
@@ -80,12 +116,10 @@ def load_early_stopping_callback(cfg: DictConfig) -> list[TrainerCallback]:
     """Load the early stopping callback for the trainer.
 
     Args:
-        cfg (DictConfig):
-            The Hydra configuration object.
+        cfg: The Hydra configuration object.
 
     Returns:
-        list of TrainerCallback:
-            The callbacks.
+        The callbacks.
     """
     callbacks: list[TrainerCallback] = list()
     if cfg.early_stopping:

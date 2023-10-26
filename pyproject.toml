@@ -9,11 +9,11 @@ readme = "README.md"
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.12"
+python = ">=3.11,<3.13"
 hydra-core = "^1.1.1"
 evaluate = ">=0.4.0,<1.0.0"
 transformers = "^4.33.0"
-torch = "^2.1.0"
+torch = "2.0.0"
 librosa = ">=0.10.0.post2,<1.0.0"
 soundfile = ">=0.12.1,<1.0.0"
 torchaudio = "^2.0.1"
@@ -30,29 +30,14 @@ pycountry = "^22.3.5"
 wave = ">=0.0.2,<1.0.0"
 kenlm = {url = "https://github.com/kpu/kenlm/archive/master.zip"}
 matplotlib = "3.7.3"
-nvidia-cublas-cu11 = {version = "^11", platform = "linux"}
-nvidia-cuda-cupti-cu11 = {version = "^11", platform = "linux"}
-nvidia-cuda-nvrtc-cu11 = {version = "^11", platform = "linux"}
-nvidia-cuda-runtime-cu11 = {version = "^11", platform = "linux"}
-nvidia-cudnn-cu11 = {version = "^8", platform = "linux"}
-nvidia-cufft-cu11 = {version = "^10", platform = "linux"}
-nvidia-curand-cu11 = {version = "^10", platform = "linux"}
-nvidia-cusolver-cu11 = {version = "^11", platform = "linux"}
-nvidia-cusparse-cu11 = {version = "^11", platform = "linux"}
-nvidia-nccl-cu11 = {version = "^2", platform = "linux"}
-nvidia-nvtx-cu11 = {version = "^11", platform = "linux"}
-triton = {version = "^2.0.0", platform = "linux"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0.0"
 pytest-cov = "^4.0.0"
 pre-commit = "^2.17.0"
 pdoc = "^7.1.1"
-black = "^23.7.0"
 readme-coverage-badger = ">=0.1.2,<1.0.0"
-flake8 = "^6.0.0"
 mypy = "^1.4.1"
-isort = "^5.12.0"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -66,6 +51,12 @@ addopts = [
     '--cov=src/coral_models',
 ]
 xfail_strict = true
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+    "ignore::ImportWarning",
+]
 log_cli_level = "info"
 testpaths = ["tests", "src/coral_models"]
 

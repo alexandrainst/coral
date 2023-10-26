@@ -11,7 +11,6 @@ from torch.backends.mps import is_available as mps_is_available
 from transformers import (
     BatchFeature,
     EvalPrediction,
-    SchedulerType,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
     Trainer,
@@ -67,14 +66,18 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
             BatchFeature:
                 A dictionary of the collated features.
         """
-        # Split inputs and labels since they have to be of different lengths and need
-        # different padding methods. First treat the audio inputs by simply returning
-        # torch tensors
-        input_features = [
-            {"input_features": feature["input_features"]} for feature in features
-        ]
+        if "input_features" in features[0]:
+            audio_features = [
+                dict(input_features=f["input_features"]) for f in features
+            ]
+        elif "audio" in features[0]:
+            audio_features = [dict(audio=f["audio"]["array"]) for f in features]
+        else:
+            raise ValueError(
+                "Features must contain either 'input_features' or 'audio' key."
+            )
         batch = self.processor.feature_extractor.pad(
-            input_features, return_tensors="pt"
+            audio_features, return_tensors="pt"
         )
 
         # Get the tokenized label sequences
@@ -177,13 +180,12 @@ class WhisperModelSetup:
         args = Seq2SeqTrainingArguments(
             output_dir=self.cfg.model_dir,
             hub_model_id=self.cfg.hub_id,
-            per_device_train_batch_size=self.cfg.model.batch_size,
-            per_device_eval_batch_size=self.cfg.model.batch_size,
-            gradient_accumulation_steps=self.cfg.model.gradient_accumulation,
-            learning_rate=self.cfg.model.learning_rate,
-            lr_scheduler_type=SchedulerType.COSINE,
-            warmup_steps=self.cfg.model.warmup_steps,
-            max_steps=self.cfg.model.max_steps,
+            per_device_train_batch_size=self.cfg.batch_size,
+            per_device_eval_batch_size=self.cfg.batch_size,
+            gradient_accumulation_steps=self.cfg.gradient_accumulation,
+            learning_rate=self.cfg.learning_rate,
+            warmup_steps=self.cfg.warmup_steps,
+            max_steps=self.cfg.max_steps,
             fp16=self.cfg.fp16 and not mps_is_available(),
             push_to_hub=self.cfg.push_to_hub,
             evaluation_strategy="steps" if do_eval else "no",
@@ -205,18 +207,16 @@ class WhisperModelSetup:
             predict_with_generate=True,
             generation_max_length=self.cfg.model.generation_max_length,
             use_cpu=hasattr(sys, "_called_from_test"),
-            auto_find_batch_size=True,
+            dataloader_num_workers=self.cfg.dataloader_num_workers,
         )
         return args
 
     def load_saved(self) -> PreTrainedModelData:
         processor: Processor
-        processor = WhisperProcessor.from_pretrained(
-            self.cfg.hub_id, use_auth_token=True
-        )
+        processor = WhisperProcessor.from_pretrained(self.cfg.hub_id, token=True)
 
         model = WhisperForConditionalGeneration.from_pretrained(
-            self.cfg.hub_id, use_auth_token=True
+            self.cfg.hub_id, token=True
         )
         data_collator = DataCollatorSpeechSeq2SeqWithPadding(
             processor=processor, padding="longest"

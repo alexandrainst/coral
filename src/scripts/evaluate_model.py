@@ -12,6 +12,7 @@ from transformers import Trainer, TrainingArguments
 from coral_models.data import load_data
 from coral_models.model_setup import load_model_setup
 from coral_models.protocols import Processor
+from coral_models.utils import transformers_output_ignored
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
@@ -19,14 +20,11 @@ def main(cfg: DictConfig) -> None:
     """Evaluate a speech model on a dataset."""
     eval_dataset_cfg = list(cfg.datasets.values())[0]
 
-    model_data = load_model_setup(cfg).load_saved()
+    with transformers_output_ignored():
+        model_data = load_model_setup(cfg).load_saved()
 
     dataset: DatasetDict | IterableDatasetDict = load_data(cfg)
-    dataset = preprocess_transcriptions(
-        dataset=dataset,
-        processor=model_data.processor,
-        text_column=eval_dataset_cfg.datasets.text_column,
-    )
+    dataset = preprocess_transcriptions(dataset=dataset, processor=model_data.processor)
 
     trainer = Trainer(
         args=TrainingArguments(".", remove_unused_columns=False, report_to=[]),
@@ -37,7 +35,7 @@ def main(cfg: DictConfig) -> None:
         tokenizer=getattr(model_data.processor, "tokenizer"),
     )
 
-    metrics = trainer.evaluate(dataset["test"])
+    metrics = trainer.evaluate(eval_dataset=dataset["test"])
     wer = metrics["eval_wer"]
 
     print(f"\n*** RESULTS ON {eval_dataset_cfg.dataset.name} ***")
@@ -45,14 +43,10 @@ def main(cfg: DictConfig) -> None:
 
 
 def preprocess_transcriptions(
-    dataset: DatasetDict | IterableDatasetDict,
-    processor: Processor,
-    text_column: str = "sentence",
+    dataset: DatasetDict | IterableDatasetDict, processor: Processor
 ) -> DatasetDict | IterableDatasetDict:
     def tokenize_examples(example: dict) -> dict:
-        example["labels"] = processor(
-            text=example[text_column], truncation=True
-        ).input_ids
+        example["labels"] = processor(text=example["text"], truncation=True).input_ids
         example["input_length"] = len(example["labels"])
         return example
 
@@ -60,6 +54,7 @@ def preprocess_transcriptions(
 
     # After calling `map` the DatasetInfo is lost, so we need to add it back in
     for split in dataset.keys():
+        mapped[split]._info = dataset[split]._info
         mapped[split]._info.features["labels"] = Sequence(
             feature=Value(dtype="int64"), length=-1
         )

@@ -17,8 +17,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Install ffmpeg
+        uses: FedericoCarboni/setup-ffmpeg@v2
+
       - name: Install Poetry
-        run: pipx install poetry==1.4.0
+        run: pip3 install poetry==1.5.1
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -27,12 +30,12 @@ jobs:
           cache: "poetry"
 
       - name: Install Dependencies
-        run: poetry install
+        run: |
+          poetry env use "${{ matrix.python-version }}"
+          poetry install --no-interaction --no-cache
 
       - name: Build documentation
-        run: |
-          poetry env use "3.11"
-          poetry run pdoc --docformat google src/coral_models -o docs
+        run: poetry run pdoc --docformat google src/coral_models -o docs
 
       - name: Compress documentation
         run: tar --directory docs/ -hcf artifact.tar .

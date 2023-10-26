@@ -1,5 +1,6 @@
 """Functions related to the data loading and processing"""
 
+from functools import partial
 import logging
 import os
 import re
@@ -274,18 +275,16 @@ def clean_dataset(
     # transcriptions, as they do not have an influence on the pronunciation of the
     # words.
     non_standard_characters_regex = re.compile(
-        f"[^{re.escape(cfg.model.characters_to_keep)}]"
+        f"[^{re.escape(cfg.characters_to_keep)}]"
     )
 
-    def clean_examples(example: dict) -> dict:
-        example["text"] = clean_transcription(
-            doc=example["text"],
+    mapped = dataset.map(
+        partial(
+            clean_example,
             non_standard_characters_regex=non_standard_characters_regex,
             conversion_dict=conversion_dict,
         )
-        return example
-
-    mapped = dataset.map(clean_examples)
+    )
 
     # After calling `map` the DatasetInfo is lost, so we need to add it back in
     for split in dataset.keys():
@@ -294,25 +293,26 @@ def clean_dataset(
     return mapped
 
 
-def clean_transcription(
-    doc: str,
+def clean_example(
+    example: dict,
     non_standard_characters_regex: re.Pattern[str],
     conversion_dict: dict[str, str],
-) -> str:
-    """Cleans the transcription of a document.
+) -> dict:
+    """Helper function which cleans a single example.
 
     Args:
-        doc (str):
-            A document to be cleaned.
-        non_standard_characters_regex (compiled regex expression):
+        example:
+            The example to be cleaned.
+        non_standard_characters_regex:
             A compiled regex expression that matches all non-standard characters.
-        conversion_dict (dict[str, str]):
+        conversion_dict:
             A dictionary of characters to be converted.
 
     Returns:
-        str:
-            The cleaned document.
+        The cleaned example.
     """
+    doc = example["text"]
+
     # Normalise the transcription, which uniformises the characters. For instance, the
     # "long dash" (－) is converted to the normal dash (-).
     doc = normalize("NFKC", doc)
@@ -323,4 +323,10 @@ def clean_transcription(
     # Replace superfluous spaces
     doc = re.sub(r" +", " ", doc)
 
-    return re.sub(non_standard_characters_regex, "", doc.lower().strip())
+    # Remove all non-standard characters, and make the document lower case
+    doc = re.sub(non_standard_characters_regex, "", doc.lower().strip())
+
+    # Re-assign the cleaned transcription
+    example["text"] = doc
+
+    return example

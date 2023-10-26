@@ -72,18 +72,22 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
             BatchFeature:
                 A dictionary of the collated features.
         """
-        audio_features = [
-            dict(input_values=feature["input_values"]) for feature in features
-        ]
+        if "input_values" in features[0]:
+            audio_features = [dict(input_values=f["input_values"]) for f in features]
+        elif "audio" in features[0]:
+            audio_features = [dict(audio=f["audio"]["array"]) for f in features]
+        else:
+            raise ValueError(
+                "Features must contain either 'input_values' or 'audio' key."
+            )
         batch: BatchFeature = self.processor.pad(
             audio_features, padding=self.padding, return_tensors="pt"
         )
 
-        with self.processor.as_target_processor():
-            label_features = [dict(input_ids=feature["labels"]) for feature in features]
-            labels_batch: BatchEncoding = self.processor.pad(
-                label_features, padding=self.padding, return_tensors="pt"
-            )
+        label_features = [dict(input_ids=feature["labels"]) for feature in features]
+        labels_batch: BatchEncoding = self.processor.tokenizer.pad(
+            label_features, padding=self.padding, return_tensors="pt"
+        )
 
         # Replace padding with -100 to ignore loss correctly
         non_one_entries: torch.Tensor = labels_batch.attention_mask.ne(1)
@@ -184,13 +188,13 @@ class Wav2Vec2ModelSetup:
         args = TrainingArguments(
             output_dir=self.cfg.model_dir,
             hub_model_id=self.cfg.hub_id,
-            per_device_train_batch_size=self.cfg.model.batch_size,
-            per_device_eval_batch_size=self.cfg.model.batch_size,
-            gradient_accumulation_steps=self.cfg.model.gradient_accumulation,
-            learning_rate=self.cfg.model.learning_rate,
+            per_device_train_batch_size=self.cfg.batch_size,
+            per_device_eval_batch_size=self.cfg.batch_size,
+            gradient_accumulation_steps=self.cfg.gradient_accumulation,
+            learning_rate=self.cfg.learning_rate,
             lr_scheduler_type=SchedulerType.COSINE,
-            warmup_steps=self.cfg.model.warmup_steps,
-            max_steps=self.cfg.model.max_steps,
+            warmup_steps=self.cfg.warmup_steps,
+            max_steps=self.cfg.max_steps,
             fp16=self.cfg.fp16 and not mps_is_available(),
             push_to_hub=self.cfg.push_to_hub,
             evaluation_strategy="steps" if do_eval else "no",
@@ -206,13 +210,13 @@ class Wav2Vec2ModelSetup:
             seed=self.cfg.seed,
             remove_unused_columns=False,
             optim=OptimizerNames.ADAMW_TORCH,
-            adam_beta1=self.cfg.model.adam_first_momentum,
-            adam_beta2=self.cfg.model.adam_second_momentum,
+            adam_beta1=self.cfg.adam_first_momentum,
+            adam_beta2=self.cfg.adam_second_momentum,
             report_to=["wandb"] if self.cfg.wandb else [],
             ignore_data_skip=self.cfg.ignore_data_skip,
             save_safetensors=True,
             use_cpu=hasattr(sys, "_called_from_test"),
-            auto_find_batch_size=True,
+            dataloader_num_workers=self.cfg.dataloader_num_workers,
         )
         return args
 
@@ -221,18 +225,16 @@ class Wav2Vec2ModelSetup:
         if self.cfg.model.language_model_decoder is not None:
             try:
                 processor = Wav2Vec2ProcessorWithLM.from_pretrained(
-                    self.cfg.hub_id, use_auth_token=True
+                    self.cfg.hub_id, token=True
                 )
             except (FileNotFoundError, ValueError):
                 processor = Wav2Vec2Processor.from_pretrained(
-                    self.cfg.hub_id, use_auth_token=True
+                    self.cfg.hub_id, token=True
                 )
         else:
-            processor = Wav2Vec2Processor.from_pretrained(
-                self.cfg.hub_id, use_auth_token=True
-            )
+            processor = Wav2Vec2Processor.from_pretrained(self.cfg.hub_id, token=True)
 
-        model = Wav2Vec2ForCTC.from_pretrained(self.cfg.hub_id, use_auth_token=True)
+        model = Wav2Vec2ForCTC.from_pretrained(self.cfg.hub_id, token=True)
         data_collator = DataCollatorCTCWithPadding(
             processor=processor, padding="longest"
         )
@@ -255,7 +257,7 @@ def dump_vocabulary(cfg: DictConfig) -> None:
             The Hydra configuration object.
     """
     # Build the set of all unique characters in the dataset
-    unique_characters: set[str] = set(cfg.model.characters_to_keep)
+    unique_characters: set[str] = set(cfg.characters_to_keep)
 
     # Build vocabulary
     vocab = {char: idx for idx, char in enumerate(unique_characters)}

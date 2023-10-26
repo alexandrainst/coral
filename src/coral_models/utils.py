@@ -19,9 +19,9 @@ def block_terminal_output() -> None:
         - Logs from the `datasets` package
         - Progress bars from the `datasets` package
     """
-
     # Ignore user warnings throughout the codebase
     warnings.filterwarnings("ignore", category=UserWarning)
+    warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     # Disable logging from Hugging Face libraries
     ds_logging.set_verbosity_error()
