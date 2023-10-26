@@ -203,8 +203,8 @@ class Wav2Vec2ModelSetup:
         args = TrainingArguments(
             output_dir=self.cfg.model_dir,
             hub_model_id=self.cfg.hub_id,
-            per_device_train_batch_size=self.cfg.batch_size,
-            per_device_eval_batch_size=self.cfg.batch_size,
+            per_device_train_batch_size=self.cfg.per_device_batch_size,
+            per_device_eval_batch_size=self.cfg.per_device_batch_size,
             gradient_accumulation_steps=gradient_accumulation_steps,
             learning_rate=self.cfg.learning_rate,
             lr_scheduler_type=SchedulerType.COSINE,
