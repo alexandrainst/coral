@@ -5,7 +5,7 @@ import re
 import pytest
 from datasets import DatasetDict, IterableDatasetDict
 
-from coral_models.data import clean_transcription
+from coral_models.data import clean_example
 
 
 class TestLoadData:
@@ -29,7 +29,7 @@ class TestLoadData:
             ]
 
 
-class TestCleanTranscription:
+class TestCleanExample:
     transcription = "\nThis is a (test) [sentence]\u0301 with \n{aa} and ğ. "
 
     empty_regex = re.compile(r"")
@@ -110,16 +110,17 @@ class TestCleanTranscription:
             ),
         ],
     )
-    def test_clean_transcription(
+    def test_clean_example(
         self,
         transcription: str,
         non_standard_characters_regex: re.Pattern[str],
         conversion_dict: dict[str, str],
         expected: str,
     ) -> None:
-        cleaned_transcription = clean_transcription(
-            doc=transcription,
+        example = dict(text=transcription)
+        cleaned_transcription = clean_example(
+            example=example,
             non_standard_characters_regex=non_standard_characters_regex,
             conversion_dict=conversion_dict,
-        )
+        )["text"]
         assert cleaned_transcription == expected
