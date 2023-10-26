@@ -39,7 +39,9 @@ def prepare_dataset_example(example: dict, processor: Callable) -> dict:
         example["num_seconds"] = len(example["input_features"]) / sampling_rate
 
     # Prepare transcriptions
-    example["labels"] = processor(text=example["text"], truncation=True).input_ids
+    example["labels"] = processor(
+        text=example["text"], truncation=True, padding="max_length"
+    ).input_ids
     example["input_length"] = len(example["labels"])
 
     return example
@@ -70,9 +72,11 @@ def finetune(cfg: DictConfig) -> None:
     model = model_setup.load_model()
     dataset = load_data(cfg)
 
+    breakpoint()
     dataset = dataset.map(
         function=partial(prepare_dataset_example, processor=processor),
         remove_columns=dataset["train"].column_names,
+        load_from_cache_file=False,
     )
     dataset = dataset.filter(
         function=partial(
