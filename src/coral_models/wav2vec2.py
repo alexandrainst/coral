@@ -205,7 +205,16 @@ class Wav2Vec2ModelSetup:
         gradient_accumulation_steps = (
             per_device_total_batch_size // self.cfg.per_device_batch_size
         )
-        breakpoint()
+
+        if gradient_accumulation_steps == 0:
+            logger.warning(
+                f"Your `total_batch_size` is too small ({self.cfg.total_batch_size}), "
+                f"relative to the number of GPUs ({num_gpus_available}) and your "
+                f"`per_device_batch_size` ({self.cfg.per_device_batch_size}). It has "
+                f"been set to `per_device_batch_size * num_gpus_available` = "
+                f"{self.cfg.per_device_batch_size * num_gpus_available}."
+            )
+            gradient_accumulation_steps = 1
 
         do_eval = any(
             [
