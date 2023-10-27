@@ -27,7 +27,6 @@ from transformers import (
     Wav2Vec2ProcessorWithLM,
 )
 from transformers.data.data_collator import DataCollatorMixin
-from transformers.trainer import OptimizerNames
 
 from .compute_metrics import compute_wer_metrics
 from .protocols import PreTrainedModelData, Processor
@@ -237,7 +236,7 @@ class Wav2Vec2ModelSetup:
             greater_is_better=False if do_eval else None,
             seed=self.cfg.seed,
             remove_unused_columns=False,
-            optim=OptimizerNames.ADAMW_TORCH,
+            # optim=OptimizerNames.ADAMW_TORCH,
             adam_beta1=self.cfg.adam_first_momentum,
             adam_beta2=self.cfg.adam_second_momentum,
             report_to=["wandb"] if self.cfg.wandb else [],
