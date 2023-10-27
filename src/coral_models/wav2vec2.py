@@ -205,6 +205,7 @@ class Wav2Vec2ModelSetup:
         gradient_accumulation_steps = (
             per_device_total_batch_size // self.cfg.per_device_batch_size
         )
+        breakpoint()
 
         do_eval = any(
             [
