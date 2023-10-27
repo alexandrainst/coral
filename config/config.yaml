@@ -31,7 +31,8 @@ pipeline_id: ${model.name}-finetuned
 hub_id: alexandrainst/${pipeline_id}
 model_dir: ${dirs.models}/${pipeline_id}
 push_to_hub: false
-fp16: true
+fp16: false
+bf16: true
 
 # Training parameters
 wandb: false
