@@ -27,6 +27,7 @@ from transformers import (
     Wav2Vec2ProcessorWithLM,
 )
 from transformers.data.data_collator import DataCollatorMixin
+from transformers.trainer import OptimizerNames
 
 from .compute_metrics import compute_wer_metrics
 from .protocols import PreTrainedModelData, Processor
@@ -222,7 +223,6 @@ class Wav2Vec2ModelSetup:
             warmup_steps=self.cfg.warmup_steps,
             max_steps=self.cfg.max_steps,
             fp16=self.cfg.fp16 and not mps_is_available(),
-            bf16=self.cfg.bf16 and not mps_is_available(),
             push_to_hub=self.cfg.push_to_hub,
             evaluation_strategy="steps" if do_eval else "no",
             eval_steps=self.cfg.eval_steps if do_eval else None,
@@ -236,7 +236,7 @@ class Wav2Vec2ModelSetup:
             greater_is_better=False if do_eval else None,
             seed=self.cfg.seed,
             remove_unused_columns=False,
-            # optim=OptimizerNames.ADAMW_TORCH,
+            optim=OptimizerNames.ADAMW_TORCH,
             adam_beta1=self.cfg.adam_first_momentum,
             adam_beta2=self.cfg.adam_second_momentum,
             report_to=["wandb"] if self.cfg.wandb else [],
