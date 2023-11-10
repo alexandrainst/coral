@@ -99,7 +99,7 @@ def make_speaker_metadata(raw_path: Path, metadata_path: Path) -> pd.DataFrame:
     # Specification of gender is not consistent, so we need to correct that
     # by mapping "K" to "female", and "M" to "male".
     speakers["gender"] = speakers["gender"].apply(
-        lambda x: dict(M="male", K="female").get(x, x)
+        lambda x: dict(M="male", K="female", m="male", k="female").get(x, x)
     )
 
     # Create a speaker id column.
@@ -177,9 +177,6 @@ def make_recording_metadata(
     # We need filenames for later, when we want to create recording ids.
     recording_metadata["filename"] = recording_metadata.index.astype(str)
 
-    # Make a sentence content to sentence_id dict
-    sentence_content_to_id = dict(zip(sentences["text"], sentences["sentence_id"]))
-
     # Load speaker information from read aloud data
     recording_metadata_list = [recording_metadata]
     read_aloud_paths = raw_path.glob("*_oplæst_*")
@@ -214,17 +211,24 @@ def make_recording_metadata(
         # the next available id.
         read_aloud_data["sentence_id"] = -1
         for row_i, row in read_aloud_data.iterrows():
-            if row["transcription"] in sentence_content_to_id.keys():
-                read_aloud_data.loc[row_i, "sentence_id"] = sentence_content_to_id[
-                    row["transcription"]
-                ]
-            else:
-                sentence_content_to_id[row["transcription"]] = len(
-                    sentence_content_to_id
+            if row["transcription"] not in sentences["text"].values:
+                # Append new sentence to sentences dataframe
+                sentences = pd.concat(
+                    [
+                        sentences,
+                        pd.DataFrame(
+                            {
+                                "text": [row["transcription"]],
+                                "sentence_id": len(sentences),
+                            }
+                        ),
+                    ],
+                    ignore_index=True,
                 )
-                read_aloud_data.loc[row_i, "sentence_id"] = sentence_content_to_id[
-                    row["transcription"]
-                ]
+
+            read_aloud_data.loc[row_i, "sentence_id"] = sentences[
+                sentences["text"] == row["transcription"]
+            ].index[0]
 
         # Make a recorder_id. This is not in the read aloud data, as no we have
         # no information about the recorders for the read aloud data.
@@ -254,14 +258,6 @@ def make_recording_metadata(
     all_recording_metadata = all_recording_metadata[
         all_recording_metadata["recording_id"].notna()
     ].reset_index(drop=True)
-
-    # We have updated the sentence_content_to_id dict, so we also need to update the
-    # sentences dataframe with the new sentence ids
-    sentences = (
-        pd.DataFrame.from_dict(sentence_content_to_id, orient="index")
-        .reset_index()
-        .rename(columns={"index": "text", 0: "sentence_id"})
-    )
 
     # Prepend the sentence id column with "s"
     sentences["sentence_id"] = "s" + sentences.index.astype(str)
@@ -400,7 +396,18 @@ def prepare_raw_data(
         except FileNotFoundError:
             pass
 
+    # Write a README file
+    readme = make_readme()
+    with open(output_path / "README.md", "w") as f:
+        f.write(readme)
+
+    # Save the dataframes
+    speakers.to_excel(output_path / "speakers.xlsx")
+    sentences.to_excel(output_path / "sentences.xlsx")
+    recordings.to_excel(output_path / "recordings.xlsx")
+
     # Make a dataframe with statistics about the data
+    speakers["age"] = speakers["age"].astype(int)
     data_stats = pd.DataFrame(
         {
             "Number of speakers": len(speakers),
@@ -422,17 +429,7 @@ def prepare_raw_data(
         },
         index=[0],
     )
-
-    # Write a README file
-    readme = make_readme()
-    with open(output_path / "README.md", "w") as f:
-        f.write(readme)
-
-    # Save the dataframes
-    data_stats.to_csv(output_path / "data_stats.csv", index=False)
-    speakers.to_csv(output_path / "speakers.csv", index=False)
-    sentences.to_csv(output_path / "sentences.csv", index=False)
-    recordings.to_csv(output_path / "recordings.csv", index=False)
+    data_stats.to_excel(output_path / "data_stats.xlsx")
 
 
 def correct_country(country: str) -> str:
