@@ -255,10 +255,6 @@ def make_recording_metadata(
 
     # Remove rows with no recording id. Sometimes recorders did not submit their
     # all their recordings.
-
-    #### IDS ARE STILL WRONG!=!=!==!?!??!?!?!
-    # MYBE BECAUSE RESET INDEX; GO THROUGH ALL LINES BELOW
-
     all_recording_metadata = all_recording_metadata[
         all_recording_metadata["recording_id"].notna()
     ].reset_index(drop=True)
