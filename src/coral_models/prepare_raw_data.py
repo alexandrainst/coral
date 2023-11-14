@@ -180,7 +180,7 @@ def make_recording_metadata(
     # Load speaker information from read aloud data
     recording_metadata_list = [recording_metadata]
     read_aloud_paths = raw_path.glob("*_oplæst_*")
-    for read_aloud_path in read_aloud_paths:
+    for read_aloud_path in tqdm(list(read_aloud_paths)):
         read_aloud_data = get_data_from_db(read_aloud_path)
 
         # Format filenames
@@ -255,6 +255,10 @@ def make_recording_metadata(
 
     # Remove rows with no recording id. Sometimes recorders did not submit their
     # all their recordings.
+
+    #### IDS ARE STILL WRONG!=!=!==!?!??!?!?!
+    # MYBE BECAUSE RESET INDEX; GO THROUGH ALL LINES BELOW
+
     all_recording_metadata = all_recording_metadata[
         all_recording_metadata["recording_id"].notna()
     ].reset_index(drop=True)
