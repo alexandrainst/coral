@@ -2,6 +2,7 @@
 
 Usage:
     python build_coral_data.py <input_path> <metadata_path> <output_path>
+        <hidden_output_path>
 """
 
 import click
@@ -22,8 +23,14 @@ from coral_models.prepare_raw_data import prepare_raw_data
     "output_path",
     type=click.Path(),
 )
-def main(input_path: str, output_path: str, metadata_path: str) -> None:
-    prepare_raw_data(input_path, output_path, metadata_path)
+@click.argument(
+    "hidden_output_path",
+    type=click.Path(),
+)
+def main(
+    input_path: str, output_path: str, metadata_path: str, hidden_output_path: str
+) -> None:
+    prepare_raw_data(input_path, output_path, metadata_path, hidden_output_path)
 
 
 if __name__ == "__main__":

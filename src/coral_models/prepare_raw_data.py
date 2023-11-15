@@ -294,7 +294,8 @@ def prepare_raw_data(
     input_path: Path | str = Path("data/raw"),
     output_path: Path | str = Path("data/processed"),
     metadata_path: Path | str = Path("data/raw/metadata.csv"),
-):
+    hidden_output_path: Path | str = Path("data/hidden"),
+) -> None:
     """Prepare the raw data.
 
     Args:
@@ -304,10 +305,13 @@ def prepare_raw_data(
             Path to the processed data. Defaults to "data/processed".
         metadata_path (Path or str, optional):
             Path to the metadata. Defaults to "data/raw/metadata.csv".
+        hidden_input_path (Path or str, optional):
+            Path to save sensitive information. Defaults to "data/hidden".
     """
     input_path = Path(input_path)
     output_path = Path(output_path)
     metadata_path = Path(metadata_path)
+    hidden_output_path = Path(hidden_output_path)
 
     # Make speaker-metadata dataframe
     speakers = make_speaker_metadata(input_path, metadata_path)
@@ -402,7 +406,7 @@ def prepare_raw_data(
         f.write(readme)
 
     # Save the dataframes
-    speakers.to_excel(output_path / "speakers.xlsx")
+    speakers.to_excel(hidden_output_path / "speakers.xlsx")
     sentences.to_excel(output_path / "sentences.xlsx")
     recordings.to_excel(output_path / "recordings.xlsx")
 
