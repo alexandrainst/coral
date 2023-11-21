@@ -45,7 +45,6 @@ def cfg(request) -> Generator[DictConfig, None, None]:
             "fp16=false",
             "total_batch_size=2",
             "per_device_batch_size=2",
-            "gradient_accumulation=1",
             "max_steps=2",
             "save_total_limit=0",
         ],
