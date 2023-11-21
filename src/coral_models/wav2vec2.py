@@ -200,7 +200,7 @@ class Wav2Vec2ModelSetup:
 
     def load_training_arguments(self) -> TrainingArguments:
         # Compute the gradient accumulation based on the total batch size in the config
-        num_devices = min(torch.cuda.device_count(), 1)
+        num_devices = max(torch.cuda.device_count(), 1)
         per_device_total_batch_size = self.cfg.total_batch_size // num_devices
         gradient_accumulation_steps = (
             per_device_total_batch_size // self.cfg.per_device_batch_size
