@@ -133,7 +133,7 @@ class Wav2Vec2ModelSetup:
                 )
                 break
             except json.decoder.JSONDecodeError:
-                process_id = os.getenv("LOCAL_RANK", 0)
+                process_id = os.getenv("RANK", 0)
                 logger.warning(
                     f"JSONDecodeError while loading tokenizer on process {process_id}. "
                     "Retrying in a second."

@@ -66,7 +66,7 @@ def finetune(cfg: DictConfig) -> None:
         cfg: The Hydra cfguration object.
     """
     # Note if we're on the main process, if we are running in a distributed setting
-    is_main_process = os.getenv("LOCAL_RANK", "0") == "0"
+    is_main_process = os.getenv("RANK", "0") == "0"
 
     model_setup: ModelSetup = load_model_setup(cfg)
     processor = model_setup.load_processor()
