@@ -200,8 +200,8 @@ class Wav2Vec2ModelSetup:
 
     def load_training_arguments(self) -> TrainingArguments:
         # Compute the gradient accumulation based on the total batch size in the config
-        num_gpus_available = torch.cuda.device_count()
-        per_device_total_batch_size = self.cfg.total_batch_size // num_gpus_available
+        num_devices = min(torch.cuda.device_count(), 1)
+        per_device_total_batch_size = self.cfg.total_batch_size // num_devices
         gradient_accumulation_steps = (
             per_device_total_batch_size // self.cfg.per_device_batch_size
         )
@@ -209,10 +209,10 @@ class Wav2Vec2ModelSetup:
         if gradient_accumulation_steps == 0:
             logger.warning(
                 f"Your `total_batch_size` is too small ({self.cfg.total_batch_size}), "
-                f"relative to the number of GPUs ({num_gpus_available}) and your "
+                f"relative to the number of devices ({num_devices}) and your "
                 f"`per_device_batch_size` ({self.cfg.per_device_batch_size}). It has "
-                f"been set to `per_device_batch_size * num_gpus_available` = "
-                f"{self.cfg.per_device_batch_size * num_gpus_available}."
+                f"been set to `per_device_batch_size * num_devices` = "
+                f"{self.cfg.per_device_batch_size * num_devices}."
             )
             gradient_accumulation_steps = 1
 
