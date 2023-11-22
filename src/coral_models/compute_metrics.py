@@ -5,6 +5,7 @@ from evaluate.loading import load as load_metric
 from numpy.typing import NDArray
 from transformers import EvalPrediction, PreTrainedTokenizerBase
 import logging
+import os
 
 from .protocols import Processor
 
@@ -69,9 +70,11 @@ def compute_wer_metrics(pred: EvalPrediction, processor: Processor) -> dict[str,
     labels_str = tokenizer.batch_decode(labels, skip_special_tokens=True)
 
     # TEMP: Log both the predictions and the ground truth labels
-    random_idx = np.random.randint(0, len(predictions_str))
-    logger.info(f"Sample document: {labels_str[random_idx]}")
-    logger.info(f"Predicted: {predictions_str[random_idx]}")
+    is_main_process = os.getenv("RANK", "0") == "0"
+    if is_main_process:
+        random_idx = np.random.randint(0, len(predictions_str))
+        logger.info(f"Sample document: {labels_str[random_idx]}")
+        logger.info(f"Predicted: {predictions_str[random_idx]}")
 
     # Compute the word error rate
     computed = wer_metric.compute(predictions=predictions_str, references=labels_str)
