@@ -25,17 +25,21 @@ def main(cfg: DictConfig) -> None:
     """
     # In case we are running in a multi-GPU setting, we need to force certain
     # hyperparameters
+    is_main_process = os.getenv("RANK", "0") == "0"
     if os.getenv("WORLD_SIZE") is not None:
         if "layerdrop" in cfg.model and cfg.model.layerdrop != 0.0:
-            logger.info(
-                "Forcing layerdrop to 0.0 as this is required in a multi-GPU training"
-            )
+            if is_main_process:
+                logger.info(
+                    "Forcing layerdrop to 0.0 as this is required in a multi-GPU "
+                    "training"
+                )
             cfg.model.layerdrop = 0.0
         if cfg.padding != "max_length":
-            logger.info(
-                "Forcing padding to 'max_length' as this is required in a multi-GPU "
-                "training"
-            )
+            if is_main_process:
+                logger.info(
+                    "Forcing padding to 'max_length' as this is required in a "
+                    "multi-GPU training"
+                )
             cfg.padding = "max_length"
 
     finetune(cfg)
