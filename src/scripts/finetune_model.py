@@ -30,14 +30,14 @@ def main(cfg: DictConfig) -> None:
         if "layerdrop" in cfg.model and cfg.model.layerdrop != 0.0:
             if is_main_process:
                 logger.info(
-                    "Forcing layerdrop to 0.0 as this is required in a multi-GPU "
+                    "Forcing `layerdrop` to 0.0 as this is required in a multi-GPU "
                     "training"
                 )
             cfg.model.layerdrop = 0.0
         if cfg.padding != "max_length":
             if is_main_process:
                 logger.info(
-                    "Forcing padding to 'max_length' as this is required in a "
+                    "Forcing `padding` to 'max_length' as this is required in a "
                     "multi-GPU training"
                 )
             cfg.padding = "max_length"
