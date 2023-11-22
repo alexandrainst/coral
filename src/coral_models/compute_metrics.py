@@ -67,7 +67,9 @@ def compute_wer_metrics(pred: EvalPrediction, processor: Processor) -> dict[str,
     labels[labels == -100] = pad_token
 
     # Decode the ground truth labels
-    labels_str = tokenizer.batch_decode(labels, skip_special_tokens=True)
+    labels_str = tokenizer.batch_decode(
+        sequences=labels, skip_special_tokens=True, group_tokens=False
+    )
 
     # TEMP: Log both the predictions and the ground truth labels
     is_main_process = os.getenv("RANK", "0") == "0"
