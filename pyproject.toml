@@ -30,6 +30,7 @@ pycountry = "^22.3.5"
 wave = ">=0.0.2,<1.0.0"
 kenlm = {url = "https://github.com/kpu/kenlm/archive/master.zip"}
 matplotlib = "3.7.3"
+deepspeed = ">=0.12.3,<1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0.0"
