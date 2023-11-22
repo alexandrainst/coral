@@ -26,7 +26,10 @@ def main(cfg: DictConfig) -> None:
             cfg.model.layerdrop = 0.0
         cfg.padding = "max_length"
 
-    breakpoint()
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info(cfg)
     finetune(cfg)
 
 
