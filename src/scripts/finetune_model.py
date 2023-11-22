@@ -6,6 +6,7 @@ Usage:
 
 import hydra
 from omegaconf import DictConfig
+import os
 
 from coral_models.finetune import finetune
 
@@ -18,6 +19,14 @@ def main(cfg: DictConfig) -> None:
         cfg (DictConfig):
             The Hydra configuration object.
     """
+    # In case we are running in a multi-GPU setting, we need to force certain
+    # hyperparameters
+    if os.getenv("WORLD_SIZE") is not None:
+        if "layerdrop" in cfg.model:
+            cfg.model.layerdrop = 0.0
+        cfg.padding = "max_length"
+
+    breakpoint()
     finetune(cfg)
 
 

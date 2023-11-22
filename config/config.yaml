@@ -18,7 +18,10 @@ seed: 4242
 characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü '
 max_seconds_per_example: 10
 dataloader_num_workers: 8
-padding: longest  # longest/max_length/do_not_pad
+
+# Can be `longest`, `max_length` or `do_not_pad`
+# NOTE: This is automatically set to `max_length` in a multi-gpu setting
+padding: longest
 
 # This is a list of the sampling probability of each dataset, where null means that
 # each dataset will be sampled equally often
