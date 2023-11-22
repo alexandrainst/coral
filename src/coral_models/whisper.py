@@ -162,7 +162,7 @@ class WhisperModelSetup:
 
     def load_data_collator(self) -> DataCollatorSpeechSeq2SeqWithPadding:
         return DataCollatorSpeechSeq2SeqWithPadding(
-            processor=self.processor, padding=True
+            processor=self.processor, padding=self.cfg.padding
         )
 
     def load_trainer_class(self) -> Type[Trainer]:
@@ -238,7 +238,7 @@ class WhisperModelSetup:
             self.cfg.hub_id, token=True
         )
         data_collator = DataCollatorSpeechSeq2SeqWithPadding(
-            processor=processor, padding="longest"
+            processor=processor, padding=self.cfg.padding
         )
         compute_metrics = partial(compute_wer_metrics, processor=processor)
         return PreTrainedModelData(

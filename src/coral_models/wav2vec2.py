@@ -189,7 +189,7 @@ class Wav2Vec2ModelSetup:
 
     def load_data_collator(self) -> DataCollatorCTCWithPadding:
         return DataCollatorCTCWithPadding(
-            processor=self.processor, padding="max_length"
+            processor=self.processor, padding=self.cfg.padding
         )
 
     def load_trainer_class(self) -> Type[Trainer]:
@@ -274,7 +274,7 @@ class Wav2Vec2ModelSetup:
 
         model = Wav2Vec2ForCTC.from_pretrained(self.cfg.hub_id, token=True)
         data_collator = DataCollatorCTCWithPadding(
-            processor=processor, padding="max_length"
+            processor=processor, padding=self.cfg.padding
         )
         compute_metrics = partial(compute_wer_metrics, processor=processor)
         return PreTrainedModelData(
