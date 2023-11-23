@@ -237,6 +237,7 @@ class Wav2Vec2ModelSetup:
             evaluation_strategy="steps" if do_eval else "no",
             eval_steps=self.cfg.eval_steps if do_eval else None,
             save_steps=self.cfg.save_steps,
+            save_strategy="no" if self.cfg.save_total_limit == 0 else "steps",
             logging_steps=self.cfg.logging_steps,
             length_column_name="input_length",
             gradient_checkpointing=True,
