@@ -19,6 +19,10 @@ characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü '
 max_seconds_per_example: 10
 dataloader_num_workers: 8
 
+# Can be `longest`, `max_length` or `do_not_pad`
+# NOTE: This is automatically set to `max_length` in a multi-gpu setting
+padding: longest
+
 # This is a list of the sampling probability of each dataset, where null means that
 # each dataset will be sampled equally often
 dataset_probabilities:
@@ -46,8 +50,8 @@ save_total_limit: 2
 learning_rate: 3e-5
 adam_first_momentum: 0.9
 adam_second_momentum: 0.98
-batch_size: 8
-gradient_accumulation: 32
+total_batch_size: 256
+per_device_batch_size: 16
 max_steps: 50_000
 warmup_steps: 1_000
 logging_steps: 10

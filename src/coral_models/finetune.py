@@ -3,16 +3,17 @@
 from functools import partial
 import logging
 from typing import Callable
+import os
 
 from omegaconf import DictConfig
 from transformers import EarlyStoppingCallback, TrainerCallback
 from wandb.sdk.wandb_init import init as wandb_init
 from wandb.sdk.wandb_run import finish as wandb_finish
 
+from .utils import disable_tqdm
 from .data import load_data
 from .model_setup import load_model_setup
 from .protocols import ModelSetup
-from .utils import disable_tqdm
 
 logger = logging.getLogger(__package__)
 
@@ -64,6 +65,9 @@ def finetune(cfg: DictConfig) -> None:
     Args:
         cfg: The Hydra cfguration object.
     """
+    # Note if we're on the main process, if we are running in a distributed setting
+    is_main_process = os.getenv("RANK", "0") == "0"
+
     model_setup: ModelSetup = load_model_setup(cfg)
     processor = model_setup.load_processor()
     processor.save_pretrained(cfg.model_dir)
@@ -81,7 +85,7 @@ def finetune(cfg: DictConfig) -> None:
         ),
     )
 
-    if cfg.wandb:
+    if cfg.wandb and is_main_process:
         wandb_init(
             project=cfg.wandb_project,
             group=cfg.wandb_group,
@@ -89,7 +93,7 @@ def finetune(cfg: DictConfig) -> None:
             config=dict(cfg),
         )
 
-    if "val" not in dataset:
+    if "val" not in dataset and is_main_process:
         logger.info("No validation set found. Disabling early stopping.")
 
     trainer = model_setup.load_trainer_class()(
@@ -105,11 +109,12 @@ def finetune(cfg: DictConfig) -> None:
 
     with disable_tqdm():
         trainer.train(resume_from_checkpoint=cfg.resume_from_checkpoint)
-    wandb_finish()
 
-    model.save_pretrained(cfg.model_dir)
-    if cfg.push_to_hub:
-        trainer.push_to_hub()
+    if is_main_process:
+        wandb_finish()
+        model.save_pretrained(cfg.model_dir)
+        if cfg.push_to_hub:
+            trainer.push_to_hub()
 
 
 def load_early_stopping_callback(cfg: DictConfig) -> list[TrainerCallback]:

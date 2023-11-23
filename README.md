@@ -6,7 +6,7 @@ ______________________________________________________________________
 [![Documentation](https://img.shields.io/badge/docs-passing-green)](https://alexandrainst.github.io/coral_models/coral_models.html)
 [![License](https://img.shields.io/github/license/alexandrainst/coral_models)](https://github.com/alexandrainst/coral_models/blob/main/LICENSE)
 [![LastCommit](https://img.shields.io/github/last-commit/alexandrainst/coral_models)](https://github.com/alexandrainst/coral_models/commits/main)
-[![Code Coverage](https://img.shields.io/badge/Coverage-53%25-orange.svg)](https://github.com/alexandrainst/coral_models/tree/main/tests)
+[![Code Coverage](https://img.shields.io/badge/Coverage-54%25-orange.svg)](https://github.com/alexandrainst/coral_models/tree/main/tests)
 
 
 Developers:

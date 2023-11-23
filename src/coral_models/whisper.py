@@ -7,6 +7,7 @@ from functools import partial
 from typing import Callable, Type
 
 from omegaconf import DictConfig
+import torch
 from torch.backends.mps import is_available as mps_is_available
 from transformers import (
     BatchFeature,
@@ -161,7 +162,7 @@ class WhisperModelSetup:
 
     def load_data_collator(self) -> DataCollatorSpeechSeq2SeqWithPadding:
         return DataCollatorSpeechSeq2SeqWithPadding(
-            processor=self.processor, padding=True
+            processor=self.processor, padding=self.cfg.padding
         )
 
     def load_trainer_class(self) -> Type[Trainer]:
@@ -171,6 +172,23 @@ class WhisperModelSetup:
         return partial(compute_wer_metrics, processor=self.processor)
 
     def load_training_arguments(self) -> TrainingArguments:
+        # Compute the gradient accumulation based on the total batch size in the config
+        num_devices = max(torch.cuda.device_count(), 1)
+        per_device_total_batch_size = self.cfg.total_batch_size // num_devices
+        gradient_accumulation_steps = (
+            per_device_total_batch_size // self.cfg.per_device_batch_size
+        )
+
+        if gradient_accumulation_steps == 0:
+            logger.warning(
+                f"Your `total_batch_size` is too small ({self.cfg.total_batch_size}), "
+                f"relative to the number of devices ({num_devices}) and your "
+                f"`per_device_batch_size` ({self.cfg.per_device_batch_size}). It has "
+                f"been set to `per_device_batch_size * num_devices` = "
+                f"{self.cfg.per_device_batch_size * num_devices}."
+            )
+            gradient_accumulation_steps = 1
+
         do_eval = any(
             [
                 dataset_cfg.val_name is not None
@@ -180,9 +198,9 @@ class WhisperModelSetup:
         args = Seq2SeqTrainingArguments(
             output_dir=self.cfg.model_dir,
             hub_model_id=self.cfg.hub_id,
-            per_device_train_batch_size=self.cfg.batch_size,
-            per_device_eval_batch_size=self.cfg.batch_size,
-            gradient_accumulation_steps=self.cfg.gradient_accumulation,
+            per_device_train_batch_size=self.cfg.per_device_batch_size,
+            per_device_eval_batch_size=self.cfg.per_device_batch_size,
+            gradient_accumulation_steps=gradient_accumulation_steps,
             learning_rate=self.cfg.learning_rate,
             warmup_steps=self.cfg.warmup_steps,
             max_steps=self.cfg.max_steps,
@@ -208,6 +226,7 @@ class WhisperModelSetup:
             generation_max_length=self.cfg.model.generation_max_length,
             use_cpu=hasattr(sys, "_called_from_test"),
             dataloader_num_workers=self.cfg.dataloader_num_workers,
+            ddp_find_unused_parameters=False,
         )
         return args
 
@@ -219,7 +238,7 @@ class WhisperModelSetup:
             self.cfg.hub_id, token=True
         )
         data_collator = DataCollatorSpeechSeq2SeqWithPadding(
-            processor=processor, padding="longest"
+            processor=processor, padding=self.cfg.padding
         )
         compute_metrics = partial(compute_wer_metrics, processor=processor)
         return PreTrainedModelData(

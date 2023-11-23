@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 from typing import Callable, Type
+import time
+import os
 
 import torch
 from omegaconf import DictConfig
@@ -58,7 +60,7 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
     """
 
     processor: Wav2Vec2Processor
-    padding: bool | str = True
+    padding: bool | str
     return_tensors: str = "pt"
 
     def torch_call(self, features: list[dict]) -> BatchFeature:
@@ -81,12 +83,18 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
                 "Features must contain either 'input_values' or 'audio' key."
             )
         batch: BatchFeature = self.processor.pad(
-            audio_features, padding=self.padding, return_tensors="pt"
+            audio_features,
+            padding=self.padding,
+            return_tensors=self.return_tensors,
+            max_length=16_000 * 10,
         )
 
         label_features = [dict(input_ids=feature["labels"]) for feature in features]
         labels_batch: BatchEncoding = self.processor.tokenizer.pad(
-            label_features, padding=self.padding, return_tensors="pt"
+            label_features,
+            padding=self.padding,
+            return_tensors=self.return_tensors,
+            max_length=512,
         )
 
         # Replace padding with -100 to ignore loss correctly
@@ -112,15 +120,25 @@ class Wav2Vec2ModelSetup:
     def load_processor(self) -> Wav2Vec2Processor:
         # We dump the vocabulary to a file since the tokenizer uses this file during
         # initialisation
-        dump_vocabulary(self.cfg)
-        tokenizer: Wav2Vec2CTCTokenizer = Wav2Vec2CTCTokenizer.from_pretrained(
-            self.cfg.model_dir,
-            unk_token="<unk>",
-            pad_token="<pad>",
-            bos_token="<s>",
-            eos_token="</s>",
-            word_delimiter_token=" ",
-        )
+        while True:
+            try:
+                dump_vocabulary(self.cfg)
+                tokenizer: Wav2Vec2CTCTokenizer = Wav2Vec2CTCTokenizer.from_pretrained(
+                    self.cfg.model_dir,
+                    unk_token="<unk>",
+                    pad_token="<pad>",
+                    bos_token="<s>",
+                    eos_token="</s>",
+                    word_delimiter_token=" ",
+                )
+                break
+            except json.decoder.JSONDecodeError:
+                process_id = os.getenv("RANK", 0)
+                logger.warning(
+                    f"JSONDecodeError while loading tokenizer on process {process_id}. "
+                    "Retrying in a second."
+                )
+                time.sleep(1)
 
         # Set the `model_max_length` attribute of the tokenizer, if it hasn't been set,
         # to ensure that truncation is done correctly
@@ -170,7 +188,9 @@ class Wav2Vec2ModelSetup:
         return model
 
     def load_data_collator(self) -> DataCollatorCTCWithPadding:
-        return DataCollatorCTCWithPadding(processor=self.processor, padding=True)
+        return DataCollatorCTCWithPadding(
+            processor=self.processor, padding=self.cfg.padding
+        )
 
     def load_trainer_class(self) -> Type[Trainer]:
         return Trainer
@@ -179,6 +199,23 @@ class Wav2Vec2ModelSetup:
         return partial(compute_wer_metrics, processor=self.processor)
 
     def load_training_arguments(self) -> TrainingArguments:
+        # Compute the gradient accumulation based on the total batch size in the config
+        num_devices = max(torch.cuda.device_count(), 1)
+        per_device_total_batch_size = self.cfg.total_batch_size // num_devices
+        gradient_accumulation_steps = (
+            per_device_total_batch_size // self.cfg.per_device_batch_size
+        )
+
+        if gradient_accumulation_steps == 0:
+            logger.warning(
+                f"Your `total_batch_size` is too small ({self.cfg.total_batch_size}), "
+                f"relative to the number of devices ({num_devices}) and your "
+                f"`per_device_batch_size` ({self.cfg.per_device_batch_size}). It has "
+                f"been set to `per_device_batch_size * num_devices` = "
+                f"{self.cfg.per_device_batch_size * num_devices}."
+            )
+            gradient_accumulation_steps = 1
+
         do_eval = any(
             [
                 dataset_cfg.val_name is not None
@@ -188,9 +225,9 @@ class Wav2Vec2ModelSetup:
         args = TrainingArguments(
             output_dir=self.cfg.model_dir,
             hub_model_id=self.cfg.hub_id,
-            per_device_train_batch_size=self.cfg.batch_size,
-            per_device_eval_batch_size=self.cfg.batch_size,
-            gradient_accumulation_steps=self.cfg.gradient_accumulation,
+            per_device_train_batch_size=self.cfg.per_device_batch_size,
+            per_device_eval_batch_size=self.cfg.per_device_batch_size,
+            gradient_accumulation_steps=gradient_accumulation_steps,
             learning_rate=self.cfg.learning_rate,
             lr_scheduler_type=SchedulerType.COSINE,
             warmup_steps=self.cfg.warmup_steps,
@@ -200,6 +237,7 @@ class Wav2Vec2ModelSetup:
             evaluation_strategy="steps" if do_eval else "no",
             eval_steps=self.cfg.eval_steps if do_eval else None,
             save_steps=self.cfg.save_steps,
+            save_strategy="no" if self.cfg.save_total_limit == 0 else "steps",
             logging_steps=self.cfg.logging_steps,
             length_column_name="input_length",
             gradient_checkpointing=True,
@@ -217,6 +255,7 @@ class Wav2Vec2ModelSetup:
             save_safetensors=True,
             use_cpu=hasattr(sys, "_called_from_test"),
             dataloader_num_workers=self.cfg.dataloader_num_workers,
+            ddp_find_unused_parameters=False,
         )
         return args
 
@@ -236,7 +275,7 @@ class Wav2Vec2ModelSetup:
 
         model = Wav2Vec2ForCTC.from_pretrained(self.cfg.hub_id, token=True)
         data_collator = DataCollatorCTCWithPadding(
-            processor=processor, padding="longest"
+            processor=processor, padding=self.cfg.padding
         )
         compute_metrics = partial(compute_wer_metrics, processor=processor)
         return PreTrainedModelData(
