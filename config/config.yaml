@@ -11,6 +11,7 @@ dirs:
   processed: processed
   final: final
   models: models
+  hidden: hidden
 
 seed: 4242
 
