@@ -70,6 +70,7 @@ def finetune(cfg: DictConfig) -> None:
 
     model_setup: ModelSetup = load_model_setup(cfg)
     processor = model_setup.load_processor()
+    breakpoint()
     processor.save_pretrained(cfg.model_dir)
     model = model_setup.load_model()
     dataset = load_data(cfg)
