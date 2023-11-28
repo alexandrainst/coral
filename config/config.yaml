@@ -51,9 +51,9 @@ learning_rate: 3e-5
 adam_first_momentum: 0.9
 adam_second_momentum: 0.98
 total_batch_size: 256
-per_device_batch_size: 16
-max_steps: 50_000
-warmup_steps: 1_000
+per_device_batch_size: 64
+max_steps: 120_000
+warmup_steps: 10_000
 logging_steps: 10
 eval_steps: 100
 save_steps: 100
