@@ -133,11 +133,12 @@ class Wav2Vec2ModelSetup:
                 )
                 break
             except json.decoder.JSONDecodeError:
-                process_id = os.getenv("RANK", 0)
-                logger.warning(
-                    f"JSONDecodeError while loading tokenizer on process {process_id}. "
-                    "Retrying in a second."
-                )
+                log_message = "JSONDecodeError while loading tokenizer"
+                process_id = os.getenv("RANK")
+                if process_id is not None:
+                    log_message += f" in process {process_id}"
+                log_message += ". Retrying in a second."
+                logger.warning(log_message)
                 time.sleep(1)
 
         # Set the `model_max_length` attribute of the tokenizer, if it hasn't been set,

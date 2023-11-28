@@ -42,7 +42,7 @@ def compute_wer_metrics(pred: EvalPrediction, processor: Processor) -> dict[str,
             mismatch_dim = len(vocab_size) - predictions.shape[-1]
             predictions = np.pad(predictions, ((0, 0), (0, 0), (0, mismatch_dim)))
             predictions_str = tokenizer.batch_decode(
-                predictions, skip_special_tokens=True
+                sequences=predictions, skip_special_tokens=True
             )
 
         # Otherwise, if we are not using a language model, we need to convert the
