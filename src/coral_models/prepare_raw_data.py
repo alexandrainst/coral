@@ -344,8 +344,15 @@ def prepare_raw_data(
     # audio.
     read_aloud_duration = 0.0
     conversation_duration = 0.0
+    rows_to_remove: list[int] = []
     for row_i, row in tqdm(recordings.iterrows()):
         filename = input_path / row["filename"]
+
+        # Check if the file is empty, and if it is, remove it from the dataframe
+        # and continue to the next file
+        if filename.stat().st_size < 200000:  # Any file smaller than this is empty
+            rows_to_remove.append(row_i)
+            continue
 
         # Get the new filename
         # New filename is in the format is for conversations:
@@ -399,6 +406,9 @@ def prepare_raw_data(
                     read_aloud_duration += duration
         except FileNotFoundError:
             pass
+
+    # Remove rows with empty files
+    recordings = recordings.drop(rows_to_remove).reset_index(drop=True)
 
     # Write a README file
     readme = make_readme()
