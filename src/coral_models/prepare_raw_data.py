@@ -344,7 +344,7 @@ def prepare_raw_data(
     # audio.
     read_aloud_duration = 0.0
     conversation_duration = 0.0
-    rows_to_remove = []
+    rows_to_remove: list[int] = []
     for row_i, row in tqdm(recordings.iterrows()):
         filename = input_path / row["filename"]
 
