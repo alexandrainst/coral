@@ -43,6 +43,8 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
     Args:
         processor (Wav2Vec2Processor)
             The processor used for proccessing the data.
+        max_seconds_per_example (float):
+            The maximum number of seconds per example.
         padding (bool, str or PaddingStrategy, optional):
             Select a strategy to pad the returned sequences (according to the model's
             padding side and padding index) among:
@@ -61,6 +63,7 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
 
     processor: Wav2Vec2Processor
     padding: bool | str
+    max_seconds_per_example: float
     return_tensors: str = "pt"
 
     def torch_call(self, features: list[dict]) -> BatchFeature:
@@ -86,12 +89,12 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
             audio_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
-            max_length=16_000 * 10,
+            max_length=16_000 * self.max_seconds_per_example,
         )
 
         label_features = [dict(input_ids=feature["labels"]) for feature in features]
-        labels_batch: BatchEncoding = self.processor.tokenizer.pad(
-            label_features,
+        labels_batch: BatchEncoding = self.processor.pad(
+            labels=label_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
             max_length=512,
@@ -192,7 +195,9 @@ class Wav2Vec2ModelSetup:
 
     def load_data_collator(self) -> DataCollatorCTCWithPadding:
         return DataCollatorCTCWithPadding(
-            processor=self.processor, padding=self.cfg.padding
+            processor=self.processor,
+            max_seconds_per_example=self.cfg.max_seconds_per_example,
+            padding=self.cfg.padding,
         )
 
     def load_trainer_class(self) -> Type[Trainer]:
@@ -278,7 +283,9 @@ class Wav2Vec2ModelSetup:
 
         model = Wav2Vec2ForCTC.from_pretrained(self.cfg.hub_id, token=True)
         data_collator = DataCollatorCTCWithPadding(
-            processor=processor, padding=self.cfg.padding
+            processor=processor,
+            max_seconds_per_example=self.cfg.max_seconds_per_example,
+            padding=self.cfg.padding,
         )
         compute_metrics = partial(compute_wer_metrics, processor=processor)
         return PreTrainedModelData(
@@ -299,7 +306,7 @@ def dump_vocabulary(cfg: DictConfig) -> None:
             The Hydra configuration object.
     """
     # Build the set of all unique characters in the dataset
-    unique_characters: set[str] = set(cfg.characters_to_keep)
+    unique_characters: set[str] = set(cfg.characters_to_keep + "|")
 
     # Build vocabulary
     vocab = {char: idx for idx, char in enumerate(unique_characters)}
