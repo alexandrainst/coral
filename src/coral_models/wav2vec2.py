@@ -129,7 +129,8 @@ class Wav2Vec2ModelSetup:
                     pad_token="<pad>",
                     bos_token="<s>",
                     eos_token="</s>",
-                    word_delimiter_token=" ",
+                    word_delimiter_token="|",
+                    replace_word_delimiter_char=" ",
                 )
                 break
             except json.decoder.JSONDecodeError:
@@ -156,6 +157,7 @@ class Wav2Vec2ModelSetup:
         self.processor = Wav2Vec2Processor(
             feature_extractor=extractor, tokenizer=tokenizer
         )
+
         return self.processor
 
     def load_model(self) -> Wav2Vec2ForCTC:
@@ -180,7 +182,7 @@ class Wav2Vec2ModelSetup:
                 vocab_size=len(self.processor.tokenizer.get_vocab()),
                 ctc_zero_infinity=True,
             )
-            assert isinstance(model, Wav2Vec2ForCTC)
+        assert isinstance(model, Wav2Vec2ForCTC)
 
         if self.cfg.model.freeze_feature_encoder:
             for param in model.wav2vec2.parameters():

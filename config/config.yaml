@@ -15,7 +15,7 @@ dirs:
 seed: 4242
 
 # Dataset parameters
-characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü '
+characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
 max_seconds_per_example: 10
 dataloader_num_workers: 8
 
