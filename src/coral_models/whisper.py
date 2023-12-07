@@ -77,7 +77,7 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
             raise ValueError(
                 "Features must contain either 'input_features' or 'audio' key."
             )
-        batch = self.processor.pad(
+        batch = self.processor.feature_extractor.pad(
             audio_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
@@ -88,7 +88,7 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
         label_features = [{"input_ids": feature["labels"]} for feature in features]
 
         # Pad the labels to max length
-        labels_batch = self.processor.pad(
+        labels_batch = self.processor.tokenizer.pad(
             labels=label_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
