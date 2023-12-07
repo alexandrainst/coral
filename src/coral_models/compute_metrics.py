@@ -51,11 +51,16 @@ def compute_wer_metrics(pred: EvalPrediction, processor: Processor) -> dict[str,
         # Otherwise, if we are not using a language model, we need to convert the
         # logits to token IDs and then decode the token IDs to get the predicted string
         else:
+            # If all the logits are -100 for a token, then we set the logit for the
+            # padding token for that token to 0. This is to ensure that this token gets
+            # decoded to a padding token, and are therefore ignored
+            predictions[np.all(predictions == -100, axis=-1), pad_token] = 0
+
             pred_ids: NDArray[np.int_] = np.argmax(predictions, axis=-1)
             predictions_str = tokenizer.batch_decode(pred_ids)
 
     elif len(predictions.shape) == 2 and predictions.dtype == np.int_:
-        predictions_str = tokenizer.batch_decode(predictions)
+        predictions_str = tokenizer.batch_decode(sequences=predictions)
 
     else:
         raise ValueError(
