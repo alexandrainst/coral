@@ -128,8 +128,8 @@ class Wav2Vec2ModelSetup:
                 dump_vocabulary(self.cfg)
                 tokenizer: Wav2Vec2CTCTokenizer = Wav2Vec2CTCTokenizer.from_pretrained(
                     self.cfg.model_dir,
-                    unk_token="<unk>",
                     pad_token="<pad>",
+                    unk_token="<unk>",
                     bos_token="<s>",
                     eos_token="</s>",
                     word_delimiter_token="|",
@@ -310,8 +310,6 @@ def dump_vocabulary(cfg: DictConfig) -> None:
 
     # Build vocabulary
     vocab = {char: idx for idx, char in enumerate(unique_characters)}
-    for tok in ["<unk>", "<pad>", "<s>", "</s>"]:
-        vocab[tok] = len(vocab)
 
     # Dump the vocabulary to a json file
     model_dir = Path(cfg.model_dir)
