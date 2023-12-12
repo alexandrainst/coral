@@ -350,7 +350,7 @@ def prepare_raw_data(
 
         # Check if the file is empty, and if it is, remove it from the dataframe
         # and continue to the next file
-        if filename.stat().st_size < 200000:  # Any file smaller than this is empty
+        if filename.stat().st_size < 10000:  # Any file smaller than this is empty
             rows_to_remove.append(row_i)
             continue
 
