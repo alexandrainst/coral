@@ -174,7 +174,7 @@ class WhisperModelSetup:
     def load_data_collator(self) -> DataCollatorSpeechSeq2SeqWithPadding:
         return DataCollatorSpeechSeq2SeqWithPadding(
             processor=self.processor,
-            max_seconds_per_example=self.cfg.data.max_seconds_per_example,
+            max_seconds_per_example=self.cfg.max_seconds_per_example,
             padding=self.cfg.padding,
         )
 
