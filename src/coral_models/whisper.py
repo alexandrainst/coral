@@ -36,6 +36,8 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
     Args:
         processor (WhisperProcessor)
             The processor used for proccessing the data.
+        max_seconds_per_example (float):
+            The maximum number of seconds per example.
         padding (bool, str or PaddingStrategy, optional):
             Select a strategy to pad the returned sequences (according to the model's
             padding side and padding index) among:
@@ -53,6 +55,7 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
     """
 
     processor: WhisperProcessor
+    max_seconds_per_example: float
     padding: bool | str = True
     return_tensors: str = "pt"
 

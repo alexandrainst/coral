@@ -62,8 +62,8 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
     """
 
     processor: Wav2Vec2Processor
-    padding: bool | str
     max_seconds_per_example: float
+    padding: bool | str
     return_tensors: str = "pt"
 
     def torch_call(self, features: list[dict]) -> BatchFeature:
