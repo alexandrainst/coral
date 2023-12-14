@@ -40,19 +40,27 @@ def compute_wer_metrics(pred: EvalPrediction, processor: Processor) -> dict[str,
         if predictions.dtype == np.int_:
             vocab_size = tokenizer.get_vocab()
             mismatch_dim = len(vocab_size) - predictions.shape[-1]
-            predictions = np.pad(predictions, ((0, 0), (0, 0), (0, mismatch_dim)))
-            predictions_str = tokenizer.batch_decode(
-                predictions, skip_special_tokens=True
+            predictions = np.pad(
+                array=predictions,
+                pad_width=((0, 0), (0, 0), (0, mismatch_dim)),
+                mode="constant",
+                constant_values=pad_token,
             )
+            predictions_str = tokenizer.batch_decode(sequences=predictions)
 
         # Otherwise, if we are not using a language model, we need to convert the
         # logits to token IDs and then decode the token IDs to get the predicted string
         else:
+            # If all the logits are -100 for a token, then we set the logit for the
+            # padding token for that token to 0. This is to ensure that this token gets
+            # decoded to a padding token, and are therefore ignored
+            predictions[np.all(predictions == -100, axis=-1), pad_token] = 0
+
             pred_ids: NDArray[np.int_] = np.argmax(predictions, axis=-1)
-            predictions_str = tokenizer.batch_decode(pred_ids, skip_special_tokens=True)
+            predictions_str = tokenizer.batch_decode(pred_ids)
 
     elif len(predictions.shape) == 2 and predictions.dtype == np.int_:
-        predictions_str = tokenizer.batch_decode(predictions, skip_special_tokens=True)
+        predictions_str = tokenizer.batch_decode(sequences=predictions)
 
     else:
         raise ValueError(
@@ -67,11 +75,9 @@ def compute_wer_metrics(pred: EvalPrediction, processor: Processor) -> dict[str,
     labels[labels == -100] = pad_token
 
     # Decode the ground truth labels
-    labels_str = tokenizer.batch_decode(
-        sequences=labels, skip_special_tokens=True, group_tokens=False
-    )
+    labels_str = tokenizer.batch_decode(sequences=labels, group_tokens=False)
 
-    # TEMP: Log both the predictions and the ground truth labels
+    # Log both the predictions and the ground truth labels
     is_main_process = os.getenv("RANK", "0") == "0"
     if is_main_process:
         random_idx = np.random.randint(0, len(predictions_str))

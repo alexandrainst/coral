@@ -16,7 +16,7 @@ dirs:
 seed: 4242
 
 # Dataset parameters
-characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü '
+characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
 max_seconds_per_example: 10
 dataloader_num_workers: 8
 
@@ -48,12 +48,12 @@ ignore_data_skip: false
 save_total_limit: 2
 
 # Optimisation parameters
-learning_rate: 3e-5
+learning_rate: 1e-4
 adam_first_momentum: 0.9
 adam_second_momentum: 0.98
 total_batch_size: 256
 per_device_batch_size: 16
-max_steps: 50_000
+max_steps: 10_000
 warmup_steps: 1_000
 logging_steps: 10
 eval_steps: 100

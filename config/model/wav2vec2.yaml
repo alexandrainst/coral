@@ -18,8 +18,8 @@ mask_time_prob: 0.5
 mask_time_length: 10
 mask_feature_prob: 0.5
 mask_feature_length: 64
-layerdrop: 0.1  # This will automatically be set to 0 in a multi-gpu setting
-ctc_loss_reduction: mean
+layerdrop: 0.1  # NOTE: This will automatically be set to 0 in a multi-gpu setting
+ctc_loss_reduction: sum
 
 # Decoder hyperparameters
 language_model_decoder: ngram

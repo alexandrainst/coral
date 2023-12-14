@@ -43,6 +43,8 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
     Args:
         processor (Wav2Vec2Processor)
             The processor used for proccessing the data.
+        max_seconds_per_example (float):
+            The maximum number of seconds per example.
         padding (bool, str or PaddingStrategy, optional):
             Select a strategy to pad the returned sequences (according to the model's
             padding side and padding index) among:
@@ -60,6 +62,7 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
     """
 
     processor: Wav2Vec2Processor
+    max_seconds_per_example: float
     padding: bool | str
     return_tensors: str = "pt"
 
@@ -86,12 +89,12 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
             audio_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
-            max_length=16_000 * 10,
+            max_length=16_000 * self.max_seconds_per_example,
         )
 
         label_features = [dict(input_ids=feature["labels"]) for feature in features]
-        labels_batch: BatchEncoding = self.processor.tokenizer.pad(
-            label_features,
+        labels_batch: BatchEncoding = self.processor.pad(
+            labels=label_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
             max_length=512,
@@ -125,19 +128,21 @@ class Wav2Vec2ModelSetup:
                 dump_vocabulary(self.cfg)
                 tokenizer: Wav2Vec2CTCTokenizer = Wav2Vec2CTCTokenizer.from_pretrained(
                     self.cfg.model_dir,
-                    unk_token="<unk>",
                     pad_token="<pad>",
+                    unk_token="<unk>",
                     bos_token="<s>",
                     eos_token="</s>",
-                    word_delimiter_token=" ",
+                    word_delimiter_token="|",
+                    replace_word_delimiter_char=" ",
                 )
                 break
             except json.decoder.JSONDecodeError:
-                process_id = os.getenv("RANK", 0)
-                logger.warning(
-                    f"JSONDecodeError while loading tokenizer on process {process_id}. "
-                    "Retrying in a second."
-                )
+                log_message = "JSONDecodeError while loading tokenizer"
+                process_id = os.getenv("RANK")
+                if process_id is not None:
+                    log_message += f" in process {process_id}"
+                log_message += ". Retrying in a second."
+                logger.warning(log_message)
                 time.sleep(1)
 
         # Set the `model_max_length` attribute of the tokenizer, if it hasn't been set,
@@ -155,6 +160,7 @@ class Wav2Vec2ModelSetup:
         self.processor = Wav2Vec2Processor(
             feature_extractor=extractor, tokenizer=tokenizer
         )
+
         return self.processor
 
     def load_model(self) -> Wav2Vec2ForCTC:
@@ -179,7 +185,7 @@ class Wav2Vec2ModelSetup:
                 vocab_size=len(self.processor.tokenizer.get_vocab()),
                 ctc_zero_infinity=True,
             )
-            assert isinstance(model, Wav2Vec2ForCTC)
+        assert isinstance(model, Wav2Vec2ForCTC)
 
         if self.cfg.model.freeze_feature_encoder:
             for param in model.wav2vec2.parameters():
@@ -189,7 +195,9 @@ class Wav2Vec2ModelSetup:
 
     def load_data_collator(self) -> DataCollatorCTCWithPadding:
         return DataCollatorCTCWithPadding(
-            processor=self.processor, padding=self.cfg.padding
+            processor=self.processor,
+            max_seconds_per_example=self.cfg.max_seconds_per_example,
+            padding=self.cfg.padding,
         )
 
     def load_trainer_class(self) -> Type[Trainer]:
@@ -275,7 +283,9 @@ class Wav2Vec2ModelSetup:
 
         model = Wav2Vec2ForCTC.from_pretrained(self.cfg.hub_id, token=True)
         data_collator = DataCollatorCTCWithPadding(
-            processor=processor, padding=self.cfg.padding
+            processor=processor,
+            max_seconds_per_example=self.cfg.max_seconds_per_example,
+            padding=self.cfg.padding,
         )
         compute_metrics = partial(compute_wer_metrics, processor=processor)
         return PreTrainedModelData(
@@ -296,12 +306,10 @@ def dump_vocabulary(cfg: DictConfig) -> None:
             The Hydra configuration object.
     """
     # Build the set of all unique characters in the dataset
-    unique_characters: set[str] = set(cfg.characters_to_keep)
+    unique_characters: set[str] = set(cfg.characters_to_keep + "|")
 
     # Build vocabulary
     vocab = {char: idx for idx, char in enumerate(unique_characters)}
-    for tok in ["<unk>", "<pad>", "<s>", "</s>"]:
-        vocab[tok] = len(vocab)
 
     # Dump the vocabulary to a json file
     model_dir = Path(cfg.model_dir)

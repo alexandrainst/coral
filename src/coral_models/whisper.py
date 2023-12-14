@@ -36,6 +36,8 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
     Args:
         processor (WhisperProcessor)
             The processor used for proccessing the data.
+        max_seconds_per_example (float):
+            The maximum number of seconds per example.
         padding (bool, str or PaddingStrategy, optional):
             Select a strategy to pad the returned sequences (according to the model's
             padding side and padding index) among:
@@ -53,6 +55,7 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
     """
 
     processor: WhisperProcessor
+    max_seconds_per_example: float
     padding: bool | str = True
     return_tensors: str = "pt"
 
@@ -78,14 +81,22 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
                 "Features must contain either 'input_features' or 'audio' key."
             )
         batch = self.processor.feature_extractor.pad(
-            audio_features, return_tensors="pt"
+            audio_features,
+            padding=self.padding,
+            return_tensors=self.return_tensors,
+            max_length=16_000 * self.max_seconds_per_example,
         )
 
         # Get the tokenized label sequences
         label_features = [{"input_ids": feature["labels"]} for feature in features]
 
         # Pad the labels to max length
-        labels_batch = self.processor.tokenizer.pad(label_features, return_tensors="pt")
+        labels_batch = self.processor.tokenizer.pad(
+            label_features,
+            padding=self.padding,
+            return_tensors=self.return_tensors,
+            max_length=512,
+        )
 
         # replace padding with -100 to ignore loss correctly
         labels = labels_batch["input_ids"].masked_fill(
@@ -162,7 +173,9 @@ class WhisperModelSetup:
 
     def load_data_collator(self) -> DataCollatorSpeechSeq2SeqWithPadding:
         return DataCollatorSpeechSeq2SeqWithPadding(
-            processor=self.processor, padding=self.cfg.padding
+            processor=self.processor,
+            max_seconds_per_example=self.cfg.max_seconds_per_example,
+            padding=self.cfg.padding,
         )
 
     def load_trainer_class(self) -> Type[Trainer]:
