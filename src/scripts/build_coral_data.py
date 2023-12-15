@@ -18,7 +18,7 @@ from coral_models.prepare_raw_data import prepare_raw_data
     "input_path",
     type=click.Path(exists=True),
 )
-@click.option(
+@click.argument(
     "metadata_path",
     type=click.Path(exists=True),
 )
