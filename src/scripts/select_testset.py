@@ -227,6 +227,8 @@ def select_by_accent(
         new_total_length = does_not_have_accent_length / (1 - threshold)
         new_threshold = new_total_length * threshold
 
+        # TODO: Remove speakers with accent, uniformly from each region
+
         # Remove speakers with accent
         deselected_speakers = []
         for _, row in has_accent.sort_values(
@@ -246,6 +248,8 @@ def select_by_accent(
         # and 90% without accent, this is done by scaling the threshold
         new_total_length = has_accent_length / threshold
         new_threshold = new_total_length * (1 - threshold)
+
+        # TODO: Remove speakers with accent, uniformly from each region
 
         # Remove speakers without accent
         deselected_speakers = []
