@@ -1,0 +1,55 @@
+coral_test_set:
+  selection_criteria_priority:
+    - region
+    - accent
+    - gender
+    - age
+    - conversation_length # shortest first
+    - recording_length # shortest first 
+
+
+
+  region_to_dialect:
+    midtjylland:
+      - vendsysselsk
+      - vendsysselsk 
+      - vendelbo
+      - vendsysselsk (m. hanherred og læsø)
+      - himmerlandsk
+      - ommersysselsk
+      - djurslands
+      - djurslandsk (nord-, syddjurs m. nord- og sydsamsø, anholt)
+      - midtøstjysk
+      - sydøstjysk
+      - sydvestjysk
+      - midtjysk
+
+    nordjylland:
+      - vestjysk
+      - østjysk
+      - nørrejysk
+      - øststjysk
+
+    syddanmark:
+      - sønderjysk
+      - vestlig sønderjysk
+      - østligt sønderjysk
+      - mellemslesvisk
+      - angelmål
+      - fjoldemål
+      - fynsk
+      - østfynsk
+      - vestfynsk
+      - sydfynsk
+      - langelandsk
+      - tåsingsk
+      - ærøsk
+
+    hovedstaden:
+      - amagermål
+      - københavnsk
+      - storkøbenhavn/amager
+      - københavnsk/østsjællandsk
+      - københavn(vestegn)
+      - nordsjællandsk
+      - bornholmsk

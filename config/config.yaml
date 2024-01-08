@@ -2,6 +2,7 @@ defaults:
   - model: wav2vec2
   - datasets:
     - common_voice_13_da
+    - coral_test_set
   - override hydra/job_logging: custom
   - _self_
 
