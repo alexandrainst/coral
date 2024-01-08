@@ -46,64 +46,230 @@ def get_recordings_length(recordings: pd.DataFrame) -> tuple[float, float]:
 
 def select_by_region(
     current_selection: pd.DataFrame,
-    not_selected: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Selects speakers based on their region.
+    """Selects speakers such that the selection has 10% from each region.
 
     Args:
         current_selection (pd.DataFrame):
             The current selection of speakers.
-        not_selected (pd.DataFrame):
-            The speakers that have not been selected yet.
 
     Returns:
         pd.DataFrame:
             The updated selection of speakers.
     """
 
-    # Check if each region has at least 0.75 hours of recordings
-    missing_regions = []
-    for i, region in current_selection.groupby("region"):
+    # Remove speakers from the current selection if their region is
+    # already represented with more than 10% of the total recordings
+    total_recordings = (
+        current_selection.conversation_length.sum()
+        + current_selection.read_aloud_length.sum()
+    )
+    threshold = 0.1 * total_recordings
+
+    # Get the regions that are already represented with more than 10%
+    # of the total recordings
+    regions = []
+    for _, region in current_selection.groupby("region"):
         length = region.conversation_length.sum() + region.read_aloud_length.sum()
-        if length < 0.75 * 3600:
-            missing_regions.append(region.region.values[0])
+        if length > threshold:
+            regions.append((region, length))
 
-    # If no regions are missing, return the current selection
-    if not missing_regions:
-        return current_selection
+    # Remove recordings from the regions that are already represented
+    # with more than 10% of the total recordings
+    deselected_speakers = []
+    for region, length in regions:
+        for _, row in region.sort_values(
+            by="read_aloud_length", ascending=False
+        ).iterrows():
+            # Check if removing the speaker will bring the selection below the threshold
+            recording_length = row.conversation_length + row.read_aloud_length
+            if length - recording_length > threshold:
+                length -= recording_length
+                deselected_speakers.append(row.speaker_id)
+        else:
+            break
 
-    # Otherwise, select speakers from the missing regions from the
-    # not selected speakers
-    else:
-        selected_speakers = []
-        for region in missing_regions:
-            cumulated_length = (
-                current_selection[
-                    current_selection.region == region
-                ].conversation_length.sum()
-                + current_selection[
-                    current_selection.region == region
-                ].read_aloud_length.sum()
-            )
+    # Update the current selection
+    current_selection = current_selection[
+        ~current_selection.speaker_id.isin(deselected_speakers)
+    ]
 
-            # Select speakers from the missing region
-            for _, row in not_selected.sort_values(
-                by="read_aloud_length", ascending=True
-            ).iterrows():
-                if cumulated_length + row.type_of_recording < 0.75 * 3600:
-                    cumulated_length += row.type_of_recording
-                    selected_speakers.append(row.speaker_id)
+    return current_selection
 
-        # Join the selected speakers with the current selection
-        current_selection = current_selection.append(
-            not_selected[not_selected.speaker_id.isin(selected_speakers)]
-        )
 
-        return current_selection
+# TODO: Just copied from select_by_region!!!!
+def select_by_gender(
+    current_selection: pd.DataFrame,
+) -> pd.DataFrame:
+    """Selects speakers such that the selection has 10% from each region.
+
+    Args:
+        current_selection (pd.DataFrame):
+            The current selection of speakers.
+
+    Returns:
+        pd.DataFrame:
+            The updated selection of speakers.
+    """
+
+    # Remove speakers from the current such that the selection has 10% speakers
+    # with accent and 90% without accent
+    total_recordings = (
+        current_selection.conversation_length.sum()
+        + current_selection.read_aloud_length.sum()
+    )
+    threshold = 0.1 * total_recordings
+
+    # Get the distribution of speakers with and without accent
+    accent_dist = []
+    for _, accent in current_selection.groupby("accent"):
+        length = accent.conversation_length.sum() + accent.read_aloud_length.sum()
+        accent_dist.append((accent, length))
+
+    # Sort by length
+    accent_dist = sorted(accent_dist, key=lambda x: x[1], reverse=True)
+
+    # Too many speakers with accent
+    has_accent = accent_dist[0][0]
+    has_accent_length = accent_dist[0][1]
+    does_not_have_accent = accent_dist[1][0]
+    does_not_have_accent_length = accent_dist[1][1]
+
+    # Too many speakers with accent
+    if has_accent_length > threshold:
+        # We remove speakers with accent until we have 10% speakers with accent
+        # and 90% without accent, this is done by scaling the threshold
+        new_total_length = does_not_have_accent_length / (1 - threshold)
+        new_threshold = new_total_length * threshold
+
+        # Remove speakers with accent
+        deselected_speakers = []
+        for _, row in has_accent.sort_values(
+            by="read_aloud_length", ascending=False
+        ).iterrows():
+            # Check if removing the speaker will bring the selection below the threshold
+            recording_length = row.conversation_length + row.read_aloud_length
+            if has_accent_length - recording_length > new_threshold:
+                has_accent_length -= recording_length
+                deselected_speakers.append(row.speaker_id)
+            else:
+                break
+
+    # Too many speakers without accent
+    elif does_not_have_accent_length > 1 - threshold:
+        # We remove speakers without accent until we have 10% speakers with accent
+        # and 90% without accent, this is done by scaling the threshold
+        new_total_length = has_accent_length / threshold
+        new_threshold = new_total_length * (1 - threshold)
+
+        # Remove speakers without accent
+        deselected_speakers = []
+        for _, row in does_not_have_accent.sort_values(
+            by="read_aloud_length", ascending=False
+        ).iterrows():
+            # Check if removing the speaker will bring the selection below the threshold
+            recording_length = row.conversation_length + row.read_aloud_length
+            if does_not_have_accent_length - recording_length > new_threshold:
+                does_not_have_accent_length -= recording_length
+                deselected_speakers.append(row.speaker_id)
+            else:
+                break
+
+    # Update the current selection
+    current_selection = current_selection[
+        ~current_selection.speaker_id.isin(deselected_speakers)
+    ]
+
+    return current_selection
+
+
+def select_by_accent(
+    current_selection: pd.DataFrame,
+) -> pd.DataFrame:
+    """Selects speakers such that the selection has 10% from each region.
+
+    Args:
+        current_selection (pd.DataFrame):
+            The current selection of speakers.
+
+    Returns:
+        pd.DataFrame:
+            The updated selection of speakers.
+    """
+
+    # Remove speakers from the current such that the selection has 10% speakers
+    # with accent and 90% without accent
+    total_recordings = (
+        current_selection.conversation_length.sum()
+        + current_selection.read_aloud_length.sum()
+    )
+    threshold = 0.1 * total_recordings
+
+    # Get the distribution of speakers with and without accent
+    accent_dist = []
+    for _, accent in current_selection.groupby("accent"):
+        length = accent.conversation_length.sum() + accent.read_aloud_length.sum()
+        accent_dist.append((accent, length))
+
+    # Sort by length
+    accent_dist = sorted(accent_dist, key=lambda x: x[1], reverse=True)
+
+    # Too many speakers with accent
+    has_accent = accent_dist[0][0]
+    has_accent_length = accent_dist[0][1]
+    does_not_have_accent = accent_dist[1][0]
+    does_not_have_accent_length = accent_dist[1][1]
+
+    # Too many speakers with accent
+    if has_accent_length > threshold:
+        # We remove speakers with accent until we have 10% speakers with accent
+        # and 90% without accent, this is done by scaling the threshold
+        new_total_length = does_not_have_accent_length / (1 - threshold)
+        new_threshold = new_total_length * threshold
+
+        # Remove speakers with accent
+        deselected_speakers = []
+        for _, row in has_accent.sort_values(
+            by="read_aloud_length", ascending=False
+        ).iterrows():
+            # Check if removing the speaker will bring the selection below the threshold
+            recording_length = row.conversation_length + row.read_aloud_length
+            if has_accent_length - recording_length > new_threshold:
+                has_accent_length -= recording_length
+                deselected_speakers.append(row.speaker_id)
+            else:
+                break
+
+    # Too many speakers without accent
+    elif does_not_have_accent_length > 1 - threshold:
+        # We remove speakers without accent until we have 10% speakers with accent
+        # and 90% without accent, this is done by scaling the threshold
+        new_total_length = has_accent_length / threshold
+        new_threshold = new_total_length * (1 - threshold)
+
+        # Remove speakers without accent
+        deselected_speakers = []
+        for _, row in does_not_have_accent.sort_values(
+            by="read_aloud_length", ascending=False
+        ).iterrows():
+            # Check if removing the speaker will bring the selection below the threshold
+            recording_length = row.conversation_length + row.read_aloud_length
+            if does_not_have_accent_length - recording_length > new_threshold:
+                does_not_have_accent_length -= recording_length
+                deselected_speakers.append(row.speaker_id)
+            else:
+                break
+
+    # Update the current selection
+    current_selection = current_selection[
+        ~current_selection.speaker_id.isin(deselected_speakers)
+    ]
+
+    return current_selection
 
 
 def select_by_length(
-    current_selection: pd.DataFrame, type_of_recording: str, not_selected: pd.DataFrame
+    current_selection: pd.DataFrame, type_of_recording: str
 ) -> pd.DataFrame:
     """Selects speakers based on the length of their recordings.
 
@@ -113,45 +279,12 @@ def select_by_length(
         type_of_recording (str):
             The type of recordings to select on.
             Either `conversation_length` or `read_aloud_length`.
-        not_selected (pd.DataFrame):
-            The speakers that have not been selected yet.
 
     Returns:
         pd.DataFrame:
             The updated selection of speakers.
     """
-
-    # Sort by length and select speakers with the shortest recordings
-    # such that their recordings are 7.5 hours each.
-    cumulated_length = 0
-    selected_speakers = []
-    for _, row in current_selection.sort_values(
-        by=type_of_recording, ascending=True
-    ).iterrows():
-        if cumulated_length + row.type_of_recording < 7.5 * 3600:
-            cumulated_length += row.type_of_recording
-            selected_speakers.append(row.speaker_id)
-        else:
-            break
-    else:
-        for _, row in not_selected.sort_values(
-            by=type_of_recording, ascending=True
-        ).iterrows():
-            if cumulated_length + row.type_of_recording < 7.5 * 3600:
-                cumulated_length += row.type_of_recording
-                selected_speakers.append(row.speaker_id)
-            else:
-                break
-        else:
-            logger.warning(
-                "Could not find enough speakers with recordings of length "
-                f"{type_of_recording} < 7.5 hours"
-            )
-
-    # Update the current selection
-    current_selection = current_selection[
-        current_selection.speaker_id.isin(selected_speakers)
-    ]
+    pass
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
@@ -251,31 +384,23 @@ def main(cfg: DictConfig) -> None:
     selection_priority = cfg.datasets.coral_test_set.selection_criteria_priority
 
     # Select speakers based on the selection priority
-    not_selected = pd.DataFrame()
     current_selection = speaker_selection_criteria_data
     for criterion in selection_priority:
         if criterion in ["conversation_length", "read_aloud_length"]:
             current_selection = select_by_length(
                 current_selection=current_selection,
                 type_of_recording=criterion,
-                not_selected=not_selected,
             )
-            not_selected = speaker_selection_criteria_data[
-                ~speaker_selection_criteria_data.speaker_id.isin(
-                    current_selection.speaker_id
-                )
-            ]
 
         elif criterion == "region":
-            current_selection, not_selected = select_by_region(
+            current_selection = select_by_region(
                 current_selection=current_selection,
-                not_selected=not_selected,
             )
-            not_selected = speaker_selection_criteria_data[
-                ~speaker_selection_criteria_data.speaker_id.isin(
-                    current_selection.speaker_id
-                )
-            ]
+
+        elif criterion == "gender":
+            current_selection = select_by_gender(
+                current_selection=current_selection,
+            )
 
 
 if __name__ == "__main__":

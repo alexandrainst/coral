@@ -1,7 +1,5 @@
 coral_test_set:
   selection_criteria_priority:
-    - conversation_length # shortest first
-    - read_aloud_length # shortest first 
     - region
     - accent
     - gender
