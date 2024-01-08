@@ -101,7 +101,7 @@ def select_by_region(
 def select_by_gender(
     current_selection: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Selects speakers such that the selection has 10% from each region.
+    """Remove speakers such that the selection has 10% from each region.
 
     Args:
         current_selection (pd.DataFrame):
@@ -186,7 +186,7 @@ def select_by_gender(
 def select_by_accent(
     current_selection: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Selects speakers such that the selection has 10% from each region.
+    """Remove speakers such 10% of speakers have accent and 90% do not.
 
     Args:
         current_selection (pd.DataFrame):
