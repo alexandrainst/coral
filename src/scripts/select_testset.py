@@ -8,9 +8,13 @@ import hydra
 import contextlib
 import wave
 import pandas as pd
+import logging
 from pathlib import Path
 from tqdm import tqdm
 from omegaconf import DictConfig
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(message)s")
+logger = logging.getLogger(__name__)
 
 
 def get_recordings_length(recordings: pd.DataFrame) -> tuple[float, float]:
@@ -40,12 +44,77 @@ def get_recordings_length(recordings: pd.DataFrame) -> tuple[float, float]:
     return conversation_length, read_aloud_length
 
 
-def select_by_conversation(current_selection: pd.DataFrame) -> pd.DataFrame:
-    """Selects speakers based on the length of their conversation recordings.
+def select_by_region(
+    current_selection: pd.DataFrame,
+    not_selected: pd.DataFrame,
+) -> pd.DataFrame:
+    """Selects speakers based on their region.
 
     Args:
         current_selection (pd.DataFrame):
             The current selection of speakers.
+        not_selected (pd.DataFrame):
+            The speakers that have not been selected yet.
+
+    Returns:
+        pd.DataFrame:
+            The updated selection of speakers.
+    """
+
+    # Check if each region has at least 0.75 hours of recordings
+    missing_regions = []
+    for i, region in current_selection.groupby("region"):
+        length = region.conversation_length.sum() + region.read_aloud_length.sum()
+        if length < 0.75 * 3600:
+            missing_regions.append(region.region.values[0])
+
+    # If no regions are missing, return the current selection
+    if not missing_regions:
+        return current_selection
+
+    # Otherwise, select speakers from the missing regions from the
+    # not selected speakers
+    else:
+        selected_speakers = []
+        for region in missing_regions:
+            cumulated_length = (
+                current_selection[
+                    current_selection.region == region
+                ].conversation_length.sum()
+                + current_selection[
+                    current_selection.region == region
+                ].read_aloud_length.sum()
+            )
+
+            # Select speakers from the missing region
+            for _, row in not_selected.sort_values(
+                by="read_aloud_length", ascending=True
+            ).iterrows():
+                if cumulated_length + row.type_of_recording < 0.75 * 3600:
+                    cumulated_length += row.type_of_recording
+                    selected_speakers.append(row.speaker_id)
+
+        # Join the selected speakers with the current selection
+        current_selection = current_selection.append(
+            not_selected[not_selected.speaker_id.isin(selected_speakers)]
+        )
+
+        return current_selection
+
+
+def select_by_length(
+    current_selection: pd.DataFrame, type_of_recording: str, not_selected: pd.DataFrame
+) -> pd.DataFrame:
+    """Selects speakers based on the length of their recordings.
+
+    Args:
+        current_selection (pd.DataFrame):
+            The current selection of speakers.
+        type_of_recording (str):
+            The type of recordings to select on.
+            Either `conversation_length` or `read_aloud_length`.
+        not_selected (pd.DataFrame):
+            The speakers that have not been selected yet.
 
     Returns:
         pd.DataFrame:
@@ -53,15 +122,31 @@ def select_by_conversation(current_selection: pd.DataFrame) -> pd.DataFrame:
     """
 
     # Sort by length and select speakers with the shortest recordings
-    # such that their their conversation recordings are 7.5 hours each.
-    cumulated_conversation_length = 0
+    # such that their recordings are 7.5 hours each.
+    cumulated_length = 0
     selected_speakers = []
-    for i, row in current_selection.sort_values(
-        by=["conversation_length", "read_aloud_length"], ascending=True
+    for _, row in current_selection.sort_values(
+        by=type_of_recording, ascending=True
     ).iterrows():
-        if cumulated_conversation_length + row.conversation_length < 7.5 * 3600:
-            cumulated_conversation_length += row.conversation_length
+        if cumulated_length + row.type_of_recording < 7.5 * 3600:
+            cumulated_length += row.type_of_recording
             selected_speakers.append(row.speaker_id)
+        else:
+            break
+    else:
+        for _, row in not_selected.sort_values(
+            by=type_of_recording, ascending=True
+        ).iterrows():
+            if cumulated_length + row.type_of_recording < 7.5 * 3600:
+                cumulated_length += row.type_of_recording
+                selected_speakers.append(row.speaker_id)
+            else:
+                break
+        else:
+            logger.warning(
+                "Could not find enough speakers with recordings of length "
+                f"{type_of_recording} < 7.5 hours"
+            )
 
     # Update the current selection
     current_selection = current_selection[
@@ -160,15 +245,37 @@ def main(cfg: DictConfig) -> None:
         )
 
     # Convert to dataframe
-    speaker_selection_criteria = pd.DataFrame(speaker_selection_criteria)
+    speaker_selection_criteria_data = pd.DataFrame(speaker_selection_criteria)
 
     # Load the criteria selection priority
     selection_priority = cfg.datasets.coral_test_set.selection_criteria_priority
 
-    current_selection = speaker_selection_criteria
+    # Select speakers based on the selection priority
+    not_selected = pd.DataFrame()
+    current_selection = speaker_selection_criteria_data
     for criterion in selection_priority:
-        if criterion == "conversation_length":
-            select_by_conversation(current_selection)
+        if criterion in ["conversation_length", "read_aloud_length"]:
+            current_selection = select_by_length(
+                current_selection=current_selection,
+                type_of_recording=criterion,
+                not_selected=not_selected,
+            )
+            not_selected = speaker_selection_criteria_data[
+                ~speaker_selection_criteria_data.speaker_id.isin(
+                    current_selection.speaker_id
+                )
+            ]
+
+        elif criterion == "region":
+            current_selection, not_selected = select_by_region(
+                current_selection=current_selection,
+                not_selected=not_selected,
+            )
+            not_selected = speaker_selection_criteria_data[
+                ~speaker_selection_criteria_data.speaker_id.isin(
+                    current_selection.speaker_id
+                )
+            ]
 
 
 if __name__ == "__main__":
