@@ -384,27 +384,31 @@ def main(cfg: DictConfig) -> None:
     # Convert to dataframe
     speaker_selection_criteria_data = pd.DataFrame(speaker_selection_criteria)
 
-    # Load the criteria selection priority
-    selection_priority = cfg.datasets.coral_test_set.selection_criteria_priority
+    # We start with the full dataset and then remove speakers such that the
+    # selection has the correct distribution of speakers for each of the selection
+    # criteria. The order of the selection criteria is important, as the first
+    # criteria will be the most important, and the last criteria will be the
+    # least important. The order of the selection criteria is as follows:
+    # 1. Region
+    # 2. Accent
+    # 3. Gender
+    # 4. Age
+    # Once we've selected a subset of speakers based on the selection criteria,
+    # we deselect speakers uniformly from each constallation of the selection
+    # criteria, until we reach the desired test set size.
 
-    # Select speakers based on the selection priority
     current_selection = speaker_selection_criteria_data
-    for criterion in selection_priority:
-        if criterion in ["conversation_length", "read_aloud_length"]:
-            current_selection = select_by_length(
-                current_selection=current_selection,
-                type_of_recording=criterion,
-            )
 
-        elif criterion == "region":
-            current_selection = select_by_region(
-                current_selection=current_selection,
-            )
-
-        elif criterion == "gender":
-            current_selection = select_by_gender(
-                current_selection=current_selection,
-            )
+    current_selection = select_by_region(
+        current_selection=current_selection,
+    )
+    current_selection = select_by_gender(
+        current_selection=current_selection,
+    )
+    current_selection = select_by_length(
+        current_selection=current_selection,
+        type_of_recording="conversation_length",
+    )
 
 
 if __name__ == "__main__":
