@@ -115,62 +115,115 @@ def select_by_accent(
     accent_dist = sorted(accent_dist, key=lambda x: x[1])
 
     # Get the length of speakers with and without accent
-    has_accent = accent_dist[0][0]
-    has_accent_length = accent_dist[0][1]
-    does_not_have_accent = accent_dist[1][0]
-    does_not_have_accent_length = accent_dist[1][1]
+    least_repr_accent_group = accent_dist[0][0]
+    least_repr_accent_group_length = accent_dist[0][1]
+    most_repr_accent_group = accent_dist[1][1]
+    most_repr_accent_group_length = accent_dist[1][0]
 
-    # Too many speakers with accent
-    if has_accent_length > threshold:
-        # We remove speakers with accent until we have 10% speakers with accent
-        # and 90% without accent, this is done by scaling the threshold
-        new_total_length = does_not_have_accent_length / 0.9
+    # We remove speakers with accent until we have 10% speakers with accent
+    # and 90% without accent, this is done by scaling the threshold.
+
+    # If the smallest accent group is larger than the threshold, we remove
+    # speakers from the smallest accent group, otherwise the largest accent
+    # group is removed from. This is done to ensure that we remove the least
+    # amount of speakers. We remove uniformly from each region.
+    if least_repr_accent_group_length > threshold:
+        new_total_length = most_repr_accent_group_length / 0.9
         new_threshold = new_total_length * 0.1
-
-        # Remove speakers with accent, uniformly from each region
-        deselected_speakers = []
-        region_groups = has_accent.groupby("region")
-        index = 0
-        while has_accent_length > new_threshold:
-            # Remove index-th speaker from each region, as long as the selection
-            # is above the threshold
-            for _, region in region_groups:
-                row = region.sort_values(by="length", ascending=False).iloc[index]
-
-                # Check if removing the speaker will bring the selection below the
-                # threshold
-                if has_accent_length > new_threshold:
-                    has_accent_length -= row.length
-                    deselected_speakers.append(row.speaker_id)
-                else:
-                    break
-            index += 1
-
-    # Too many speakers without accent
-    elif does_not_have_accent_length > total_recordings - threshold:
-        # We remove speakers without accent until we have 10% speakers with accent
-        # and 90% without accent, this is done by scaling the threshold
-        new_total_length = has_accent_length / 0.1
+        region_groups = least_repr_accent_group.groupby("region")
+        group_to_remove_from_length = least_repr_accent_group_length
+    else:
+        new_total_length = least_repr_accent_group_length / 0.1
         new_threshold = new_total_length * 0.9
+        region_groups = most_repr_accent_group.groupby("region")
+        group_to_remove_from_length = most_repr_accent_group_length
 
-        # Remove speakers without accent, uniformly from each region
-        deselected_speakers = []
-        region_groups = does_not_have_accent.groupby("region")
-        index = 0
-        while does_not_have_accent_length > new_threshold:
-            # Remove index-th speaker from each region, as long as the selection
-            # is above the threshold
-            for _, region in region_groups:
-                row = region.sort_values(by="length", ascending=False).iloc[index]
+    deselected_speakers = []
+    index = 0
+    while group_to_remove_from_length > new_threshold:
+        # Remove index-th speaker from each region, as long as the selection
+        # is above the threshold
+        for _, region in region_groups:
+            row = region.sort_values(by="length", ascending=False).iloc[index]
 
-                # Check if removing the speaker will bring the selection below the
-                # threshold
-                if does_not_have_accent_length > new_threshold:
-                    does_not_have_accent_length -= row.length
-                    deselected_speakers.append(row.speaker_id)
-                else:
-                    break
-            index += 1
+            # Check if removing the speaker will bring the selection below the
+            # threshold
+            if group_to_remove_from_length > new_threshold:
+                group_to_remove_from_length -= row.length
+                deselected_speakers.append(row.speaker_id)
+            else:
+                break
+        index += 1
+
+    # Update the current selection
+    current_selection = current_selection[
+        ~current_selection.speaker_id.isin(deselected_speakers)
+    ]
+
+    return current_selection
+
+
+def select_by_gender(
+    current_selection: pd.DataFrame,
+) -> pd.DataFrame:
+    """Remove speakers such that gender distribution is 50/50.
+
+    Args:
+        current_selection (pd.DataFrame):
+            The current selection of speakers.
+
+    Returns:
+        pd.DataFrame:
+            The updated selection of speakers.
+    """
+
+    # Get the distribution of male and female, and remove speakers from the
+    # remaining genders from the test set.
+    deselected_speakers = []
+    gender_dist = []
+    for _, gender in current_selection.groupby("gender"):
+        if gender.gender.values[0] in ["male", "female"]:
+            gender_dist.append((gender, gender.length.sum()))
+        else:
+            deselected_speakers.extend(gender.speaker_id.values.tolist())
+
+    # Sort by length
+    gender_dist = sorted(gender_dist, key=lambda x: x[1])
+
+    # Get the lengths to create new thresholds.
+    least_repr_gender_length = gender_dist[0][1]
+    most_repr_gender = gender_dist[1][0]
+    most_repr_gender_length = gender_dist[1][1]
+
+    # We remove speakers from the overrepresented gender until we have 50/50
+    # gender distribution, this is done by scaling the threshold
+    new_total_length = least_repr_gender_length / 0.5
+    new_threshold = new_total_length * 0.5
+
+    # Remove speakers with overrepresented gender, uniformly from each region
+    # and accent group, as long as the selection is above the threshold.
+    # This can't be done uniformly across the whole selection, as some region
+    # and accent groups has too few speakers.
+    region_accent_groups = most_repr_gender.groupby(["region", "accent"])
+    index = 0
+    while most_repr_gender_length > new_threshold:
+        # Remove index-th speaker from each region, as long as the selection
+        # is above the threshold
+        for _, region_accent in region_accent_groups:
+            if region_accent.shape[0] <= index:
+                # Skip if there is only one speaker in the region and accent group
+                continue
+
+            row = region_accent.sort_values(by="length", ascending=False).iloc[index]
+
+            # Check if removing the speaker will bring the selection below the
+            # threshold
+            if most_repr_gender_length > new_threshold:
+                most_repr_gender_length -= row.length
+                deselected_speakers.append(row.speaker_id)
+            else:
+                break
+        index += 1
 
     # Update the current selection
     current_selection = current_selection[
@@ -316,6 +369,10 @@ def main(cfg: DictConfig) -> None:
     current_selection = select_by_accent(
         current_selection=current_selection,
     )
+    current_selection = select_by_gender(
+        current_selection=current_selection,
+    )
+
     current_selection = select_by_length(
         current_selection=current_selection,
         type_of_recording="conversation_length",
