@@ -1,14 +1,4 @@
 coral_test_set:
-  selection_criteria_priority:
-    - region
-    - accent
-    - gender
-    - age
-    - conversation_length # shortest first
-    - read_aloud_length # shortest first 
-
-
-
   region_to_dialect:
     midtjylland:
       - vendsysselsk

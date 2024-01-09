@@ -227,20 +227,26 @@ def select_by_accent(
         new_total_length = does_not_have_accent_length / (1 - threshold)
         new_threshold = new_total_length * threshold
 
-        # TODO: Remove speakers with accent, uniformly from each region
-
-        # Remove speakers with accent
+        # Remove speakers with accent, uniformly from each region
         deselected_speakers = []
-        for _, row in has_accent.sort_values(
-            by="read_aloud_length", ascending=False
-        ).iterrows():
-            # Check if removing the speaker will bring the selection below the threshold
-            recording_length = row.conversation_length + row.read_aloud_length
-            if has_accent_length - recording_length > new_threshold:
-                has_accent_length -= recording_length
-                deselected_speakers.append(row.speaker_id)
-            else:
-                break
+        region_groups = has_accent.groupby("region")
+        index = 0
+        while has_accent_length > new_threshold:
+            # Remove index-th speaker from each region, as long as the selection
+            # is above the threshold
+            for _, region in region_groups:
+                row = region.sort_values(by="read_aloud_length", ascending=False).iloc[
+                    index
+                ]
+
+                # Check if removing the speaker will bring the selection below the
+                # threshold
+                recording_length = row.conversation_length + row.read_aloud_length
+                if has_accent_length > new_threshold:
+                    has_accent_length -= recording_length
+                    deselected_speakers.append(row.speaker_id)
+                else:
+                    break
 
     # Too many speakers without accent
     elif does_not_have_accent_length > 1 - threshold:
@@ -249,20 +255,26 @@ def select_by_accent(
         new_total_length = has_accent_length / threshold
         new_threshold = new_total_length * (1 - threshold)
 
-        # TODO: Remove speakers with accent, uniformly from each region
-
-        # Remove speakers without accent
+        # Remove speakers without accent, uniformly from each region
         deselected_speakers = []
-        for _, row in does_not_have_accent.sort_values(
-            by="read_aloud_length", ascending=False
-        ).iterrows():
-            # Check if removing the speaker will bring the selection below the threshold
-            recording_length = row.conversation_length + row.read_aloud_length
-            if does_not_have_accent_length - recording_length > new_threshold:
-                does_not_have_accent_length -= recording_length
-                deselected_speakers.append(row.speaker_id)
-            else:
-                break
+        region_groups = does_not_have_accent.groupby("region")
+        index = 0
+        while does_not_have_accent_length > new_threshold:
+            # Remove index-th speaker from each region, as long as the selection
+            # is above the threshold
+            for _, region in region_groups:
+                row = region.sort_values(by="read_aloud_length", ascending=False).iloc[
+                    index
+                ]
+
+                # Check if removing the speaker will bring the selection below the
+                # threshold
+                recording_length = row.conversation_length + row.read_aloud_length
+                if has_accent_length > new_threshold:
+                    has_accent_length -= recording_length
+                    deselected_speakers.append(row.speaker_id)
+                else:
+                    break
 
     # Update the current selection
     current_selection = current_selection[
@@ -357,8 +369,10 @@ def main(cfg: DictConfig) -> None:
         ].gender.values[0]
 
         # Get the age of the speaker
-        age = speaker_metadata[speaker_metadata.speaker_id == speaker_id].age.apply(
-            lambda x: "<25" if x < 25 else "25-50" if x < 50 else ">50"
+        age = (
+            speaker_metadata[speaker_metadata.speaker_id == speaker_id]
+            .age.apply(lambda x: "<25" if x < 25 else "25-50" if x < 50 else ">50")
+            .values[0]
         )
 
         # Get the accent of the speaker
