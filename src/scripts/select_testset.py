@@ -57,33 +57,26 @@ def select_by_region(
         pd.DataFrame:
             The updated selection of speakers.
     """
-
-    # Remove speakers from the current selection to obtain a selection with
-    # even distribution of regions
-    regions = []
-    for _, region in current_selection.groupby("region"):
-        length = region.conversation_length.sum() + region.read_aloud_length.sum()
-        regions.append((region, length))
-
     # Sort by length and take the region with the least amount of recordings
     # as the threshold.
+    regions = [
+        (region, region.length.sum())
+        for _, region in current_selection.groupby("region")
+    ]
     new_threshold = sorted(regions, key=lambda x: x[1])[0][1]
 
     # Remove recordings from the regions until they are below the threshold.
-    # We remove the recordings with the longest duration of read aloud first.
+    # We remove the recordings with the longest duration first.
     # This is done to ensure that we remove the least amount of speakers.
     deselected_speakers = []
     for region, length in regions:
-        for _, row in region.sort_values(
-            by="read_aloud_length", ascending=False
-        ).iterrows():
+        for _, row in region.sort_values(by="length", ascending=False).iterrows():
             # Check if removing the speaker will bring the selection below the threshold
             if length > new_threshold:
-                recording_length = row.conversation_length + row.read_aloud_length
-                length -= recording_length
+                length -= row.length
                 deselected_speakers.append(row.speaker_id)
-        else:
-            break
+            else:
+                break
 
     # Update the current selection
     current_selection = current_selection[
@@ -109,10 +102,7 @@ def select_by_accent(
 
     # Remove speakers from the current such that the selection has 10% speakers
     # with accent and 90% without accent
-    total_recordings = (
-        current_selection.conversation_length.sum()
-        + current_selection.read_aloud_length.sum()
-    )
+    total_recordings = current_selection.length.sum()
     threshold = 0.1 * total_recordings
 
     # Get the distribution of speakers with and without accent
@@ -122,9 +112,9 @@ def select_by_accent(
         accent_dist.append((accent, length))
 
     # Sort by length
-    accent_dist = sorted(accent_dist, key=lambda x: x[1], reverse=True)
+    accent_dist = sorted(accent_dist, key=lambda x: x[1])
 
-    # Too many speakers with accent
+    # Get the length of speakers with and without accent
     has_accent = accent_dist[0][0]
     has_accent_length = accent_dist[0][1]
     does_not_have_accent = accent_dist[1][0]
@@ -134,8 +124,8 @@ def select_by_accent(
     if has_accent_length > threshold:
         # We remove speakers with accent until we have 10% speakers with accent
         # and 90% without accent, this is done by scaling the threshold
-        new_total_length = does_not_have_accent_length / (1 - threshold)
-        new_threshold = new_total_length * threshold
+        new_total_length = does_not_have_accent_length / 0.9
+        new_threshold = new_total_length * 0.1
 
         # Remove speakers with accent, uniformly from each region
         deselected_speakers = []
@@ -145,25 +135,23 @@ def select_by_accent(
             # Remove index-th speaker from each region, as long as the selection
             # is above the threshold
             for _, region in region_groups:
-                row = region.sort_values(by="read_aloud_length", ascending=False).iloc[
-                    index
-                ]
+                row = region.sort_values(by="length", ascending=False).iloc[index]
 
                 # Check if removing the speaker will bring the selection below the
                 # threshold
                 if has_accent_length > new_threshold:
-                    recording_length = row.conversation_length + row.read_aloud_length
-                    has_accent_length -= recording_length
+                    has_accent_length -= row.length
                     deselected_speakers.append(row.speaker_id)
                 else:
                     break
+            index += 1
 
     # Too many speakers without accent
-    elif does_not_have_accent_length > 1 - threshold:
+    elif does_not_have_accent_length > total_recordings - threshold:
         # We remove speakers without accent until we have 10% speakers with accent
         # and 90% without accent, this is done by scaling the threshold
-        new_total_length = has_accent_length / threshold
-        new_threshold = new_total_length * (1 - threshold)
+        new_total_length = has_accent_length / 0.1
+        new_threshold = new_total_length * 0.9
 
         # Remove speakers without accent, uniformly from each region
         deselected_speakers = []
@@ -173,18 +161,16 @@ def select_by_accent(
             # Remove index-th speaker from each region, as long as the selection
             # is above the threshold
             for _, region in region_groups:
-                row = region.sort_values(by="read_aloud_length", ascending=False).iloc[
-                    index
-                ]
+                row = region.sort_values(by="length", ascending=False).iloc[index]
 
                 # Check if removing the speaker will bring the selection below the
                 # threshold
-                if has_accent_length > new_threshold:
-                    recording_length = row.conversation_length + row.read_aloud_length
-                    has_accent_length -= recording_length
+                if does_not_have_accent_length > new_threshold:
+                    does_not_have_accent_length -= row.length
                     deselected_speakers.append(row.speaker_id)
                 else:
                     break
+            index += 1
 
     # Update the current selection
     current_selection = current_selection[
@@ -302,6 +288,7 @@ def main(cfg: DictConfig) -> None:
                 "accent": accent,
                 "conversation_length": conversation_length,
                 "read_aloud_length": read_aloud_length,
+                "length": conversation_length + read_aloud_length,
             }
         )
 
@@ -324,6 +311,9 @@ def main(cfg: DictConfig) -> None:
     current_selection = speaker_selection_criteria_data
 
     current_selection = select_by_region(
+        current_selection=current_selection,
+    )
+    current_selection = select_by_accent(
         current_selection=current_selection,
     )
     current_selection = select_by_length(
