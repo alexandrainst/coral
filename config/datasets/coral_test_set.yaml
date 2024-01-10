@@ -43,3 +43,202 @@ coral_test_set:
       - københavn(vestegn)
       - nordsjællandsk
       - bornholmsk
+
+  dialect_to_alias:
+
+    amagermål:
+      - amagermål
+
+    københavnsk:
+      - københavnsk
+      - københavnsk/østsjællandsk
+      - københavn(vestegn)
+      - storkøbenhavn/amager
+    
+    østjysk:
+      - østjysk
+      - øststjysk
+      - midtøstjysk
+      - midtjysk
+
+    himmerlandsk:
+      - himmerlandsk
+
+    østligt sønderjysk:
+      - østligt sønderjysk
+      - østlig sønderjysk
+      - østligt sønderjysk (m. als)
+      - sydøstjysk
+    
+    vestligt sønderjysk:
+      - vestlig sønderjysk
+      - vestlig sønderjysk (m. mandø og rømø)
+
+    sydsjællandsk:
+      - sjællandsk
+      - sydsjællandsk
+      - sydsjællandsk (sydligt sydsjællandsk)
+      - sydsjællandsk(polsk accent)
+
+    sønderjysk:
+      - sønderjysk
+      - sønderjysl
+
+    sydslesvisk:
+      - sydslesvisk
+
+    vestjysk:
+      - vestjysk
+      - vestjysk (m. thy)
+
+    sydvestjysk:
+      - sydvestjysk
+      - sydvestjysk (m. fanø)
+
+    vendsysselsk:
+      - vendsysselsk
+      - vendsysselsk 
+      - vendsysselsk (m. hanherred og læsø)
+      - vendelbo
+
+    djurslandsk:
+      - djurslandsk
+      - djurslandsk (nord-, syddjurs m. nord- og sydsamsø, anholt)
+
+    nørrejysk:
+      - nørrejysk
+
+    nordsjællandsk:
+      - nordsjællandsk
+
+    mellemslesvisk:
+      - mellemslesvisk
+
+    nordvestsjællandsk:
+      - nordvestsjællandsk
+
+    bornholsmk:
+      - bornholmsk
+
+    ommersysselsk:
+      - ommersysselsk
+
+    sydvestsjællandsk:
+      - sydvestsjællandsk
+
+    sydømål:
+      - nordfalstersk
+      - sydfalstersk
+
+    fynsk:
+      - fynsk
+
+    vestfynsk:
+      - vestfynsk
+
+    vestsjællandsk:
+      - vestsjællandsk
+
+  dialect_to_group:
+
+    amagermål:
+      - amagermål
+
+    københavnsk:
+      - københavnsk
+      - nordsjællandsk
+    
+    østjysk:
+      - vendsysselsk (m. hanherred og læsø)
+      - himmerlandsk
+      - ommersysselsk
+      - djurslandsk (nord-, syddjurs m. nord- og sydsamsø, anholt)
+      - midtøstjysk
+
+    himmerlandsk:
+      - himmerlandsk
+
+    østligt sønderjysk:
+      - østligt sønderjysk
+    
+    vestligt sønderjysk:
+      - vestlig sønderjysk (m. mandø og rømø)
+
+    sydsjællandsk:
+      - sydsjællandsk
+
+    sønderjysk:
+      - vestlig sønderjysk (m. mandø og rømø)
+      - østligt sønderjysk (m. als)
+      - mellemslesvisk, angelmål, fjoldemål
+
+    sydslesvisk:
+      - mellemslesvisk, angelmål, fjoldemål
+
+    vestjysk:
+      - thybomål
+      - morsingmål
+      - sallingmål
+      - hardsysselsk
+      - fjandbomål
+      - sydvestjysk (m. fanø)
+      - sydøstjysk
+
+    sydvestjysk:
+      - sydvestjysk (m. fanø)
+
+    vendsysselsk:
+      - vendsysselsk (m. hanherred og læsø)
+
+    djurslandsk:
+      - djurslandsk (nord-, syddjurs m. nord- og sydsamsø, anholt)
+
+    nørrejysk:
+      - thybomål
+      - morsingmål
+      - sallingmål
+      - hardsysselsk
+      - fjandbomål
+      - sydvestjysk (m. fanø)
+      - sydøstjysk
+      - vendsysselsk (m. hanherred og læsø)
+      - himmerlandsk
+      - ommersysselsk
+      - djurslandsk (nord-, syddjurs m. nord- og sydsamsø, anholt)
+      - midtøstjysk
+
+    nordsjællandsk:
+      - nordsjællandsk
+
+    mellemslesvisk:
+      - mellemslesvisk, angelmål, fjoldemål
+
+    nordvestsjællandsk:
+      - nordvestsjællandsk
+
+    bornholsmk:
+      - bornholmsk
+
+    ommersysselsk:
+      - ommersysselsk
+
+    sydvestsjællandsk:
+      - sydvestsjællandsk
+
+    sydømål:
+      - sydømål
+
+    fynsk:
+      - østfynsk
+      - vestfynsk (nordvest-, sydvestfynsk)
+      - sydfynsk
+      - langelandsk
+      - tåsingsk (m. thurø)
+      - ærøsk (m. lyø, avernakø, strynø, birkholm, drejø)
+
+    vestfynsk:
+      - vestfynsk
+
+    vestsjællandsk:
+      - nordvestsjællandsk
+      - sydvestsjællandsk

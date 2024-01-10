@@ -418,10 +418,17 @@ def main(cfg: DictConfig) -> None:
             )
         )
     region_to_dialect = cfg.datasets.coral_test_set.region_to_dialect
+    dialect_to_alias = cfg.datasets.coral_test_set.dialect_to_alias
+    dialect_to_group = cfg.datasets.coral_test_set.dialect_to_group
     dialect_to_region = {
         dialect: region
         for region, dialects in region_to_dialect.items()
         for dialect in dialects
+    }
+    alias_to_dialect = {
+        alias: dialect
+        for dialect, aliases in dialect_to_alias.items()
+        for alias in aliases
     }
 
     # Loop over the speakers to get selection criteria
@@ -449,9 +456,16 @@ def main(cfg: DictConfig) -> None:
             "sjælland",
         )
 
-        dialect = speaker_metadata[
-            speaker_metadata.speaker_id == speaker_id
-        ].dialect.values[0]
+        dialect = (
+            speaker_metadata[speaker_metadata.speaker_id == speaker_id]
+            .dialect.apply(lambda x: alias_to_dialect.get(x.lower().strip(), x))
+            .values[0]
+        )
+
+        if dialect not in dialect_to_group:
+            logger.warning(f"{dialect} not found in dialect_to_group")
+
+        dialect_group = dialect_to_group.get(dialect.lower())
 
         # Get the gender of the speaker
         gender = speaker_metadata[
@@ -481,6 +495,7 @@ def main(cfg: DictConfig) -> None:
                 "age": age,
                 "accent": accent,
                 "dialect": dialect,
+                "dialect_group": dialect_group,
                 "conversation_length": conversation_length,
                 "read_aloud_length": read_aloud_length,
                 "length": conversation_length + read_aloud_length,
@@ -490,12 +505,31 @@ def main(cfg: DictConfig) -> None:
     # Convert to dataframe
     speaker_selection_criteria_data = pd.DataFrame(speaker_selection_criteria)
 
+    # Whenever a speaker has chosen a dialect group which corresponds to several
+    # dialects, e.g. "vestsjællandsk", which corresponds to both "nordvestsjællandsk"
+    # and "sydvestsjællandsk", we evenly distribute the length of the speaker
+    # over the dialects.
+    new_rows = []
+    for _, row in speaker_selection_criteria_data.iterrows():
+        n_dialects = len(row.dialect_group)
+        for dialect in row.dialect_group:
+            new_rows.append(
+                {
+                    **row.to_dict(),
+                    "dialect": dialect,
+                    "conversation_length": row.conversation_length / n_dialects,
+                    "read_aloud_length": row.read_aloud_length / n_dialects,
+                    "length": row.length / n_dialects,
+                }
+            )
+    speaker_selection_criteria_data = pd.DataFrame(new_rows)
+
     # We start with the full dataset and then remove speakers such that the
     # selection has the correct distribution of speakers for each of the selection
     # criteria. The order of the selection criteria is important, as the first
     # criteria will be the most important, and the last criteria will be the
     # least important. The order of the selection criteria is as follows:
-    # 1. Region
+    # 1. Dialect group
     # 2. Accent
     # 3. Gender
     # 4. Age
@@ -505,6 +539,7 @@ def main(cfg: DictConfig) -> None:
 
     current_selection = speaker_selection_criteria_data
 
+    # TODO: remake this to select by dialect, but still on the level of speaker id
     current_selection = select_by_region(
         current_selection=current_selection,
     )
@@ -517,41 +552,6 @@ def main(cfg: DictConfig) -> None:
     current_selection = select_by_age(
         current_selection=current_selection,
     )
-
-    # Select certain speakers to fix age, conversation/read aloud distribution
-    hand_picked_speakers = []
-    young = speaker_selection_criteria_data[
-        speaker_selection_criteria_data.age == "<25"
-    ]
-
-    # Select young male with the longest conversation recording
-    young_males = young[young.gender == "male"]
-    hand_picked_speakers.append(
-        young_males.sort_values(
-            by="conversation_length", ascending=False
-        ).speaker_id.values[0]
-    )
-
-    # Select the young person with the longest conversation recording
-
-    hand_picked_speakers.extend(
-        young.sort_values(by="conversation_length", ascending=False).speaker_id.values[
-            :1
-        ]
-    )
-
-    current_selection = pd.concat(
-        [
-            current_selection,
-            speaker_selection_criteria_data[
-                speaker_selection_criteria_data.speaker_id.isin(hand_picked_speakers)
-            ],
-        ]
-    )
-
-    # Select speakers such that the test set has the correct distribution of
-    # conversation/read aloud distribution
-
     current_selection = select_by_length(
         current_selection=current_selection,
     )
