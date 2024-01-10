@@ -353,7 +353,40 @@ def select_by_length(current_selection: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame:
             The updated selection of speakers.
     """
-    pass
+    # We need to keep as much of the conversation recordings as possible, as
+    # these are the most important for the test set. Hence we remove speakers
+    # with the longest read aloud recordings first, uniformly over regions, accent
+    # gender and the older age groups.
+
+    threshold = 7.5 * 3600  # 7.5 hours
+    mid_old = current_selection[~(current_selection.age == "<25")]
+    current_length = mid_old.read_aloud_length.sum()
+    index = 0
+    deselected_speakers = []
+    while current_length > threshold:
+        for _, group in mid_old.groupby(["age", "gender", "accent", "region"]):
+            sorted_group = group.sort_values(by="read_aloud_length", ascending=False)
+            # Check if there are any speakers left in the group
+            if len(sorted_group) <= 1 or len(sorted_group) <= index:
+                continue
+
+            # Check if we are removing conversation data.
+            row = sorted_group.iloc[index]
+            has_conversation_data = row.conversation_length != 0.0
+            if has_conversation_data:
+                continue
+            if current_length > threshold:
+                current_length -= row.read_aloud_length
+                deselected_speakers.append(row.speaker_id)
+            else:
+                break
+        index += 1
+
+    # Update the current selection
+    current_selection = current_selection[
+        ~current_selection.speaker_id.isin(deselected_speakers)
+    ]
+    return current_selection
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
@@ -485,9 +518,44 @@ def main(cfg: DictConfig) -> None:
         current_selection=current_selection,
     )
 
+    # Select certain speakers to fix age, conversation/read aloud distribution
+    hand_picked_speakers = []
+    young = speaker_selection_criteria_data[
+        speaker_selection_criteria_data.age == "<25"
+    ]
+
+    # Select young male with the longest conversation recording
+    young_males = young[young.gender == "male"]
+    hand_picked_speakers.append(
+        young_males.sort_values(
+            by="conversation_length", ascending=False
+        ).speaker_id.values[0]
+    )
+
+    # Select the young person with the longest conversation recording
+
+    hand_picked_speakers.extend(
+        young.sort_values(by="conversation_length", ascending=False).speaker_id.values[
+            :1
+        ]
+    )
+
+    current_selection = pd.concat(
+        [
+            current_selection,
+            speaker_selection_criteria_data[
+                speaker_selection_criteria_data.speaker_id.isin(hand_picked_speakers)
+            ],
+        ]
+    )
+
+    # Select speakers such that the test set has the correct distribution of
+    # conversation/read aloud distribution
+
     current_selection = select_by_length(
         current_selection=current_selection,
     )
+    current_selection.to_csv(processed_data_path / "test_speakers.csv", index=False)
 
 
 if __name__ == "__main__":
