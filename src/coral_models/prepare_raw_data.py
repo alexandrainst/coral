@@ -432,11 +432,11 @@ def prepare_raw_data(
             "Total duration (hours)": round(
                 (read_aloud_duration + conversation_duration) / 3600, 2
             ),
-            "People over 50": len(speakers[speakers["age"] > 50]),
-            "People below 50 and above 18": len(
-                speakers[(speakers["age"] < 50) & (speakers["age"] > 18)]
+            "People over 50": len(speakers[speakers["age"] >= 50]),
+            "People below 50 and above 25": len(
+                speakers[(speakers["age"] < 50) & (speakers["age"] >= 25)]
             ),
-            "People below 18": len(speakers[speakers["age"] < 18]),
+            "People below 25": len(speakers[speakers["age"] < 25]),
             "Number of woman": len(speakers[speakers["gender"] == "female"]),
             "Number of men": len(speakers[speakers["gender"] == "male"]),
             "Unique dialects": len(speakers["dialect"].unique()),
