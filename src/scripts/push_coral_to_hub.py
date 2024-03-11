@@ -190,8 +190,17 @@ def main(
             logger.info("Retrying...")
 
 
-def timestamp(timestamp) -> datetime:
-    return datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S+02:00")
+def timestamp(timestamp_str: str) -> datetime:
+    """Convert a string representation of a timestamp to the timestamp.
+    
+    Args:
+        timestamp_str:
+            The string representation of the timestamp.
+            
+    Returns:
+        The timestamp.
+    """
+    return datetime.strptime(timestamp_str, "%Y-%m-%dT%H:%M:%S+02:00")
 
 
 if __name__ == "__main__":
