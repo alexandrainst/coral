@@ -92,13 +92,30 @@ def main(
         "iteration_2": (timestamp("2024-03-15T00:00:00+02:00"), datetime.max),
     }
 
-    recording_metadata["iteration"] = recording_metadata["start"].apply(
-        lambda x: (
-            "iteration_1"
-            if timestamp(x) < iteration_periods["iteration_1"][1]
-            else "iteration_2"
-        )
-    )
+    def get_iteration_name(start_time: str | datetime) -> str:
+        """Returns the CoRal iteration name of a recording start time.
+        
+        Args:
+            start_time:
+                The starting time of the recording.
+                
+        Returns:
+            The iteration name.
+            
+        Raises:
+            ValueError:
+                If no iteration name could be associated to the starting time.
+        """
+        if isinstance(start_time, str):
+            start_time = timestamp(start_time)
+            
+        for iteration_name, (iteration_start, iteration_end) in iteration_periods.items():
+            if start_time >= iteration_start and start_time < iteration_end:
+                return iteration_name
+        else:
+            raise ValueError(f"The start time {start_time} doesn't correspond to any iteration!")
+
+    recording_metadata["iteration"] = recording_metadata["start"].apply(get_iteration_name)
 
     test_recordings = []
     train_recordings = []
