@@ -121,7 +121,7 @@ def main(
     for _, row in recording_metadata.iterrows():
         if any(
             [
-                speaker_id in test_speaker_ids
+                speaker_id in TEST_SPEAKER_IDS
                 for speaker_id in row["speaker_id"].split(",")
             ]
         ):
