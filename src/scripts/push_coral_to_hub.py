@@ -18,7 +18,7 @@ from requests import HTTPError
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(message)s")
 logger = logging.getLogger(__name__)
 
-test_speaker_ids = [
+TEST_SPEAKER_IDS = [
     "t16023910",
     "t22996947",
     "t17053799",
