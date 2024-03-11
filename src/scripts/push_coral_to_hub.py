@@ -81,7 +81,7 @@ TEST_SPEAKER_IDS = [
     show_default=True,
     help=(
         "The Hugging Face Hub id. Note that the version number will be appended to"
-        " this id.",
+        " this id."
     ),
 )
 @click.option(
@@ -118,6 +118,14 @@ def main(
 
     # Change the dtype of all columns to string
     recording_metadata = recording_metadata.astype(str)
+
+    # Recordings might have two speakers, so we split the speaker_id column into two
+    recording_metadata[["speaker_id_1", "speaker_id_2"]] = recording_metadata[
+        "speaker_id"
+    ].str.split(",", expand=True)
+
+    # Remove speaker_id column
+    recording_metadata.drop(columns=["speaker_id"], inplace=True)
 
     # Define dictionary that defines CoRal iteration boundaries
     iteration_periods: dict[str, tuple[datetime, datetime]] = {
@@ -163,7 +171,7 @@ def main(
         if any(
             [
                 speaker_id in TEST_SPEAKER_IDS
-                for speaker_id in row["speaker_id"].split(",")
+                for speaker_id in [row["speaker_id_1"], row["speaker_id_2"]]
             ]
         ):
             test_recordings.append(row)
@@ -198,18 +206,55 @@ def main(
         .apply(lambda x: "<25" if x < 25 else "25-50" if x < 50 else ">50")
     )
 
-    # Add the speaker metadata to the recordings
+    # Add the speaker metadata to the recordings. Since there possibly are two speakers
+    # in each recording, we add the metadata for both speakers to the recordings. We
+    # rename the columns to avoid conflicts.
     test_recordings_df = test_recordings_df.merge(
-        speaker_metadata, left_on="speaker_id", right_on="speaker_id"
+        speaker_metadata.rename(columns=lambda x: f"{x}_1"),
+        on="speaker_id_1",
+        how="left",
+    )
+    test_recordings_df = test_recordings_df.merge(
+        speaker_metadata.rename(columns=lambda x: f"{x}_2"),
+        on="speaker_id_2",
+        how="left",
     )
     train_recordings_df = train_recordings_df.merge(
-        speaker_metadata, left_on="speaker_id", right_on="speaker_id"
+        speaker_metadata.rename(columns=lambda x: f"{x}_1"),
+        how="left",
     )
+    train_recordings_df = train_recordings_df.merge(
+        speaker_metadata.rename(columns=lambda x: f"{x}_2"),
+        how="left",
+    )
+
+    # Pick a validation set from the training set, by selecting a single recording
+    # from each speaker. We do this by selecting the last recording from each speaker
+    # in the training set, as the first recordings are conversations.
+    validation_recordings = []
+    for speaker_id in train_recordings_df["speaker_id_1"].unique():
+        validation_recordings.append(
+            train_recordings_df[train_recordings_df["speaker_id_1"] == speaker_id].iloc[
+                -1
+            ]
+        )
+    validation_recordings_df = pd.DataFrame(validation_recordings).astype(str)
+
+    # Remove the validation recordings from the training set
+    train_recordings_df = train_recordings_df[
+        ~train_recordings_df["filename"].isin(validation_recordings_df["filename"])
+    ].astype(str)
 
     # Create the dataset
     testset = Dataset.from_pandas(test_recordings_df).cast_column("filename", Audio())
     trainset = Dataset.from_dict(train_recordings_df).cast_column("filename", Audio())
-    dataset_dict = DatasetDict({"train": trainset, "test": testset})
+    validationset = Dataset.from_dict(validation_recordings_df).cast_column(
+        "filename",
+        Audio(),
+    )
+    dataset_dict = DatasetDict(
+        {"train": trainset, "test": testset, "validation": validationset}
+    )
 
     # Create hub-id
     hub_id = f"{hub_id}_v{major_version}.{minor_version}"
