@@ -57,11 +57,42 @@ TEST_SPEAKER_IDS = [
 
 
 @click.command("Builds and pushes the CoRal test dataset.")
-@click.argument("recording_metadata_path", type=click.Path(exists=True))
-@click.argument("speaker_metadata_path", type=click.Path(exists=True))
-@click.argument("hub_id", type=str)
-@click.argument("major_version", type=int, default=1, show_default=True)
-@click.argument("minor_version", type=int, default=0, show_default=True)
+@click.option(
+    "--recording_metadata_path",
+    type=click.Path(exists=True),
+    default="data/processed/recordings.xlsx",
+    show_default=True,
+    help="The path to the recording metadata.",
+)
+@click.option(
+    "--speaker_metadata_path",
+    type=click.Path(exists=True),
+    default="data/hidden/speakers.xlsx",
+    show_default=True,
+    help="The path to the speaker metadata.",
+)
+@click.option(
+    "--hub_id",
+    type=str,
+    default="alexandrainst/coral",
+    show_default=True,
+    help=(
+        "The Hugging Face Hub id. Note that the version number will be appended to"
+        " this id.",
+    ),
+)
+@click.option(
+    "--major_version",
+    type=int,
+    show_default=True,
+    help="The major version number of the dataset.",
+)
+@click.option(
+    "--minor_version",
+    type=int,
+    show_default=True,
+    help="The minor version number of the dataset.",
+)
 @click.option(
     "--private",
     is_flag=True,
@@ -70,12 +101,12 @@ TEST_SPEAKER_IDS = [
     help="Whether to make the dataset private on the Hugging Face Hub.",
 )
 def main(
-    recording_metadata_path: Path | str = Path("data/processed/recordings.xlsx"),
-    speaker_metadata_path: Path | str = Path("data/hidden/speakers.xlsx"),
-    hub_id: str = "alexandrainst/coral",
-    major_version: int = 1,
-    minor_version: int = 0,
-    private: bool = True,
+    recording_metadata_path: str | Path,
+    speaker_metadata_path: str | Path,
+    hub_id: str,
+    major_version: int,
+    minor_version: int,
+    private: bool,
 ) -> None:
 
     # Load the metadata and split into test/train speakers
@@ -93,28 +124,35 @@ def main(
 
     def get_iteration_name(start_time: str | datetime) -> str:
         """Returns the CoRal iteration name of a recording start time.
-        
+
         Args:
             start_time:
                 The starting time of the recording.
-                
+
         Returns:
             The iteration name.
-            
+
         Raises:
             ValueError:
                 If no iteration name could be associated to the starting time.
         """
         if isinstance(start_time, str):
             start_time = timestamp(start_time)
-            
-        for iteration_name, (iteration_start, iteration_end) in iteration_periods.items():
+
+        for iteration_name, (
+            iteration_start,
+            iteration_end,
+        ) in iteration_periods.items():
             if start_time >= iteration_start and start_time < iteration_end:
                 return iteration_name
         else:
-            raise ValueError(f"The start time {start_time} doesn't correspond to any iteration!")
+            raise ValueError(
+                f"The start time {start_time} doesn't correspond to any iteration!"
+            )
 
-    recording_metadata["iteration"] = recording_metadata["start"].apply(get_iteration_name)
+    recording_metadata["iteration"] = recording_metadata["start"].apply(
+        get_iteration_name
+    )
 
     test_recordings = []
     train_recordings = []
@@ -191,11 +229,11 @@ def main(
 
 def timestamp(timestamp_str: str) -> datetime:
     """Convert a string representation of a timestamp to the timestamp.
-    
+
     Args:
         timestamp_str:
             The string representation of the timestamp.
-            
+
     Returns:
         The timestamp.
     """
