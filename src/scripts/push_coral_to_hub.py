@@ -8,6 +8,8 @@ Usage:
 from pathlib import Path
 from datasets import Dataset, Audio, DatasetDict
 from datetime import datetime
+from huggingface_hub import HfApi
+from huggingface_hub.hf_api import RepositoryNotFoundError
 import pandas as pd
 import click
 import logging
@@ -18,6 +20,7 @@ from requests import HTTPError
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(message)s")
 logger = logging.getLogger(__name__)
 
+FIRST_ITERATION_END = "2024-03-15T00:00:00+02:00"
 TEST_SPEAKER_IDS = [
     "t16023910",
     "t22996947",
@@ -118,8 +121,8 @@ def main(
 
     # Define dictionary that defines CoRal iteration boundaries
     iteration_periods: dict[str, tuple[datetime, datetime]] = {
-        "iteration_1": (datetime.min, timestamp("2024-03-15T00:00:00+02:00")),
-        "iteration_2": (timestamp("2024-03-15T00:00:00+02:00"), datetime.max),
+        "iteration_1": (datetime.min, timestamp(FIRST_ITERATION_END)),
+        "iteration_2": (timestamp(FIRST_ITERATION_END), datetime.max),
     }
 
     def get_iteration_name(start_time: str | datetime) -> str:
@@ -210,6 +213,36 @@ def main(
 
     # Create hub-id
     hub_id = f"{hub_id}_v{major_version}.{minor_version}"
+
+    # Check if the dataset already exists on the hub, and if so, prompt the user to
+    # update the version number
+    api = HfApi()
+    try:
+        dataset_dict = api.dataset_info(repo_id=hub_id)
+        if dataset_dict.id == hub_id:
+            logger.error(
+                (
+                    f"The dataset {hub_id} already exists on the hub!",
+                    "Please update the version number.",
+                )
+            )
+            return
+    except RepositoryNotFoundError:
+        if major_version == 1 and minor_version == 0:
+            logger.info(
+                (
+                    f"The dataset {hub_id} doesn't exist on the hub.",
+                    "Creating a new dataset...",
+                )
+            )
+        else:
+            logger.error(
+                (
+                    f"The dataset {hub_id} doesn't exist on the hub!",
+                    "Please create a new dataset with version 1.0.",
+                )
+            )
+            return
 
     # Push the dataset to the hub
     while True:
