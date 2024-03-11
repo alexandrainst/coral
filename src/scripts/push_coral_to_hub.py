@@ -1,5 +1,12 @@
+"""Pushes the processed CoRal dataset to the Hugging Face Hub.
+
+Usage:
+    python src/scripts/push_coral_to_hub.py\
+            <path/to/recording/metadata/path> <path/to/speaker/metadata/path> <hub_id>
+"""
+
 from pathlib import Path
-from datasets import Dataset, Audio
+from datasets import Dataset, Audio, DatasetDict
 import pandas as pd
 import click
 import logging
@@ -62,14 +69,15 @@ test_speaker_ids = [
 def main(
     recording_metadata_path: Path | str = Path("data/processed/recordings.xlsx"),
     speaker_metadata_path: Path | str = Path("data/hidden/speakers.xlsx"),
-    hub_id: str = "coral/test",
+    hub_id: str = "coral/iteration-1",
     private: bool = True,
 ) -> None:
 
-    # Load the metadata and restrict to test speakers
+    # Load the metadata and split into test/train speakers
     recording_metadata_path = Path(recording_metadata_path)
     recording_metadata = pd.read_excel(recording_metadata_path, index=0)
     test_recordings = []
+    train_recordings = []
     for _, row in recording_metadata.iterrows():
         if any(
             [
@@ -78,7 +86,10 @@ def main(
             ]
         ):
             test_recordings.append(row)
+        else:
+            train_recordings.append(row)
     test_recordings_df = pd.DataFrame(test_recordings)
+    train_recordings_df = pd.DataFrame(train_recordings)
 
     # Load the speaker metadata
     speaker_metadata_path = Path(speaker_metadata_path)
@@ -101,19 +112,25 @@ def main(
         lambda x: "<25" if x < 25 else "25-50" if x < 50 else ">50"
     )
 
-    # Add the speaker metadata to the test recordings
+    # Add the speaker metadata to the recordings
     test_recordings_df = test_recordings_df.merge(
         speaker_metadata, left_on="speaker_id", right_on="speaker_id"
     )
+    train_recordings_df = train_recordings_df.merge(
+        speaker_metadata, left_on="speaker_id", right_on="speaker_id"
+    )
 
-    # Create the testset
+    # Create the dataset
     testset_dict = test_recordings_df.to_dict(orient="list")
     testset = Dataset.from_dict(testset_dict).cast_column("filename", Audio())
+    trainset_dict = train_recordings_df.to_dict(orient="list")
+    trainset = Dataset.from_dict(trainset_dict).cast_column("filename", Audio())
+    dataset_dict = DatasetDict({"train": trainset, "test": testset})
 
-    # Push the testset to the hub
+    # Push the dataset to the hub
     while True:
         try:
-            testset.push_to_hub(
+            dataset_dict.push_to_hub(
                 repo_id=hub_id,
                 max_shard_size="500MB",
                 private=private,
