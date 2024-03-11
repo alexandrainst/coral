@@ -85,8 +85,7 @@ def main(
     # Change the dtype of all columns to string
     recording_metadata = recording_metadata.astype(str)
 
-    # All recordings which were made before 2024-03-11 are defined as iteration 1
-    # and anything after that is defined as iteration 2
+    # Define dictionary that defines CoRal iteration boundaries
     iteration_periods: dict[str, tuple[datetime, datetime]] = {
         "iteration_1": (datetime.min, timestamp("2024-03-15T00:00:00+02:00")),
         "iteration_2": (timestamp("2024-03-15T00:00:00+02:00"), datetime.max),
