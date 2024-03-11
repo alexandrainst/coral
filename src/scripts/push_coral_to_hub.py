@@ -7,6 +7,7 @@ Usage:
 
 from pathlib import Path
 from datasets import Dataset, Audio, DatasetDict
+from datetime import datetime
 import pandas as pd
 import click
 import logging
@@ -59,6 +60,8 @@ test_speaker_ids = [
 @click.argument("recording_metadata_path", type=click.Path(exists=True))
 @click.argument("speaker_metadata_path", type=click.Path(exists=True))
 @click.argument("hub_id", type=str)
+@click.argument("major_version", type=int, default=1, show_default=True)
+@click.argument("minor_version", type=int, default=0, show_default=True)
 @click.option(
     "--private",
     is_flag=True,
@@ -69,13 +72,34 @@ test_speaker_ids = [
 def main(
     recording_metadata_path: Path | str = Path("data/processed/recordings.xlsx"),
     speaker_metadata_path: Path | str = Path("data/hidden/speakers.xlsx"),
-    hub_id: str = "coral/iteration-1",
+    hub_id: str = "alexandrainst/coral",
+    major_version: int = 1,
+    minor_version: int = 0,
     private: bool = True,
 ) -> None:
 
     # Load the metadata and split into test/train speakers
     recording_metadata_path = Path(recording_metadata_path)
-    recording_metadata = pd.read_excel(recording_metadata_path, index=0)
+    recording_metadata = pd.read_excel(recording_metadata_path, index_col=0)
+
+    # Change the dtype of all columns to string
+    recording_metadata = recording_metadata.astype(str)
+
+    # All recordings which were made before 2024-03-11 are defined as iteration 1
+    # and anything after that is defined as iteration 2
+    iteration_periods: dict[str, tuple[datetime, datetime]] = {
+        "iteration_1": (datetime.min, timestamp("2024-03-15T00:00:00+02:00")),
+        "iteration_2": (timestamp("2024-03-15T00:00:00+02:00"), datetime.max),
+    }
+
+    recording_metadata["iteration"] = recording_metadata["start"].apply(
+        lambda x: (
+            "iteration_1"
+            if timestamp(x) < iteration_periods["iteration_1"][1]
+            else "iteration_2"
+        )
+    )
+
     test_recordings = []
     train_recordings = []
     for _, row in recording_metadata.iterrows():
@@ -93,7 +117,10 @@ def main(
 
     # Load the speaker metadata
     speaker_metadata_path = Path(speaker_metadata_path)
-    speaker_metadata = pd.read_excel(speaker_metadata_path, index=0)
+    speaker_metadata = pd.read_excel(speaker_metadata_path, index_col=0)
+
+    # Change the dtype of all columns to string
+    speaker_metadata = speaker_metadata.astype(str)
 
     # Remove columns from the speaker metadata, and create age groups
     speaker_metadata.drop(
@@ -108,8 +135,10 @@ def main(
         ],
         inplace=True,
     )
-    speaker_metadata["age"] = speaker_metadata["age"].apply(
-        lambda x: "<25" if x < 25 else "25-50" if x < 50 else ">50"
+    speaker_metadata["age"] = (
+        speaker_metadata["age"]
+        .astype(int)
+        .apply(lambda x: "<25" if x < 25 else "25-50" if x < 50 else ">50")
     )
 
     # Add the speaker metadata to the recordings
@@ -121,11 +150,12 @@ def main(
     )
 
     # Create the dataset
-    testset_dict = test_recordings_df.to_dict(orient="list")
-    testset = Dataset.from_dict(testset_dict).cast_column("filename", Audio())
-    trainset_dict = train_recordings_df.to_dict(orient="list")
-    trainset = Dataset.from_dict(trainset_dict).cast_column("filename", Audio())
+    testset = Dataset.from_pandas(test_recordings_df).cast_column("filename", Audio())
+    trainset = Dataset.from_dict(train_recordings_df).cast_column("filename", Audio())
     dataset_dict = DatasetDict({"train": trainset, "test": testset})
+
+    # Create hub-id
+    hub_id = f"{hub_id}_v{major_version}.{minor_version}"
 
     # Push the dataset to the hub
     while True:
@@ -141,3 +171,11 @@ def main(
             logger.info("Waiting a minute before trying again...")
             time.sleep(60)
             logger.info("Retrying...")
+
+
+def timestamp(timestamp) -> datetime:
+    return datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S+02:00")
+
+
+if __name__ == "__main__":
+    main()
