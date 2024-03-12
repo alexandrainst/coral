@@ -263,12 +263,24 @@ def main(
     # update the version number
     api = HfApi()
     try:
-        dataset_dict = api.dataset_info(repo_id=hub_id)
-        if dataset_dict.id == hub_id:
+        dataset_info = api.dataset_info(repo_id=hub_id)
+        if dataset_info.id == hub_id:
             logger.error(
                 (
                     f"The dataset {hub_id} already exists on the hub!",
                     "Please update the version number.",
+                )
+            )
+            return
+
+        found_major, found_minor = dataset_info.id.split("_v")[1].split(".")
+        if major_version < int(found_major) or (
+            major_version == int(found_major) and minor_version < int(found_minor)
+        ):
+            logger.error(
+                (
+                    f"The dataset {hub_id} is of a lower version than the one on the",
+                    " hub! Please update the version number.",
                 )
             )
             return
