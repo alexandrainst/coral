@@ -200,11 +200,6 @@ def make_recording_metadata(
             }
         )
 
-        # Convert speaker emails to speaker IDs
-        read_aloud_data["speaker_id"] = read_aloud_data[["name", "email"]].apply(
-            lambda x: speaker_id(x[0], x[1]), axis=1
-        )
-
         # Make sentence_id columns from content
         # We changed the set of sentences during the project, so we need to check if
         # the sentence is in the sentence list. If it is not, we set the sentence_id to
@@ -252,6 +247,15 @@ def make_recording_metadata(
     all_recording_metadata["recording_id"] = all_recording_metadata[
         "filename"
     ].progress_apply(lambda x: recording_id(x, raw_path))
+
+    all_recording_metadata = all_recording_metadata.drop_duplicates(
+        subset=["email"]
+    ).reset_index(drop=True)
+
+    # Convert speaker emails to speaker IDs
+    all_recording_metadata["speaker_id"] = all_recording_metadata[
+        ["name", "email"]
+    ].apply(lambda x: speaker_id(x[0], x[1]), axis=1)
 
     # Remove rows with no recording id. Sometimes recorders did not submit their
     # all their recordings.
