@@ -9,7 +9,6 @@ from pathlib import Path
 from datasets import Dataset, Audio, DatasetDict
 from datetime import datetime
 from huggingface_hub import HfApi
-from huggingface_hub.hf_api import RepositoryNotFoundError
 import pandas as pd
 import click
 import logging
@@ -257,55 +256,40 @@ def main(
     )
 
     # Create hub-id
-    hub_id = f"{hub_id}_v{major_version}.{minor_version}"
+    hub_id_v = f"{hub_id}_v{major_version}.{minor_version}"
 
     # Check if the dataset already exists on the hub, and if so, prompt the user to
     # update the version number
     api = HfApi()
-    try:
-        dataset_info = api.dataset_info(repo_id=hub_id)
-        if dataset_info.id == hub_id:
-            logger.error(
-                (
-                    f"The dataset {hub_id} already exists on the hub!",
-                    "Please update the version number.",
-                )
-            )
-            return
 
+    # Get all datasets with "coral_v" in the name
+    coral_datasets = api.list_datasets(search="coral_v")
+    for dataset_info in coral_datasets:
         found_major, found_minor = dataset_info.id.split("_v")[1].split(".")
         if major_version < int(found_major) or (
             major_version == int(found_major) and minor_version < int(found_minor)
         ):
-            logger.error(
+            raise ValueError(
                 (
-                    f"The dataset {hub_id} is of a lower version than the one on the",
+                    f"The dataset {hub_id_v} is of a lower version than the one on the",
                     " hub! Please update the version number.",
                 )
             )
-            return
-    except RepositoryNotFoundError:
-        if major_version == 1 and minor_version == 0:
-            logger.info(
+        elif major_version == int(found_major) and minor_version == int(found_minor):
+            raise ValueError(
                 (
-                    f"The dataset {hub_id} doesn't exist on the hub.",
-                    "Creating a new dataset...",
+                    f"The dataset {hub_id_v} already exists on the hub! Please update",
+                    " the version number.",
                 )
             )
-        else:
-            logger.error(
-                (
-                    f"The dataset {hub_id} doesn't exist on the hub!",
-                    "Please create a new dataset with version 1.0.",
-                )
-            )
-            return
+    else:
+        logger.info(f"The dataset {hub_id_v} doesn't exist on the hub. Proceeding...")
 
     # Push the dataset to the hub
     while True:
         try:
             dataset_dict.push_to_hub(
-                repo_id=hub_id,
+                repo_id=hub_id_v,
                 max_shard_size="500MB",
                 private=private,
             )
