@@ -1,12 +1,12 @@
 """Functions for preparing the raw data"""
 
-import contextlib
+import os
 import datetime
 import sqlite3
 import subprocess
-import wave
 from pathlib import Path
 from zlib import adler32
+from joblib import Parallel, delayed
 
 import pandas as pd
 import pycountry
@@ -346,17 +346,16 @@ def prepare_raw_data(
     # Convert the audio files to .wav and place them in the output path, and rename
     # their filenames in the recording metadata. We also calculate the duration of the
     # audio.
-    read_aloud_duration = 0.0
-    conversation_duration = 0.0
     rows_to_remove: list[int] = []
-    for row_i, row in tqdm(recordings.iterrows()):
+
+    def change_codec_and_rename_files(row: pd.Series, row_i: int) -> None:
         filename = input_path / row["filename"]
 
         # Check if the file is empty, and if it is, remove it from the dataframe
         # and continue to the next file
         if filename.stat().st_size < 10000:  # Any file smaller than this is empty
             rows_to_remove.append(row_i)
-            continue
+            return
 
         # Get the new filename
         # New filename is in the format is for conversations:
@@ -397,19 +396,12 @@ def prepare_raw_data(
             stdout=subprocess.DEVNULL,
         )
 
-        # Get the duration of each audio file
-        try:
-            new_filename_str = str(new_filename)
-            with contextlib.closing(wave.open(str(new_filename_str), "r")) as f:
-                frames = f.getnframes()
-                rate = f.getframerate()
-                duration = frames / float(rate)
-                if "conversation" in new_filename_str:
-                    conversation_duration += duration
-                else:
-                    read_aloud_duration += duration
-        except FileNotFoundError:
-            pass
+    # Get number of cores
+    n_jobs = os.cpu_count()
+    Parallel(n_jobs=n_jobs)(
+        delayed(change_codec_and_rename_files)(row, row_i)
+        for row_i, row in recordings.iterrows()
+    )
 
     # Remove rows with empty files
     recordings = recordings.drop(rows_to_remove).reset_index(drop=True)
@@ -431,11 +423,6 @@ def prepare_raw_data(
             "Number of speakers": len(speakers),
             "Number of sentences": len(sentences),
             "Number of recordings": len(recordings),
-            "Read aloud duration (hours)": round(read_aloud_duration / 3600, 2),
-            "Conversation duration (hours)": round(conversation_duration / 3600, 2),
-            "Total duration (hours)": round(
-                (read_aloud_duration + conversation_duration) / 3600, 2
-            ),
             "People over 50": len(speakers[speakers["age"] > 50]),
             "People below 50 and above 18": len(
                 speakers[(speakers["age"] < 50) & (speakers["age"] > 18)]
