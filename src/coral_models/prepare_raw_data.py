@@ -188,7 +188,7 @@ def make_recording_metadata(
     # Load speaker information from read aloud data
     recording_metadata_list = []
     read_aloud_paths = raw_path.glob("*_oplæst_*")
-    for read_aloud_path in tqdm(list(read_aloud_paths)[:2]):
+    for read_aloud_path in tqdm(list(read_aloud_paths)):
         read_aloud_data = get_data_from_db(read_aloud_path)
 
         # Format filenames
