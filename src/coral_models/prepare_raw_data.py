@@ -1,12 +1,10 @@
 """Functions for preparing the raw data"""
 
-import os
 import datetime
 import sqlite3
 import subprocess
 from pathlib import Path
 from zlib import adler32
-from joblib import Parallel, delayed
 
 import pandas as pd
 import pycountry
@@ -190,7 +188,7 @@ def make_recording_metadata(
     # Load speaker information from read aloud data
     recording_metadata_list = []
     read_aloud_paths = raw_path.glob("*_oplæst_*")
-    for read_aloud_path in tqdm(list(read_aloud_paths)):
+    for read_aloud_path in tqdm(list(read_aloud_paths)[:2]):
         read_aloud_data = get_data_from_db(read_aloud_path)
 
         # Format filenames
@@ -420,12 +418,9 @@ def prepare_raw_data(
             stdout=subprocess.DEVNULL,
         )
 
-    # Get number of cores
-    n_jobs = os.cpu_count()
-    Parallel(n_jobs=n_jobs)(
-        delayed(change_codec_and_rename_files)(row, row_i)
-        for row_i, row in recordings.iterrows()
-    )
+    # Convert the audio files and rename them
+    for row_i, row in recordings.iterrows():
+        change_codec_and_rename_files(row, row_i)
 
     # Remove rows with empty files
     recordings = recordings.drop(rows_to_remove).reset_index(drop=True)
