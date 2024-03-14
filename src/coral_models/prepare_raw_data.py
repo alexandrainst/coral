@@ -154,6 +154,16 @@ def make_recording_metadata(
         + cols_needed_for_ids
     ]
 
+    # People often typed their name in all lower case or similar variations, which
+    # yields a lot of duplicates. We therefore remove rows with duplicate emails.
+    mail_to_name = speakers.set_index("mail")["name"].to_dict()
+    recording_metadata["subject_a_name"] = recording_metadata["subject_a_mail"].map(
+        mail_to_name
+    )
+    recording_metadata["subject_b_name"] = recording_metadata["subject_b_mail"].map(
+        mail_to_name
+    )
+
     # Make a speaker_id column for the recording metadata, with ids separated by a comma
     # Subject A is the first speaker id, subject B is the second speaker id
     recording_metadata["speaker_id"] = recording_metadata[
@@ -178,7 +188,7 @@ def make_recording_metadata(
     recording_metadata["filename"] = recording_metadata.index.astype(str)
 
     # Load speaker information from read aloud data
-    recording_metadata_list = [recording_metadata]
+    recording_metadata_list = []
     read_aloud_paths = raw_path.glob("*_oplæst_*")
     for read_aloud_path in tqdm(list(read_aloud_paths)):
         read_aloud_data = get_data_from_db(read_aloud_path)
@@ -229,15 +239,38 @@ def make_recording_metadata(
         # no information about the recorders for the read aloud data.
         read_aloud_data["recorder_id"] = -1
 
-        # Drop columns that are not in the recording metadata
-        read_aloud_data = read_aloud_data[recording_metadata.columns]
+        read_aloud_data["speaker_id"] = "placeholder"
 
         # Append to recording metadata list
         recording_metadata_list.append(read_aloud_data)
 
-    # Concatenate all recording metadata
-    all_recording_metadata = (
+    # Concatenate all read aloud recording metadata
+    all_read_recording_metadata = (
         pd.concat(recording_metadata_list, axis=0)
+        .drop_duplicates()
+        .reset_index(drop=True)
+    )
+
+    # People often typed their name in all lower case or similar variations, which
+    # yields a lot of duplicates. We therefore remove rows with duplicate emails.
+    mail_to_name = speakers.set_index("mail")["name"].to_dict()
+    all_read_recording_metadata["name"] = all_read_recording_metadata["email"].map(
+        mail_to_name
+    )
+
+    # Convert speaker emails to speaker IDs
+    all_read_recording_metadata["speaker_id"] = all_read_recording_metadata[
+        ["name", "email"]
+    ].apply(lambda x: speaker_id(x[0], x[1]), axis=1)
+
+    # Drop columns that are not in the recording metadata
+    all_read_recording_metadata = all_read_recording_metadata[
+        recording_metadata.columns
+    ]
+
+    # Concatenate the read aloud recording metadata with the other recording metadata
+    all_recording_metadata = (
+        pd.concat([all_read_recording_metadata, recording_metadata], axis=0)
         .drop_duplicates()
         .reset_index(drop=True)
     )
@@ -247,15 +280,6 @@ def make_recording_metadata(
     all_recording_metadata["recording_id"] = all_recording_metadata[
         "filename"
     ].progress_apply(lambda x: recording_id(x, raw_path))
-
-    all_recording_metadata = all_recording_metadata.drop_duplicates(
-        subset=["email"]
-    ).reset_index(drop=True)
-
-    # Convert speaker emails to speaker IDs
-    all_recording_metadata["speaker_id"] = all_recording_metadata[
-        ["name", "email"]
-    ].apply(lambda x: speaker_id(x[0], x[1]), axis=1)
 
     # Remove rows with no recording id. Sometimes recorders did not submit their
     # all their recordings.
