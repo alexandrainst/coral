@@ -220,21 +220,23 @@ def main(
     )
     train_recordings_df = train_recordings_df.merge(
         speaker_metadata.rename(columns=lambda x: f"{x}_1"),
+        on="speaker_id_1",
         how="left",
     )
     train_recordings_df = train_recordings_df.merge(
         speaker_metadata.rename(columns=lambda x: f"{x}_2"),
+        on="speaker_id_2",
         how="left",
     )
 
     # Pick a validation set from the training set, by selecting a single recording
-    # from each speaker. We do this by selecting the last recording from each speaker
-    # in the training set, as the first recordings are conversations.
+    # from each speaker. We do this by selecting the first recording from each speaker
+    # in the training set, as the last recordings are conversations.
     validation_recordings = []
     for speaker_id in train_recordings_df["speaker_id_1"].unique():
         validation_recordings.append(
             train_recordings_df[train_recordings_df["speaker_id_1"] == speaker_id].iloc[
-                -1
+                0
             ]
         )
     validation_recordings_df = pd.DataFrame(validation_recordings).astype(str)
