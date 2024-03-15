@@ -5,6 +5,7 @@ Usage:
             <path/to/recording/metadata/path> <path/to/speaker/metadata/path> <hub_id>
 """
 
+import os
 from pathlib import Path
 from datasets import Dataset, Audio, DatasetDict
 from datetime import datetime
@@ -102,6 +103,16 @@ TEST_SPEAKER_IDS = [
     show_default=True,
     help="Whether to make the dataset private on the Hugging Face Hub.",
 )
+@click.option(
+    "--max_num_conversation_recordings",
+    type=int,
+    default=3,
+    show_default=True,
+    help=(
+        "The maximum number of conversation recordings to include in the validation"
+        " set."
+    ),
+)
 def main(
     recording_metadata_path: str | Path,
     speaker_metadata_path: str | Path,
@@ -109,6 +120,7 @@ def main(
     major_version: int,
     minor_version: int,
     private: bool,
+    max_num_conversation_recordings: int,
 ) -> None:
 
     # Load the metadata and split into test/train speakers
@@ -230,15 +242,21 @@ def main(
     )
 
     # Pick a validation set from the training set, by selecting a single recording
-    # from each speaker. We do this by selecting the first recording from each speaker
-    # in the training set, as the last recordings are conversations.
+    # from each speaker. If make sure we do not select more than 3 conversation
+    # recordings, as these are typically longer and might skew the validation set.
     validation_recordings = []
     for speaker_id in train_recordings_df["speaker_id_1"].unique():
-        validation_recordings.append(
-            train_recordings_df[train_recordings_df["speaker_id_1"] == speaker_id].iloc[
-                0
-            ]
-        )
+        recording = train_recordings_df[
+            train_recordings_df["speaker_id_1"] == speaker_id
+        ].iloc[0]
+        if (
+            "conversation" in recording["filename"]
+            and max_num_conversation_recordings > 0
+        ):
+            validation_recordings.append(recording)
+            max_num_conversation_recordings -= 1
+        elif "conversation" not in recording["filename"]:
+            validation_recordings.append(recording)
     validation_recordings_df = pd.DataFrame(validation_recordings).astype(str)
 
     # Remove the validation recordings from the training set
@@ -258,7 +276,15 @@ def main(
     )
 
     # Create hub-id
-    hub_id_v = f"{hub_id}_v{major_version}.{minor_version}"
+    if isinstance(major_version, int) and isinstance(minor_version, int):
+        hub_id_v = f"{hub_id}_v{major_version}.{minor_version}"
+    else:
+        raise ValueError(
+            (
+                "The major and minor version numbers must be specified! Please update",
+                " the version numbers.",
+            )
+        )
 
     # Check if the dataset already exists on the hub, and if so, prompt the user to
     # update the version number
@@ -293,6 +319,7 @@ def main(
             dataset_dict.push_to_hub(
                 repo_id=hub_id_v,
                 max_shard_size="500MB",
+                token=os.environ["HF_TOKEN"],
                 private=private,
             )
             break
