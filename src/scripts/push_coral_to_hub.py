@@ -75,6 +75,13 @@ TEST_SPEAKER_IDS = [
     help="The path to the speaker metadata.",
 )
 @click.option(
+    "--sentence_metadata_path",
+    type=click.Path(exists=True),
+    default="data/processed/sentences.xlsx",
+    show_default=True,
+    help="The path to the sentence metadata.",
+)
+@click.option(
     "--hub_id",
     type=str,
     default="alexandrainst/coral",
@@ -116,6 +123,7 @@ TEST_SPEAKER_IDS = [
 def main(
     recording_metadata_path: str | Path,
     speaker_metadata_path: str | Path,
+    sentence_metadata_path: str | Path,
     hub_id: str,
     major_version: int,
     minor_version: int,
@@ -126,6 +134,21 @@ def main(
     # Load the metadata and split into test/train speakers
     recording_metadata_path = Path(recording_metadata_path)
     recording_metadata = pd.read_excel(recording_metadata_path, index_col=0)
+
+    # Load the sentence metadata
+    sentence_metadata_path = Path(sentence_metadata_path)
+    sentence_metadata = pd.read_excel(sentence_metadata_path, index_col=0)
+
+    # Map sentence_id to text
+    sentence_id_to_text = dict(
+        zip(sentence_metadata["sentence_id"], sentence_metadata["text"])
+    )
+    recording_metadata["text"] = recording_metadata["sentence_id"].map(
+        sentence_id_to_text
+    )
+
+    # Drop "sentence_id" column
+    recording_metadata.drop(columns=["sentence_id"], inplace=True)
 
     # Change the dtype of all columns to string
     recording_metadata = recording_metadata.astype(str)
@@ -264,15 +287,25 @@ def main(
         ~train_recordings_df["filename"].isin(validation_recordings_df["filename"])
     ].astype(str)
 
+    train_read_aloud_df = train_recordings_df[
+        ~train_recordings_df["filename"].str.contains("conversation")
+    ].reset_index(drop=True)
+
     # Create the dataset
     testset = Dataset.from_pandas(test_recordings_df).cast_column("filename", Audio())
-    trainset = Dataset.from_dict(train_recordings_df).cast_column("filename", Audio())
+    trainset_read = Dataset.from_pandas(train_read_aloud_df).cast_column(
+        "filename", Audio()
+    )
     validationset = Dataset.from_dict(validation_recordings_df).cast_column(
         "filename",
         Audio(),
     )
     dataset_dict = DatasetDict(
-        {"train": trainset, "test": testset, "validation": validationset}
+        {
+            "test": testset,
+            "validation": validationset,
+            "train_read_aloud": trainset_read,
+        }
     )
 
     # Create hub-id
@@ -314,11 +347,19 @@ def main(
         logger.info(f"The dataset {hub_id_v} doesn't exist on the hub. Proceeding...")
 
     # Push the dataset to the hub
+    push_to_hub(dataset_dict, hub_id_v, private)
+
+
+def push_to_hub(
+    dataset_dict: DatasetDict,
+    hub_id_v: str,
+    private: bool,
+) -> None:
     while True:
         try:
             dataset_dict.push_to_hub(
                 repo_id=hub_id_v,
-                max_shard_size="500MB",
+                max_shard_size="500 MB",
                 token=os.environ["HF_TOKEN"],
                 private=private,
             )
