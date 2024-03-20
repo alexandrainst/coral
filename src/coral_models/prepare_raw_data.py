@@ -251,7 +251,6 @@ def make_recording_metadata(
 
     # People often typed their name in all lower case or similar variations, which
     # yields a lot of duplicates. We therefore remove rows with duplicate emails.
-    mail_to_name = speakers.set_index("mail")["name"].to_dict()
     all_read_recording_metadata["name"] = all_read_recording_metadata["email"].map(
         mail_to_name
     )
