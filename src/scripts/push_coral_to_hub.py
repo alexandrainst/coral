@@ -84,7 +84,7 @@ TEST_SPEAKER_IDS = [
 @click.option(
     "--hub_id",
     type=str,
-    default="alexandrainst/coral",
+    default="CoRal-dataset/coral",
     show_default=True,
     help=(
         "The Hugging Face Hub id. Note that the version number will be appended to"
@@ -287,16 +287,33 @@ def main(
         ~train_recordings_df["filename"].isin(validation_recordings_df["filename"])
     ].astype(str)
 
-    train_read_aloud_df = train_recordings_df[
-        ~train_recordings_df["filename"].str.contains("conversation")
-    ].reset_index(drop=True)
+    # Remove conversation recordings from the training set
+    train_read_aloud_df = (
+        train_recordings_df[
+            ~train_recordings_df["filename"].str.contains("conversation")
+        ]
+        .reset_index(drop=True)
+        .astype(str)
+    )
+    test_read_aloud_df = (
+        test_recordings_df[~test_recordings_df["filename"].str.contains("conversation")]
+        .reset_index(drop=True)
+        .astype(str)
+    )
+    validation_read_aloud_df = (
+        validation_recordings_df[
+            ~validation_recordings_df["filename"].str.contains("conversation")
+        ]
+        .reset_index(drop=True)
+        .astype(str)
+    )
 
     # Create the dataset
-    testset = Dataset.from_pandas(test_recordings_df).cast_column("filename", Audio())
+    testset = Dataset.from_pandas(test_read_aloud_df).cast_column("filename", Audio())
     trainset_read = Dataset.from_pandas(train_read_aloud_df).cast_column(
         "filename", Audio()
     )
-    validationset = Dataset.from_dict(validation_recordings_df).cast_column(
+    validationset = Dataset.from_dict(validation_read_aloud_df).cast_column(
         "filename",
         Audio(),
     )
