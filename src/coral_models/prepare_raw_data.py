@@ -27,6 +27,113 @@ DB_TO_EXCEL_METADATA_NAMES = {
     "occupation": "occupation",
 }
 
+# Some raw file folders have corrupt files which introduce offsets in the data. We
+# need to ignore these files. This list contains the:
+# - Folder name
+# - Boolean indicating whether offset is present in the data
+# - The index in the metadata table where the offset is introduced
+FIX_CORRUPT_FILE_OFFSETS: list[tuple[str, int, bool]] = [
+    ("opsætning_oplæst 1_itu_280423", 0, False),
+    ("opsætning_oplæst 2_itu_280423", 0, False),
+    ("opsætning_oplæst_1_krystalgade_300523_310523", 0, False),
+    ("opsætning_oplæst_2_krystalgade_300523_310523", 0, False),
+    ("opsætning_oplæst_3_krystalgade_300523_310523", 0, False),
+    ("opsætning_oplæst 1_rendsburggade_190623", 0, False),
+    ("opsætning_oplæst 2_rendsburggade_190623_200623", 0, False),
+    (
+        (
+            "opsætning_oplæst_1_silkeborg_hornslet_kolding_Randers_Hjørring_Aalborg"
+            "_310823_010923_060923_070923_130923_180923_190923_250923_260923_270923"
+        ),
+        0,
+        False,
+    ),
+    (
+        (
+            "opsætning_oplæst_2_silkeborg_hornslet_kolding_Randers_Hjørring_Aalborg"
+            "_310823_010923_060923_070923_130923_180923_190923_250923_260923_270923"
+        ),
+        0,
+        False,
+    ),
+    (
+        (
+            "opsætning_oplæst_3_silkeborg_hornslet_kolding_Randers_Hjørring_Aalborg"
+            "_310823_010923_060923_070923_130923_180923_190923_250923_260923_270923"
+        ),
+        0,
+        False,
+    ),
+    (
+        (
+            "opsætning_oplæst_1_glostrup-holbæk-næstved"
+            "_200923-051023-101023_210923-051023-111023"
+        ),
+        0,
+        False,
+    ),
+    (
+        (
+            "opsætning_oplæst_2_glostrup-holbæk-næstved"
+            "_200923-051023-101023_210923-051023-111023"
+        ),
+        0,
+        False,
+    ),
+    (
+        (
+            "opsætning_oplæst_3_glostrup-holbæk-næstved"
+            "_200923-051023-101023_210923-051023-111023"
+        ),
+        0,
+        False,
+    ),
+    ("opsætning_oplæst_1_aabenraa_Flensborg_251023_261023_011123_021123", 0, True),
+    ("opsætning_oplæst_2_aabenraa_Flensborg_251023_261023_011123_021123", 0, False),
+    ("opsætning_oplæst_2_Viborg_071123", 0, True),
+    ("opsætning_oplæst_1_viborg_071123", 0, True),
+    ("opsætning_hjemme_oplæst_0", 986, True),
+    ("opsætning_oplæst_1_guldborgsund-helsingør-hørsholm-itu_161023-241123", 674, True),
+    ("opsætning_oplæst_hjemme_aalborg_161123-191123", 0, True),
+    ("opsætning_oplæst_hjemme_djursland_ALX_241023-291123", 0, True),
+    ("opsætning_oplæst_3_guldborgsund-hørsholm-helsingør_161023-011123", 355, True),
+    ("opsætning_oplæst_4_guldborgsund-helsingør-itu_161023-071223", 778, True),
+    ("opsætning_oplæst_2_glostrup-hørsholm-katrinebjerg_210923-101123", 0, False),
+    (
+        (
+            "Opsætning_oplæst_1_Aalborg_Det grønlandske hus_Mors"
+            "__270923_131223_141223_211123_221123"
+        ),
+        0,
+        True,
+    ),
+    (
+        (
+            "Opsætning_oplæst_2_Aalborg_Det grønlandske hus_Mors"
+            "__270923_131223_141223_211123_221123"
+        ),
+        0,
+        True,
+    ),
+    ("opsætning_oplæst_guldborgsund-helsingør-hørsholm-itu_161023-051223", 674, True),
+    ("opsætning_oplæst_vordingborg_151223", 0, True),
+    (
+        "opsætning_oplæst_2_glostrup_hørsholm_katrinebjerg_vordingborg_210923_151223",
+        986,
+        True,
+    ),
+    ("opsætning_oplæst_1_ITU_030124-240124", 0, True),
+    ("opsætning_oplæst_1_thorsager-aalborg-alx_051223-010224", 0, False),
+    ("opsætning_oplæst_hjemme_alx_aalestrup_180124_010224", 0, True),
+    ("opsætning_oplæst_hjemme_alx_skjern_aalestrup_2_180124_020224", 0, True),
+    ("opsætning_oplæst_hjemme_alx_skjern_aalestrup_1_180124_020224", 0, True),
+    ("Opsætning_oplæst_hjemme_Randers_270224-050324", 0, True),
+    ("opsætning_oplæst_1_rønne_210224-220224", 0, True),
+    ("opsætning_oplæst_4_rønne_200224-220224", 0, True),
+    ("opsætning_oplæst_2_hjemme_rønne_040224-220224", 0, True),
+    ("opsætning_oplæst_3_itu_260224-060324", 0, True),
+]
+
 
 def make_speaker_metadata(raw_path: Path, metadata_path: Path) -> pd.DataFrame:
     """Make a speaker metadata dataframe from the raw data.
@@ -190,6 +297,14 @@ def make_recording_metadata(
     read_aloud_paths = raw_path.glob("*_oplæst_*")
     for read_aloud_path in tqdm(list(read_aloud_paths)):
         read_aloud_data = get_data_from_db(read_aloud_path)
+
+        # We need to ignore systematic corrupt files in the read aloud data causing
+        # offsets in the metadata
+        read_aloud_data = fix_corrupt_files_offset(read_aloud_data, read_aloud_path)
+
+        # Skip if no data
+        if read_aloud_data is None:
+            continue
 
         # Format filenames
         read_aloud_data["filename"] = read_aloud_data["recorded_file"].apply(
@@ -572,6 +687,23 @@ def recording_id(filename: str, data_folder: Path) -> str | None:
         return "r" + str(adler32(bytes(filename, "utf-8")))[0:8]
     except FileNotFoundError:
         return None
+
+
+def fix_corrupt_files_offset(data: pd.DataFrame, data_path: Path) -> pd.DataFrame:
+    """Fix corrupt files which cause offset in the metadata
+
+    Args:
+        data (pd.DataFrame): The data to check for corrupt files
+    """
+    for folder_name, offset, has_offset in FIX_CORRUPT_FILE_OFFSETS:
+        if folder_name == data_path.parts[-1] and has_offset:
+
+            data.transcription.iloc[offset + 1 :] = data.transcription.iloc[offset:-1]
+
+            # We remove the row with the offset
+            data = data.drop(data.index[offset]).reset_index(drop=True)
+
+    return data
 
 
 def make_readme() -> str:
