@@ -2,7 +2,14 @@
 
 Usage:
     python src/scripts/push_coral_to_hub.py\
-            <path/to/recording/metadata/path> <path/to/speaker/metadata/path> <hub_id>
+            --recording_metadata_path <path/to/metadata>\
+            --speaker_metadata_path <path/to/speaker_metadata>\
+            --sentence_metadata_path <path/to/sentence_metadata>\
+            --hub_id <hub_id>\
+            --major_version <major_version>\
+            --minor_version <minor_version>\
+            [--private]\
+            [--max_num_conversation_recordings]
 """
 
 import os
