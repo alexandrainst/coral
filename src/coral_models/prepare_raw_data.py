@@ -1,10 +1,8 @@
 """Functions for preparing the raw data"""
 
-import contextlib
 import datetime
 import sqlite3
 import subprocess
-import wave
 from pathlib import Path
 from zlib import adler32
 
@@ -13,6 +11,8 @@ import pycountry
 from pydub import AudioSegment
 from pydub.exceptions import CouldntDecodeError
 from tqdm import tqdm
+
+tqdm.pandas()
 
 DB_TO_EXCEL_METADATA_NAMES = {
     "name": "name",
@@ -28,6 +28,113 @@ DB_TO_EXCEL_METADATA_NAMES = {
     "education": "education",
     "occupation": "occupation",
 }
+
+# Some raw file folders have corrupt files which introduce offsets in the data. We
+# need to ignore these files. This list contains the:
+# - Folder name
+# - The index in the metadata table where the offset is introduced
+# - Boolean indicating whether offset is present in the data
+FIX_CORRUPT_FILE_OFFSETS: list[tuple[str, int, bool]] = [
+    ("opsætning_oplæst 1_itu_280423", 0, False),
+    ("opsætning_oplæst 2_itu_280423", 0, False),
+    ("opsætning_oplæst_1_krystalgade_300523_310523", 0, False),
+    ("opsætning_oplæst_2_krystalgade_300523_310523", 0, False),
+    ("opsætning_oplæst_3_krystalgade_300523_310523", 0, False),
+    ("opsætning_oplæst 1_rendsburggade_190623", 0, False),
+    ("opsætning_oplæst 2_rendsburggade_190623_200623", 0, False),
+    (
+        (
+            "opsætning_oplæst_1_silkeborg_hornslet_kolding_Randers_Hjørring_Aalborg"
+            "_310823_010923_060923_070923_130923_180923_190923_250923_260923_270923"
+        ),
+        0,
+        False,
+    ),
+    (
+        (
+            "opsætning_oplæst_2_silkeborg_hornslet_kolding_Randers_Hjørring_Aalborg"
+            "_310823_010923_060923_070923_130923_180923_190923_250923_260923_270923"
+        ),
+        0,
+        False,
+    ),
+    (
+        (
+            "opsætning_oplæst_3_silkeborg_hornslet_kolding_Randers_Hjørring_Aalborg"
+            "_310823_010923_060923_070923_130923_180923_190923_250923_260923_270923"
+        ),
+        0,
+        False,
+    ),
+    (
+        (
+            "opsætning_oplæst_1_glostrup-holbæk-næstved"
+            "_200923-051023-101023_210923-051023-111023"
+        ),
+        0,
+        False,
+    ),
+    (
+        (
+            "opsætning_oplæst_2_glostrup-holbæk-næstved"
+            "_200923-051023-101023_210923-051023-111023"
+        ),
+        0,
+        False,
+    ),
+    (
+        (
+            "opsætning_oplæst_3_glostrup-holbæk-næstved"
+            "_200923-051023-101023_210923-051023-111023"
+        ),
+        0,
+        False,
+    ),
+    ("opsætning_oplæst_1_aabenraa_Flensborg_251023_261023_011123_021123", 0, True),
+    ("opsætning_oplæst_2_aabenraa_Flensborg_251023_261023_011123_021123", 0, False),
+    ("opsætning_oplæst_2_Viborg_071123", 0, True),
+    ("opsætning_oplæst_1_viborg_071123", 0, True),
+    ("opsætning_hjemme_oplæst_0", 986, True),
+    ("opsætning_oplæst_1_guldborgsund-helsingør-hørsholm-itu_161023-241123", 674, True),
+    ("opsætning_oplæst_hjemme_aalborg_161123-191123", 0, True),
+    ("opsætning_oplæst_hjemme_djursland_ALX_241023-291123", 0, True),
+    ("opsætning_oplæst_3_guldborgsund-hørsholm-helsingør_161023-011123", 355, True),
+    ("opsætning_oplæst_4_guldborgsund-helsingør-itu_161023-071223", 778, True),
+    ("opsætning_oplæst_2_glostrup-hørsholm-katrinebjerg_210923-101123", 0, False),
+    (
+        (
+            "Opsætning_oplæst_1_Aalborg_Det grønlandske hus_Mors"
+            "__270923_131223_141223_211123_221123"
+        ),
+        0,
+        True,
+    ),
+    (
+        (
+            "Opsætning_oplæst_2_Aalborg_Det grønlandske hus_Mors"
+            "__270923_131223_141223_211123_221123"
+        ),
+        0,
+        True,
+    ),
+    ("opsætning_oplæst_guldborgsund-helsingør-hørsholm-itu_161023-051223", 674, True),
+    ("opsætning_oplæst_vordingborg_151223", 0, True),
+    (
+        "opsætning_oplæst_2_glostrup_hørsholm_katrinebjerg_vordingborg_210923_151223",
+        986,
+        True,
+    ),
+    ("opsætning_oplæst_1_ITU_030124-240124", 0, True),
+    ("opsætning_oplæst_1_thorsager-aalborg-alx_051223-010224", 0, False),
+    ("opsætning_oplæst_hjemme_alx_aalestrup_180124_010224", 0, True),
+    ("opsætning_oplæst_hjemme_alx_skjern_aalestrup_2_180124_020224", 0, True),
+    ("opsætning_oplæst_hjemme_alx_skjern_aalestrup_1_180124_020224", 0, True),
+    ("Opsætning_oplæst_hjemme_Randers_270224-050324", 0, True),
+    ("opsætning_oplæst_1_rønne_210224-220224", 0, True),
+    ("opsætning_oplæst_4_rønne_200224-220224", 0, True),
+    ("opsætning_oplæst_2_hjemme_rønne_040224-220224", 0, True),
+    ("opsætning_oplæst_3_itu_260224-060324", 0, True),
+]
 
 
 def make_speaker_metadata(raw_path: Path, metadata_path: Path) -> pd.DataFrame:
@@ -154,6 +261,16 @@ def make_recording_metadata(
         + cols_needed_for_ids
     ]
 
+    # People often typed their name in all lower case or similar variations, which
+    # yields a lot of duplicates. We therefore remove rows with duplicate emails.
+    mail_to_name = speakers.set_index("mail")["name"].to_dict()
+    recording_metadata["subject_a_name"] = recording_metadata["subject_a_mail"].map(
+        mail_to_name
+    )
+    recording_metadata["subject_b_name"] = recording_metadata["subject_b_mail"].map(
+        mail_to_name
+    )
+
     # Make a speaker_id column for the recording metadata, with ids separated by a comma
     # Subject A is the first speaker id, subject B is the second speaker id
     recording_metadata["speaker_id"] = recording_metadata[
@@ -178,10 +295,18 @@ def make_recording_metadata(
     recording_metadata["filename"] = recording_metadata.index.astype(str)
 
     # Load speaker information from read aloud data
-    recording_metadata_list = [recording_metadata]
+    recording_metadata_list = []
     read_aloud_paths = raw_path.glob("*_oplæst_*")
     for read_aloud_path in tqdm(list(read_aloud_paths)):
         read_aloud_data = get_data_from_db(read_aloud_path)
+
+        # We need to ignore systematic corrupt files in the read aloud data causing
+        # offsets in the metadata
+        read_aloud_data = fix_corrupt_files_offset(read_aloud_data, read_aloud_path)
+
+        # Skip if no data
+        if read_aloud_data is None:
+            continue
 
         # Format filenames
         read_aloud_data["filename"] = read_aloud_data["recorded_file"].apply(
@@ -198,11 +323,6 @@ def make_recording_metadata(
                 "room_dimensions": "dimensions",
                 "background_noise": "background_noise_level",
             }
-        )
-
-        # Convert speaker emails to speaker IDs
-        read_aloud_data["speaker_id"] = read_aloud_data[["name", "email"]].apply(
-            lambda x: speaker_id(x[0], x[1]), axis=1
         )
 
         # Make sentence_id columns from content
@@ -234,21 +354,42 @@ def make_recording_metadata(
         # no information about the recorders for the read aloud data.
         read_aloud_data["recorder_id"] = -1
 
-        # Drop columns that are not in the recording metadata
-        read_aloud_data = read_aloud_data[recording_metadata.columns]
+        read_aloud_data["speaker_id"] = "placeholder"
 
         # Append to recording metadata list
         recording_metadata_list.append(read_aloud_data)
 
-    # Concatenate all recording metadata
-    all_recording_metadata = (
+    # Concatenate all read aloud recording metadata
+    all_read_recording_metadata = (
         pd.concat(recording_metadata_list, axis=0)
         .drop_duplicates()
         .reset_index(drop=True)
     )
 
+    # People often typed their name in all lower case or similar variations, which
+    # yields a lot of duplicates. We therefore remove rows with duplicate emails.
+    all_read_recording_metadata["name"] = all_read_recording_metadata["email"].map(
+        mail_to_name
+    )
+
+    # Convert speaker emails to speaker IDs
+    all_read_recording_metadata["speaker_id"] = all_read_recording_metadata[
+        ["name", "email"]
+    ].apply(lambda x: speaker_id(x[0], x[1]), axis=1)
+
+    # Drop columns that are not in the recording metadata
+    all_read_recording_metadata = all_read_recording_metadata[
+        recording_metadata.columns
+    ]
+
+    # Concatenate the read aloud recording metadata with the other recording metadata
+    all_recording_metadata = (
+        pd.concat([all_read_recording_metadata, recording_metadata], axis=0)
+        .drop_duplicates()
+        .reset_index(drop=True)
+    )
+
     # Make a recording id column
-    tqdm.pandas()
     all_recording_metadata["recording_id"] = all_recording_metadata[
         "filename"
     ].progress_apply(lambda x: recording_id(x, raw_path))
@@ -339,20 +480,23 @@ def prepare_raw_data(
     if not processed_audio_path.exists():
         processed_audio_path.mkdir()
 
-    # Convert the audio files to .wav and place them in the output path, and rename
-    # their filenames in the recording metadata. We also calculate the duration of the
-    # audio.
-    read_aloud_duration = 0.0
-    conversation_duration = 0.0
     rows_to_remove: list[int] = []
-    for row_i, row in tqdm(recordings.iterrows()):
+
+    def change_codec_and_rename_files(row: pd.Series, row_i: int) -> None:
+        """
+        Convert the audio files to .wav and place them in the output path.
+
+        Args:
+            row (pd.Series): A row in the recording metadata dataframe
+            row_i (int): The index of the row in the recording metadata dataframe
+        """
         filename = input_path / row["filename"]
 
         # Check if the file is empty, and if it is, remove it from the dataframe
         # and continue to the next file
         if filename.stat().st_size < 10000:  # Any file smaller than this is empty
             rows_to_remove.append(row_i)
-            continue
+            return
 
         # Get the new filename
         # New filename is in the format is for conversations:
@@ -393,19 +537,9 @@ def prepare_raw_data(
             stdout=subprocess.DEVNULL,
         )
 
-        # Get the duration of each audio file
-        try:
-            new_filename_str = str(new_filename)
-            with contextlib.closing(wave.open(str(new_filename_str), "r")) as f:
-                frames = f.getnframes()
-                rate = f.getframerate()
-                duration = frames / float(rate)
-                if "conversation" in new_filename_str:
-                    conversation_duration += duration
-                else:
-                    read_aloud_duration += duration
-        except FileNotFoundError:
-            pass
+    # Convert the audio files and rename them
+    for row_i, row in recordings.iterrows():
+        change_codec_and_rename_files(row, row_i)
 
     # Remove rows with empty files
     recordings = recordings.drop(rows_to_remove).reset_index(drop=True)
@@ -427,11 +561,6 @@ def prepare_raw_data(
             "Number of speakers": len(speakers),
             "Number of sentences": len(sentences),
             "Number of recordings": len(recordings),
-            "Read aloud duration (hours)": round(read_aloud_duration / 3600, 2),
-            "Conversation duration (hours)": round(conversation_duration / 3600, 2),
-            "Total duration (hours)": round(
-                (read_aloud_duration + conversation_duration) / 3600, 2
-            ),
             "People over 50": len(speakers[speakers["age"] > 50]),
             "People below 50 and above 18": len(
                 speakers[(speakers["age"] < 50) & (speakers["age"] > 18)]
@@ -563,6 +692,26 @@ def recording_id(filename: str, data_folder: Path) -> str | None:
         return "r" + str(adler32(bytes(filename, "utf-8")))[0:8]
     except FileNotFoundError:
         return None
+
+
+def fix_corrupt_files_offset(data: pd.DataFrame, data_path: Path) -> pd.DataFrame:
+    """Fix corrupt files which cause offset in the metadata
+
+    Args:
+        data (pd.DataFrame): The data to check for corrupt files
+
+    Returns:
+        The fixed dataframe.
+    """
+    for folder_name, offset, has_offset in FIX_CORRUPT_FILE_OFFSETS:
+        if folder_name == data_path.parts[-1] and has_offset:
+
+            data.transcription.iloc[offset + 1 :] = data.transcription.iloc[offset:-1]
+
+            # We remove the row with the offset
+            data = data.drop(data.index[offset]).reset_index(drop=True)
+
+    return data
 
 
 def make_readme() -> str:

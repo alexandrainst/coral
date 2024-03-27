@@ -2,9 +2,17 @@
 
 Usage:
     python src/scripts/push_coral_to_hub.py\
-            <path/to/recording/metadata/path> <path/to/speaker/metadata/path> <hub_id>
+            --recording_metadata_path <path/to/metadata>\
+            --speaker_metadata_path <path/to/speaker_metadata>\
+            --sentence_metadata_path <path/to/sentence_metadata>\
+            --hub_id <hub_id>\
+            --major_version <major_version>\
+            --minor_version <minor_version>\
+            [--private]\
+            [--max_num_conversation_recordings <value>]
 """
 
+import os
 from pathlib import Path
 from datasets import Dataset, Audio, DatasetDict
 from datetime import datetime
@@ -74,9 +82,16 @@ TEST_SPEAKER_IDS = [
     help="The path to the speaker metadata.",
 )
 @click.option(
+    "--sentence_metadata_path",
+    type=click.Path(exists=True),
+    default="data/processed/sentences.xlsx",
+    show_default=True,
+    help="The path to the sentence metadata.",
+)
+@click.option(
     "--hub_id",
     type=str,
-    default="alexandrainst/coral",
+    default="CoRal-dataset/coral",
     show_default=True,
     help=(
         "The Hugging Face Hub id. Note that the version number will be appended to"
@@ -102,18 +117,45 @@ TEST_SPEAKER_IDS = [
     show_default=True,
     help="Whether to make the dataset private on the Hugging Face Hub.",
 )
+@click.option(
+    "--max_num_conversation_recordings",
+    type=int,
+    default=3,
+    show_default=True,
+    help=(
+        "The maximum number of conversation recordings to include in the validation"
+        " set."
+    ),
+)
 def main(
     recording_metadata_path: str | Path,
     speaker_metadata_path: str | Path,
+    sentence_metadata_path: str | Path,
     hub_id: str,
     major_version: int,
     minor_version: int,
     private: bool,
+    max_num_conversation_recordings: int,
 ) -> None:
 
     # Load the metadata and split into test/train speakers
     recording_metadata_path = Path(recording_metadata_path)
     recording_metadata = pd.read_excel(recording_metadata_path, index_col=0)
+
+    # Load the sentence metadata
+    sentence_metadata_path = Path(sentence_metadata_path)
+    sentence_metadata = pd.read_excel(sentence_metadata_path, index_col=0)
+
+    # Map sentence_id to text
+    sentence_id_to_text = dict(
+        zip(sentence_metadata["sentence_id"], sentence_metadata["text"])
+    )
+    recording_metadata["text"] = recording_metadata["sentence_id"].map(
+        sentence_id_to_text
+    )
+
+    # Drop "sentence_id" column
+    recording_metadata.drop(columns=["sentence_id"], inplace=True)
 
     # Change the dtype of all columns to string
     recording_metadata = recording_metadata.astype(str)
@@ -220,23 +262,31 @@ def main(
     )
     train_recordings_df = train_recordings_df.merge(
         speaker_metadata.rename(columns=lambda x: f"{x}_1"),
+        on="speaker_id_1",
         how="left",
     )
     train_recordings_df = train_recordings_df.merge(
         speaker_metadata.rename(columns=lambda x: f"{x}_2"),
+        on="speaker_id_2",
         how="left",
     )
 
     # Pick a validation set from the training set, by selecting a single recording
-    # from each speaker. We do this by selecting the last recording from each speaker
-    # in the training set, as the first recordings are conversations.
+    # from each speaker. If make sure we do not select too many conversation
+    # recordings, as these are typically longer and might skew the validation set.
     validation_recordings = []
     for speaker_id in train_recordings_df["speaker_id_1"].unique():
-        validation_recordings.append(
-            train_recordings_df[train_recordings_df["speaker_id_1"] == speaker_id].iloc[
-                -1
-            ]
-        )
+        recording = train_recordings_df[
+            train_recordings_df["speaker_id_1"] == speaker_id
+        ].iloc[0]
+        if (
+            "conversation" in recording["filename"]
+            and max_num_conversation_recordings > 0
+        ):
+            validation_recordings.append(recording)
+            max_num_conversation_recordings -= 1
+        elif "conversation" not in recording["filename"]:
+            validation_recordings.append(recording)
     validation_recordings_df = pd.DataFrame(validation_recordings).astype(str)
 
     # Remove the validation recordings from the training set
@@ -244,19 +294,54 @@ def main(
         ~train_recordings_df["filename"].isin(validation_recordings_df["filename"])
     ].astype(str)
 
+    # Remove conversation recordings from the training set
+    train_read_aloud_df = (
+        train_recordings_df[
+            ~train_recordings_df["filename"].str.contains("conversation")
+        ]
+        .reset_index(drop=True)
+        .astype(str)
+    )
+    test_read_aloud_df = (
+        test_recordings_df[~test_recordings_df["filename"].str.contains("conversation")]
+        .reset_index(drop=True)
+        .astype(str)
+    )
+    validation_read_aloud_df = (
+        validation_recordings_df[
+            ~validation_recordings_df["filename"].str.contains("conversation")
+        ]
+        .reset_index(drop=True)
+        .astype(str)
+    )
+
     # Create the dataset
-    testset = Dataset.from_pandas(test_recordings_df).cast_column("filename", Audio())
-    trainset = Dataset.from_dict(train_recordings_df).cast_column("filename", Audio())
-    validationset = Dataset.from_dict(validation_recordings_df).cast_column(
+    testset = Dataset.from_pandas(test_read_aloud_df).cast_column("filename", Audio())
+    trainset_read = Dataset.from_pandas(train_read_aloud_df).cast_column(
+        "filename", Audio()
+    )
+    validationset = Dataset.from_dict(validation_read_aloud_df).cast_column(
         "filename",
         Audio(),
     )
     dataset_dict = DatasetDict(
-        {"train": trainset, "test": testset, "validation": validationset}
+        {
+            "test": testset,
+            "validation": validationset,
+            "train_read_aloud": trainset_read,
+        }
     )
 
     # Create hub-id
-    hub_id_v = f"{hub_id}_v{major_version}.{minor_version}"
+    if isinstance(major_version, int) and isinstance(minor_version, int):
+        hub_id_v = f"{hub_id}_v{major_version}.{minor_version}"
+    else:
+        raise ValueError(
+            (
+                "The major and minor version numbers must be specified! Please update",
+                " the version numbers.",
+            )
+        )
 
     # Check if the dataset already exists on the hub, and if so, prompt the user to
     # update the version number
@@ -286,11 +371,20 @@ def main(
         logger.info(f"The dataset {hub_id_v} doesn't exist on the hub. Proceeding...")
 
     # Push the dataset to the hub
+    push_to_hub(dataset_dict, hub_id_v, private)
+
+
+def push_to_hub(
+    dataset_dict: DatasetDict,
+    hub_id_v: str,
+    private: bool,
+) -> None:
     while True:
         try:
             dataset_dict.push_to_hub(
                 repo_id=hub_id_v,
-                max_shard_size="500MB",
+                max_shard_size="500 MB",
+                token=os.environ["HF_TOKEN"],
                 private=private,
             )
             break
