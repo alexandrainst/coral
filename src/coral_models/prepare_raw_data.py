@@ -699,6 +699,9 @@ def fix_corrupt_files_offset(data: pd.DataFrame, data_path: Path) -> pd.DataFram
 
     Args:
         data (pd.DataFrame): The data to check for corrupt files
+        
+    Returns:
+        The fixed dataframe.
     """
     for folder_name, offset, has_offset in FIX_CORRUPT_FILE_OFFSETS:
         if folder_name == data_path.parts[-1] and has_offset:
