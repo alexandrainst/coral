@@ -699,7 +699,7 @@ def fix_corrupt_files_offset(data: pd.DataFrame, data_path: Path) -> pd.DataFram
 
     Args:
         data (pd.DataFrame): The data to check for corrupt files
-        
+
     Returns:
         The fixed dataframe.
     """
