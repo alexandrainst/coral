@@ -12,6 +12,8 @@ from pydub import AudioSegment
 from pydub.exceptions import CouldntDecodeError
 from tqdm import tqdm
 
+tqdm.pandas()
+
 DB_TO_EXCEL_METADATA_NAMES = {
     "name": "name",
     "email": "mail",
@@ -388,7 +390,6 @@ def make_recording_metadata(
     )
 
     # Make a recording id column
-    tqdm.pandas()
     all_recording_metadata["recording_id"] = all_recording_metadata[
         "filename"
     ].progress_apply(lambda x: recording_id(x, raw_path))
