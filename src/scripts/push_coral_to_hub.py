@@ -9,7 +9,7 @@ Usage:
             --major_version <major_version>\
             --minor_version <minor_version>\
             [--private]\
-            [--max_num_conversation_recordings]
+            [--max_num_conversation_recordings <value>]
 """
 
 import os
