@@ -265,7 +265,7 @@ def main(
     )
 
     # Pick a validation set from the training set, by selecting a single recording
-    # from each speaker. If make sure we do not select more than 3 conversation
+    # from each speaker. If make sure we do not select too many conversation
     # recordings, as these are typically longer and might skew the validation set.
     validation_recordings = []
     for speaker_id in train_recordings_df["speaker_id_1"].unique():
