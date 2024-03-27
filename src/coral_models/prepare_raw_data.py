@@ -32,8 +32,8 @@ DB_TO_EXCEL_METADATA_NAMES = {
 # Some raw file folders have corrupt files which introduce offsets in the data. We
 # need to ignore these files. This list contains the:
 # - Folder name
-# - Boolean indicating whether offset is present in the data
 # - The index in the metadata table where the offset is introduced
+# - Boolean indicating whether offset is present in the data
 FIX_CORRUPT_FILE_OFFSETS: list[tuple[str, int, bool]] = [
     ("opsætning_oplæst 1_itu_280423", 0, False),
     ("opsætning_oplæst 2_itu_280423", 0, False),
