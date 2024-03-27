@@ -480,12 +480,16 @@ def prepare_raw_data(
     if not processed_audio_path.exists():
         processed_audio_path.mkdir()
 
-    # Convert the audio files to .wav and place them in the output path, and rename
-    # their filenames in the recording metadata. We also calculate the duration of the
-    # audio.
     rows_to_remove: list[int] = []
 
     def change_codec_and_rename_files(row: pd.Series, row_i: int) -> None:
+        """
+        Convert the audio files to .wav and place them in the output path.
+
+        Args:
+            row (pd.Series): A row in the recording metadata dataframe
+            row_i (int): The index of the row in the recording metadata dataframe
+        """
         filename = input_path / row["filename"]
 
         # Check if the file is empty, and if it is, remove it from the dataframe
