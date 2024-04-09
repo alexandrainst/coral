@@ -5,3 +5,4 @@ common_voice_13_da:
   val_name: validation
   test_name: test
   text_column: sentence
+  audio_column: audio

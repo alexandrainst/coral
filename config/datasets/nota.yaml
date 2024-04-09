@@ -5,3 +5,4 @@ nota:
   val_name: null
   test_name: null
   text_column: text
+  audio_column: audio

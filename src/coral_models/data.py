@@ -110,6 +110,9 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         if dataset_cfg.text_column != "text":
             dataset = dataset.rename_column(dataset_cfg.text_column, "text")
 
+        if dataset_cfg.audio_column != "audio":
+            dataset = dataset.rename_column(dataset_cfg.audio_column, "audio")
+
         dataset = dataset.cast_column(
             column="audio", feature=Audio(sampling_rate=cfg.model.sampling_rate)
         )

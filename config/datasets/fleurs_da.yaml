@@ -5,3 +5,4 @@ fleurs_da:
   val_name: validation
   test_name: test
   text_column: raw_transcription
+  audio_column: audio
