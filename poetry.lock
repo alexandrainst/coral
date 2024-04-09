@@ -1244,7 +1244,7 @@ test = ["ipykernel", "pre-commit", "pytest (<8)", "pytest-cov", "pytest-timeout"
 name = "kenlm"
 version = "0.2.0"
 description = ""
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "master.zip", hash = "sha256:4d002dcde70b52d519cafff4dc0008696c40cff1c9184a531b40c7b45905be6b"},
@@ -4716,7 +4716,10 @@ files = [
 idna = ">=2.0"
 multidict = ">=4.0"
 
+[extras]
+kenlm = ["kenlm"]
+
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.13"
-content-hash = "e2e6e71bb9dfe32b09064f638017745c0b7e5d20453d2a5221b9310e8f969095"
+content-hash = "82fa01e4ca4c1859ea4c0e3f1ee8f0c1438beadb9230c0d9b6f8791621863d61"
