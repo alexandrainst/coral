@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "coral_models"
+name = "coral"
 version = "0.0.0"
 description = "Danish ASR and TTS models associated with the CoRal project."
 authors = [
@@ -51,7 +51,7 @@ addopts = [
     '-s',
     '-vv',
     '--doctest-modules',
-    '--cov=src/coral_models',
+    '--cov=src/coral',
 ]
 xfail_strict = true
 filterwarnings = [
@@ -61,7 +61,7 @@ filterwarnings = [
     "ignore::ImportWarning",
 ]
 log_cli_level = "info"
-testpaths = ["tests", "src/coral_models"]
+testpaths = ["tests", "src/coral"]
 
 [tool.black]
 line-length = 88

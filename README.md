@@ -3,10 +3,10 @@
 Danish ASR and TTS models associated with the CoRal project.
 
 ______________________________________________________________________
-[![Documentation](https://img.shields.io/badge/docs-passing-green)](https://alexandrainst.github.io/coral_models/coral_models.html)
-[![License](https://img.shields.io/github/license/alexandrainst/coral_models)](https://github.com/alexandrainst/coral_models/blob/main/LICENSE)
-[![LastCommit](https://img.shields.io/github/last-commit/alexandrainst/coral_models)](https://github.com/alexandrainst/coral_models/commits/main)
-[![Code Coverage](https://img.shields.io/badge/Coverage-54%25-orange.svg)](https://github.com/alexandrainst/coral_models/tree/main/tests)
+[![Documentation](https://img.shields.io/badge/docs-passing-green)](https://alexandrainst.github.io/coral/coral.html)
+[![License](https://img.shields.io/github/license/alexandrainst/coral)](https://github.com/alexandrainst/coral/blob/main/LICENSE)
+[![LastCommit](https://img.shields.io/github/last-commit/alexandrainst/coral)](https://github.com/alexandrainst/coral/commits/main)
+[![Code Coverage](https://img.shields.io/badge/Coverage-54%25-orange.svg)](https://github.com/alexandrainst/coral/tree/main/tests)
 
 
 Developers:
@@ -97,7 +97,7 @@ publishing the code as a package and more.
 ├── poetry.toml
 ├── pyproject.toml
 ├── src
-│   ├── coral_models
+│   ├── coral
 │   │   ├── __init__.py
 │   │   ├── compute_metrics.py
 │   │   ├── data.py

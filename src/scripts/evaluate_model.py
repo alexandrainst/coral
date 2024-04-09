@@ -9,10 +9,10 @@ from datasets import DatasetDict, IterableDatasetDict, Sequence, Value
 from omegaconf import DictConfig
 from transformers import Trainer, TrainingArguments
 
-from coral_models.data import load_data
-from coral_models.model_setup import load_model_setup
-from coral_models.protocols import Processor
-from coral_models.utils import transformers_output_ignored
+from coral.data import load_data
+from coral.model_setup import load_model_setup
+from coral.protocols import Processor
+from coral.utils import transformers_output_ignored
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)

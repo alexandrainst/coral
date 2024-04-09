@@ -35,7 +35,7 @@ help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' makefile | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 install: ## Install dependencies
-	@echo "Installing the 'coral_models' project..."
+	@echo "Installing the 'coral' project..."
 	@$(MAKE) --quiet install-brew
 	@$(MAKE) --quiet install-gpg
 	@$(MAKE) --quiet generate-gpg-key
@@ -44,7 +44,7 @@ install: ## Install dependencies
 	@$(MAKE) --quiet setup-poetry
 	@$(MAKE) --quiet setup-environment-variables
 	@$(MAKE) --quiet setup-git
-	@echo "Installed the 'coral_models' project."
+	@echo "Installed the 'coral' project."
 
 install-brew:
 	@if [ $$(uname) = "Darwin" ] && [ "$(shell which brew)" = "" ]; then \
@@ -121,7 +121,7 @@ setup-git:
 	@poetry run pre-commit install
 
 docs:  ## Generate documentation
-	@poetry run pdoc --docformat google src/coral_models -o docs
+	@poetry run pdoc --docformat google src/coral -o docs
 	@echo "Saved documentation."
 
 view-docs:  ## View documentation
@@ -133,7 +133,7 @@ view-docs:  ## View documentation
 			(*CYGWIN*) openCmd='cygstart'; ;; \
 			(*) echo 'Error: Unsupported platform: $${uname}'; exit 2; ;; \
 		esac; \
-		"$${openCmd}" docs/coral_models.html
+		"$${openCmd}" docs/coral.html
 
 test:  ## Run tests
 	@poetry run pytest && poetry run readme-cov

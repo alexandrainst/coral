@@ -10,7 +10,7 @@ Usage:
 
 import click
 
-from coral_models.prepare_raw_data import prepare_raw_data
+from coral.prepare_raw_data import prepare_raw_data
 
 
 @click.command("Preprocesses the CoRal dataset.")

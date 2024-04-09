@@ -4,7 +4,7 @@ import datasets.utils.logging as ds_logging
 from datasets.utils import enable_progress_bar
 import transformers.utils.logging as hf_logging
 
-from coral_models.utils import block_terminal_output, transformers_output_ignored
+from coral.utils import block_terminal_output, transformers_output_ignored
 
 
 class output_blocked:

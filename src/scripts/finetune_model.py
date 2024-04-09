@@ -9,7 +9,7 @@ from omegaconf import DictConfig
 import os
 import logging
 
-from coral_models.finetune import finetune
+from coral.finetune import finetune
 
 
 logger = logging.getLogger(__name__)

@@ -9,7 +9,7 @@ from datasets import DatasetDict, IterableDatasetDict
 from hydra import compose, initialize
 from omegaconf import DictConfig
 
-from coral_models.data import load_data
+from coral.data import load_data
 
 # Initialise Hydra
 initialize(config_path="../config", version_base=None)
