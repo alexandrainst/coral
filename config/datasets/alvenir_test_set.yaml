@@ -5,3 +5,4 @@ alvenir_test_set:
   val_name: null
   test_name: test
   text_column: sentence
+  audio_column: audio

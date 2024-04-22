@@ -5,3 +5,4 @@ ftspeech:
   val_name: dev_balanced
   test_name: test_balanced
   text_column: sentence
+  audio_column: audio

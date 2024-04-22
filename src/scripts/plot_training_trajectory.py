@@ -12,7 +12,7 @@ import click
 from transformers import TrainerState
 from transformers.trainer import TRAINER_STATE_NAME
 
-from coral_models.plot import plot_training_loss
+from coral.plot import plot_training_loss
 
 EXTENSION = "png"
 

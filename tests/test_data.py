@@ -5,7 +5,7 @@ import re
 import pytest
 from datasets import DatasetDict, IterableDatasetDict
 
-from coral_models.data import clean_example
+from coral.data import clean_example
 
 
 class TestLoadData:

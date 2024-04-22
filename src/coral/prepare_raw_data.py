@@ -705,7 +705,6 @@ def fix_corrupt_files_offset(data: pd.DataFrame, data_path: Path) -> pd.DataFram
     """
     for folder_name, offset, has_offset in FIX_CORRUPT_FILE_OFFSETS:
         if folder_name == data_path.parts[-1] and has_offset:
-
             data.transcription.iloc[offset + 1 :] = data.transcription.iloc[offset:-1]
 
             # We remove the row with the offset

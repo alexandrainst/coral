@@ -18,7 +18,7 @@ seed: 4242
 # Dataset parameters
 characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
 max_seconds_per_example: 10
-dataloader_num_workers: 8
+dataloader_num_workers: 4
 
 # Can be `longest`, `max_length` or `do_not_pad`
 # NOTE: This is automatically set to `max_length` in a multi-gpu setting

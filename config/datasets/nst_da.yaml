@@ -5,3 +5,4 @@ nst_da:
   val_name: null
   test_name: test
   text_column: text
+  audio_column: audio
