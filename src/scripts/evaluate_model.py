@@ -6,7 +6,6 @@ Usage:
 
 import itertools as it
 import logging
-from functools import partial
 
 import hydra
 import numpy as np
@@ -67,10 +66,6 @@ def main(cfg: DictConfig) -> None:
         df[f"{category}_1"].unique().tolist() + [None] for category in categories
     ]
 
-    compute_metrics = partial(
-        compute_wer_metrics, processor=model_data.processor, log_examples=False
-    )
-
     records = list()
     for combination in it.product(*unique_category_values):
         df_filtered = df.copy()
@@ -80,8 +75,10 @@ def main(cfg: DictConfig) -> None:
         if not len(df_filtered):
             continue
         idxs = df_filtered.index.tolist()
-        combination_scores = compute_metrics(
-            EvalPrediction(predictions=predictions[idxs], label_ids=labels[idxs])
+        combination_scores = compute_wer_metrics(
+            pred=EvalPrediction(predictions=predictions[idxs], label_ids=labels[idxs]),
+            processor=model_data.processor,
+            log_examples=False,
         )
         named_combination = dict(zip(categories, combination))
         records.append(named_combination | combination_scores)

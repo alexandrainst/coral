@@ -6,10 +6,11 @@ import warnings
 from functools import partialmethod
 
 import datasets.utils.logging as ds_logging
-import tqdm
+import tqdm as tqdm_package
 import transformers.utils.logging as hf_logging
 from datasets import Dataset, IterableDataset
 from datasets.utils import disable_progress_bar
+from tqdm.auto import tqdm
 
 
 def block_terminal_output() -> None:
@@ -63,7 +64,7 @@ def disable_tqdm():
     def _patch(old_init):
         return partialmethod(old_init, disable=True)
 
-    with monkeypatched(tqdm.std.tqdm, "__init__", _patch):
+    with monkeypatched(tqdm_package.std.tqdm, "__init__", _patch):
         yield
 
 
@@ -80,7 +81,7 @@ def convert_iterable_dataset_to_dataset(iterable_dataset: IterableDataset) -> Da
     """
 
     def gen_from_iterable_dataset():
-        yield from iterable_dataset
+        yield from tqdm(iterable=iterable_dataset)
 
     dataset = Dataset.from_generator(
         generator=gen_from_iterable_dataset, features=iterable_dataset.features
