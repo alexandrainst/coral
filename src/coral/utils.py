@@ -98,7 +98,6 @@ def convert_iterable_dataset_to_dataset(
     """
     if dataset_id is not None:
         dataset_dir = Path.home() / ".cache" / "huggingface" / "datasets" / dataset_id
-        breakpoint()
         if dataset_dir.exists():
             return Dataset.load_from_disk(str(dataset_dir))
 
