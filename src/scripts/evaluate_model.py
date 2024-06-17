@@ -45,10 +45,11 @@ def main(cfg: DictConfig) -> None:
         tokenizer=getattr(model_data.processor, "tokenizer"),
     )
 
-    metrics = trainer.evaluate(eval_dataset=dataset["test"])
-    wer = metrics["eval_wer"]
+    predictions = trainer.predict(test_dataset=dataset["test"])
+    print(predictions)
+    breakpoint()
 
-    logger.info(f"{cfg.model.name} achieved a WER of {wer:.2%}.")
+    # logger.info(f"{cfg.model.name} achieved a WER of {wer:.2%}.")
 
 
 def preprocess_transcriptions(

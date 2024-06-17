@@ -154,10 +154,10 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         split = split.cast_column(
             column="audio", feature=Audio(sampling_rate=cfg.model.sampling_rate)
         )
-        breakpoint()
-        split = split.remove_columns(
-            [column for column in split.column_names if column not in ["audio", "text"]]
-        )
+        # TODO: Decide if we want to keep the original columns
+        # split = split.remove_columns(
+        #     [column for column in split.column_names if column not in ["audio", "text"]]
+        # )
         if cfg.model.clean_dataset:
             split = clean_dataset(cfg=cfg, dataset=split)
         dataset[new_split_name] = split
