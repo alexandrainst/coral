@@ -49,8 +49,6 @@ def main(cfg: DictConfig) -> None:
         args=TrainingArguments(".", remove_unused_columns=False, report_to=[]),
         model=model_data.model,
         data_collator=model_data.data_collator,
-        compute_metrics=model_data.compute_metrics,
-        eval_dataset=dataset,
         tokenizer=getattr(model_data.processor, "tokenizer"),
     )
 
