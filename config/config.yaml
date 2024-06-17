@@ -37,9 +37,9 @@ padding: longest
 dataset_probabilities: null
 
 # Model parameters
-pipeline_id: ${model.name}-finetuned
+pipeline_id: ${model.name}-finetuned-${now:%Y-%m-%d}
 hub_id: alexandrainst/${pipeline_id}
-model_dir: ${dirs.models}/${pipeline_id}-${now:%Y-%m-%d}
+model_dir: ${dirs.models}/${pipeline_id}
 push_to_hub: false
 fp16: true
 
