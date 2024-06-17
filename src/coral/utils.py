@@ -13,7 +13,17 @@ from datasets import Dataset, IterableDataset
 from datasets.utils import disable_progress_bar
 from tqdm.auto import tqdm
 
-DIALECT_MAP: dict[str, str] = {}
+DIALECT_MAP: dict[str, str] = {
+    "nordvestsjællandsk": "sjællandsk",
+    "sydsjællandsk": "sjællandsk",
+    "nordsjællandsk": "sjællandsk",
+    "midtøstjysk": "østjysk",
+    "vendsysselsk": "østjysk",
+    "midtjysk": "østjysk",
+    "vestlig sønderjysk": "sønderjysk",
+    "mellemslesvigsk": "sønderjysk",
+    "amagermål": "københavnsk",
+}
 
 
 def block_terminal_output() -> None:
