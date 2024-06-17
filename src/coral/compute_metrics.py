@@ -83,9 +83,12 @@ def compute_wer_metrics(
     # Decode the ground truth labels
     labels_str = tokenizer.batch_decode(sequences=labels, group_tokens=False)
 
+    if not predictions_str:
+        breakpoint()
+
     # Log both the predictions and the ground truth labels
     is_main_process = os.getenv("RANK", "0") == "0"
-    if is_main_process and predictions_str and log_examples:
+    if is_main_process and log_examples:
         random_idx = np.random.randint(0, len(predictions_str))
         logger.info(f"Sample document: {labels_str[random_idx]}")
         logger.info(f"Predicted: {predictions_str[random_idx]}")
