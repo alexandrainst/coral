@@ -4,6 +4,8 @@ Usage:
     python evaluate_model.py <key>=<value> <key>=<value> ...
 """
 
+import logging
+
 import hydra
 from coral.data import load_data
 from coral.model_setup import load_model_setup
@@ -17,6 +19,9 @@ from transformers import Trainer, TrainingArguments
 load_dotenv()
 
 
+logger = logging.getLogger(__name__)
+
+
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
 def main(cfg: DictConfig) -> None:
     """Evaluate a speech model on a dataset.
@@ -25,8 +30,6 @@ def main(cfg: DictConfig) -> None:
         cfg:
             The Hydra configuration object.
     """
-    eval_dataset_cfg = list(cfg.datasets.values())[0]
-
     with transformers_output_ignored():
         model_data = load_model_setup(cfg).load_saved()
 
@@ -45,8 +48,7 @@ def main(cfg: DictConfig) -> None:
     metrics = trainer.evaluate(eval_dataset=dataset["test"])
     wer = metrics["eval_wer"]
 
-    print(f"\n*** RESULTS ON {eval_dataset_cfg.dataset.name} ***")
-    print(f"{eval_dataset_cfg.hub_id} achieved a WER of {wer:.2%}.\n")
+    logger.info(f"{cfg.model.name} achieved a WER of {wer:.2%}.")
 
 
 def preprocess_transcriptions(

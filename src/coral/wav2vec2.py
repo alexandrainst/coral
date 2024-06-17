@@ -270,20 +270,28 @@ class Wav2Vec2ModelSetup:
 
     def load_saved(self) -> PreTrainedModelData:
         """Return the saved model data for the model."""
+        model_id = self.cfg.model_dir
+        if not Path(model_id).exists():
+            model_id = self.cfg.hub_id
+
         processor: Processor
         if self.cfg.model.language_model_decoder is not None:
             try:
                 processor = Wav2Vec2ProcessorWithLM.from_pretrained(
-                    self.cfg.hub_id, token=True
+                    model_id, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
                 )
             except (FileNotFoundError, ValueError):
                 processor = Wav2Vec2Processor.from_pretrained(
-                    self.cfg.hub_id, token=True
+                    model_id, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
                 )
         else:
-            processor = Wav2Vec2Processor.from_pretrained(self.cfg.hub_id, token=True)
+            processor = Wav2Vec2Processor.from_pretrained(
+                model_id, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
+            )
 
-        model = Wav2Vec2ForCTC.from_pretrained(self.cfg.hub_id, token=True)
+        model = Wav2Vec2ForCTC.from_pretrained(
+            model_id, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
+        )
         data_collator = DataCollatorCTCWithPadding(
             processor=processor,
             max_seconds_per_example=self.cfg.max_seconds_per_example,
