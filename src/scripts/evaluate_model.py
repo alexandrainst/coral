@@ -45,6 +45,7 @@ def main(cfg: DictConfig) -> None:
         tokenizer=getattr(model_data.processor, "tokenizer"),
     )
 
+    breakpoint()
     metrics = trainer.evaluate(eval_dataset=dataset["test"])
     wer = metrics["eval_wer"]
 
