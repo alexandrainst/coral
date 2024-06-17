@@ -154,6 +154,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
     )
     dataset["val"] = val_dataset
     dataset["test"] = test_dataset
+    breakpoint()
 
     return dataset
 
