@@ -26,6 +26,7 @@ def block_terminal_output() -> None:
     # Disable logging from Hugging Face libraries
     ds_logging.set_verbosity_error()
     logging.getLogger("accelerate").setLevel(logging.ERROR)
+    logging.getLogger("pyctcdecode").setLevel(logging.ERROR)
 
     # Disable the tokeniser progress bars from the `datasets` library
     disable_progress_bar()
@@ -35,9 +36,11 @@ class transformers_output_ignored:
     """Context manager to block terminal output."""
 
     def __enter__(self) -> None:
+        """Enter the context manager."""
         hf_logging.set_verbosity_error()
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Exit the context manager."""
         hf_logging.set_verbosity_info()
 
 
