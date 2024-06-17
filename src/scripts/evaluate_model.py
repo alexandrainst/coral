@@ -89,7 +89,9 @@ def main(cfg: DictConfig) -> None:
         records.append(named_combination | combination_scores)
 
         combination_str = ", ".join(
-            f"{key}={value}" for key, value in named_combination.items()
+            f"{key}={value}"
+            for key, value in named_combination.items()
+            if value is not None
         )
         scores_str = ", ".join(
             f"{key}={value:.0%}" for key, value in combination_scores.items()
