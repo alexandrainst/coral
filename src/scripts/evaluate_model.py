@@ -76,6 +76,8 @@ def main(cfg: DictConfig) -> None:
         for key, value in zip(categories, combination):
             if value is not None:
                 df_filtered = df_filtered.query(f"{key}_1 == '{value}'")
+        if not len(df_filtered):
+            continue
         idxs = df_filtered.index.tolist()
         combination_scores = compute_metrics(
             EvalPrediction(predictions=predictions[idxs], label_ids=labels[idxs])
