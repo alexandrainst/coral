@@ -66,6 +66,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
                 split=dataset_cfg.train_name,
                 token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
                 streaming=True,
+                trust_remote_code=True,
             )
 
         assert isinstance(ds, Dataset) or isinstance(
@@ -140,6 +141,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
             split=old_split_name,
             token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
             streaming=True,
+            trust_remote_code=True,
         )
         if cfg.evaluation_dataset.text_column != "text":
             split = split.rename_column(cfg.evaluation_dataset.text_column, "text")
