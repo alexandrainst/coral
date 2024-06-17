@@ -11,6 +11,7 @@ from functools import partial
 import hydra
 import numpy as np
 import pandas as pd
+from coral.compute_metrics import compute_wer_metrics
 from coral.data import load_data
 from coral.model_setup import load_model_setup
 from coral.protocols import Processor
@@ -68,7 +69,9 @@ def main(cfg: DictConfig) -> None:
         df[f"{category}_1"].unique().tolist() + [None] for category in categories
     ]
 
-    compute_metrics = partial(model_data.compute_metrics, log_examples=False)
+    compute_metrics = partial(
+        compute_wer_metrics, processor=model_data.processor, log_examples=False
+    )
 
     records = list()
     for combination in it.product(*unique_category_values):
@@ -84,7 +87,14 @@ def main(cfg: DictConfig) -> None:
         )
         named_combination = dict(zip(categories, combination))
         records.append(named_combination | combination_scores)
-        logger.info(f"Scores for {named_combination}: {combination_scores}")
+
+        combination_str = ", ".join(
+            f"{key}={value}" for key, value in named_combination.items()
+        )
+        scores_str = ", ".join(
+            f"{key}={value:.0%}" for key, value in combination_scores.items()
+        )
+        logger.info(f"Scores for {combination_str}: {scores_str}")
 
     score_df = pd.DataFrame.from_records(data=records)
     score_df.to_csv(f"{cfg.pipeline_id}_scores.csv", index=False)
