@@ -80,7 +80,7 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
         if "input_values" in features[0]:
             audio_features = [dict(input_values=f["input_values"]) for f in features]
         elif "audio" in features[0]:
-            audio_features = [dict(audio=f["audio"]["array"]) for f in features]
+            audio_features = [dict(input_values=f["audio"]["array"]) for f in features]
         else:
             raise ValueError(
                 "Features must contain either 'input_values' or 'audio' key."
