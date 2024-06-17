@@ -20,8 +20,10 @@ DIALECT_MAP: dict[str, str] = {
     "midtøstjysk": "østjysk",
     "vendsysselsk": "østjysk",
     "midtjysk": "østjysk",
-    "vestlig sønderjysk": "sønderjysk",
+    "nørrejysk": "østjysk",
+    "vestlig sønderysk": "sønderjysk",
     "mellemslesvisk": "sønderjysk",
+    "sydøstjysk": "sønderjysk",
     "amagermål": "københavnsk",
 }
 
