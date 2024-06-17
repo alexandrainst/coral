@@ -52,7 +52,7 @@ def main(cfg: DictConfig) -> None:
 
     logger.info("Converting iterable test dataset to a regular dataset.")
     test_dataset = convert_iterable_dataset_to_dataset(
-        iterable_dataset=dataset["test"].take(n=10)
+        iterable_dataset=dataset["test"].take(n=100)
     )
     prediction_object = trainer.predict(test_dataset=test_dataset)
     predictions = prediction_object.predictions
@@ -93,6 +93,8 @@ def main(cfg: DictConfig) -> None:
             for key, value in named_combination.items()
             if value is not None
         )
+        if combination_str == "":
+            combination_str = "entire test set"
         scores_str = ", ".join(
             f"{key}={value:.0%}" for key, value in combination_scores.items()
         )

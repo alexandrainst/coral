@@ -83,9 +83,6 @@ def compute_wer_metrics(
     # Decode the ground truth labels
     labels_str = tokenizer.batch_decode(sequences=labels, group_tokens=False)
 
-    if not predictions_str:
-        breakpoint()
-
     # Log both the predictions and the ground truth labels
     is_main_process = os.getenv("RANK", "0") == "0"
     if is_main_process and log_examples:
