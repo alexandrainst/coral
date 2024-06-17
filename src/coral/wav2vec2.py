@@ -2,13 +2,13 @@
 
 import json
 import logging
+import os
 import sys
+import time
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 from typing import Callable, Type
-import time
-import os
 
 import torch
 from omegaconf import DictConfig
@@ -41,11 +41,11 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
     """Data collator that will dynamically pad the inputs received.
 
     Args:
-        processor (Wav2Vec2Processor)
+        processor:
             The processor used for proccessing the data.
-        max_seconds_per_example (float):
+        max_seconds_per_example:
             The maximum number of seconds per example.
-        padding (bool, str or PaddingStrategy, optional):
+        padding:
             Select a strategy to pad the returned sequences (according to the model's
             padding side and padding index) among:
             * True or 'longest':
@@ -70,7 +70,7 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
         """Collate the features.
 
         Args:
-            features (list of dict):
+            features:
                 A list of feature dicts.
 
         Returns:
@@ -109,18 +109,20 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
 
 
 class Wav2Vec2ModelSetup:
-    """Model setup for Wav2Vec 2.0 models.
-
-    Args:
-        cfg (DictConfig):
-            The Hydra configuration object.
-    """
+    """Model setup for Wav2Vec 2.0 models."""
 
     def __init__(self, cfg: DictConfig) -> None:
+        """Initialise the model setup.
+
+        Args:
+            cfg:
+                The Hydra configuration object.
+        """
         self.cfg = cfg
         self.processor: Wav2Vec2Processor
 
     def load_processor(self) -> Wav2Vec2Processor:
+        """Return the processor for the model."""
         # We dump the vocabulary to a file since the tokenizer uses this file during
         # initialisation
         while True:
@@ -164,6 +166,7 @@ class Wav2Vec2ModelSetup:
         return self.processor
 
     def load_model(self) -> Wav2Vec2ForCTC:
+        """Return the model for the model."""
         with transformers_output_ignored():
             model = Wav2Vec2ForCTC.from_pretrained(
                 self.cfg.model.pretrained_model_id,
@@ -194,6 +197,7 @@ class Wav2Vec2ModelSetup:
         return model
 
     def load_data_collator(self) -> DataCollatorCTCWithPadding:
+        """Return the data collator for the model."""
         return DataCollatorCTCWithPadding(
             processor=self.processor,
             max_seconds_per_example=self.cfg.max_seconds_per_example,
@@ -201,12 +205,15 @@ class Wav2Vec2ModelSetup:
         )
 
     def load_trainer_class(self) -> Type[Trainer]:
+        """Return the trainer class for the model."""
         return Trainer
 
     def load_compute_metrics(self) -> Callable[[EvalPrediction], dict]:
+        """Return the compute metrics function for the model."""
         return partial(compute_wer_metrics, processor=self.processor)
 
     def load_training_arguments(self) -> TrainingArguments:
+        """Return the training arguments for the model."""
         # Compute the gradient accumulation based on the total batch size in the config
         num_devices = max(torch.cuda.device_count(), 1)
         per_device_total_batch_size = self.cfg.total_batch_size // num_devices
@@ -224,12 +231,6 @@ class Wav2Vec2ModelSetup:
             )
             gradient_accumulation_steps = 1
 
-        do_eval = any(
-            [
-                dataset_cfg.val_name is not None
-                for dataset_cfg in self.cfg.datasets.values()
-            ]
-        )
         args = TrainingArguments(
             output_dir=self.cfg.model_dir,
             hub_model_id=self.cfg.hub_id,
@@ -242,17 +243,17 @@ class Wav2Vec2ModelSetup:
             max_steps=self.cfg.max_steps,
             fp16=self.cfg.fp16 and not mps_is_available(),
             push_to_hub=self.cfg.push_to_hub,
-            evaluation_strategy="steps" if do_eval else "no",
-            eval_steps=self.cfg.eval_steps if do_eval else None,
+            evaluation_strategy="steps",
+            eval_steps=self.cfg.eval_steps,
             save_steps=self.cfg.save_steps,
             save_strategy="no" if self.cfg.save_total_limit == 0 else "steps",
             logging_steps=self.cfg.logging_steps,
             length_column_name="input_length",
             gradient_checkpointing=True,
             save_total_limit=self.cfg.save_total_limit,
-            load_best_model_at_end=self.cfg.early_stopping if do_eval else False,
-            metric_for_best_model="wer" if do_eval else None,
-            greater_is_better=False if do_eval else None,
+            load_best_model_at_end=self.cfg.early_stopping,
+            metric_for_best_model="wer",
+            greater_is_better=False,
             seed=self.cfg.seed,
             remove_unused_columns=False,
             optim=OptimizerNames.ADAMW_TORCH,
@@ -268,6 +269,7 @@ class Wav2Vec2ModelSetup:
         return args
 
     def load_saved(self) -> PreTrainedModelData:
+        """Return the saved model data for the model."""
         processor: Processor
         if self.cfg.model.language_model_decoder is not None:
             try:
@@ -302,7 +304,7 @@ def dump_vocabulary(cfg: DictConfig) -> None:
     It will dump the file to `${cfg.model_dir}/vocab.json`.
 
     Args:
-        cfg (DictConfig):
+        cfg:
             The Hydra configuration object.
     """
     # Build the set of all unique characters in the dataset

@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Callable, Type
 
-from omegaconf import DictConfig
 import torch
+from omegaconf import DictConfig
 from torch.backends.mps import is_available as mps_is_available
 from transformers import (
     BatchFeature,
@@ -34,11 +34,11 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
     """Data collator that will dynamically pad the inputs received.
 
     Args:
-        processor (WhisperProcessor)
+        processor:
             The processor used for proccessing the data.
-        max_seconds_per_example (float):
+        max_seconds_per_example:
             The maximum number of seconds per example.
-        padding (bool, str or PaddingStrategy, optional):
+        padding:
             Select a strategy to pad the returned sequences (according to the model's
             padding side and padding index) among:
             * True or 'longest':
@@ -63,7 +63,7 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
         """Collate the features.
 
         Args:
-            features (list of dict):
+            features:
                 A list of feature dicts.
 
         Returns:
@@ -113,24 +113,27 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
 
 
 class WhisperModelSetup:
-    """Model setup for Whisper models.
-
-    Args:
-        cfg (DictConfig):
-            The Hydra configuration object.
-    """
+    """Model setup for Whisper models."""
 
     def __init__(self, cfg: DictConfig) -> None:
+        """Initialise the model setup.
+
+        Args:
+            cfg:
+                The Hydra configuration object.
+        """
         self.cfg = cfg
         self.processor: WhisperProcessor
 
     def load_processor(self) -> WhisperProcessor:
+        """Return the processor for the model."""
         self.processor = WhisperProcessor.from_pretrained(
             self.cfg.model.pretrained_model_id, language="Danish", task="transcribe"
         )
         return self.processor
 
     def load_model(self) -> WhisperForConditionalGeneration:
+        """Return the model for the setup."""
         with transformers_output_ignored():
             model = WhisperForConditionalGeneration.from_pretrained(
                 self.cfg.model.pretrained_model_id,
@@ -172,6 +175,7 @@ class WhisperModelSetup:
         return model
 
     def load_data_collator(self) -> DataCollatorSpeechSeq2SeqWithPadding:
+        """Return the data collator for the model."""
         return DataCollatorSpeechSeq2SeqWithPadding(
             processor=self.processor,
             max_seconds_per_example=self.cfg.max_seconds_per_example,
@@ -179,12 +183,15 @@ class WhisperModelSetup:
         )
 
     def load_trainer_class(self) -> Type[Trainer]:
+        """Return the trainer class used to train the model."""
         return Seq2SeqTrainer
 
     def load_compute_metrics(self) -> Callable[[EvalPrediction], dict]:
+        """Return the function used to compute metrics during training."""
         return partial(compute_wer_metrics, processor=self.processor)
 
     def load_training_arguments(self) -> TrainingArguments:
+        """Return the training arguments for the model."""
         # Compute the gradient accumulation based on the total batch size in the config
         num_devices = max(torch.cuda.device_count(), 1)
         per_device_total_batch_size = self.cfg.total_batch_size // num_devices
@@ -202,12 +209,6 @@ class WhisperModelSetup:
             )
             gradient_accumulation_steps = 1
 
-        do_eval = any(
-            [
-                dataset_cfg.val_name is not None
-                for dataset_cfg in self.cfg.datasets.values()
-            ]
-        )
         args = Seq2SeqTrainingArguments(
             output_dir=self.cfg.model_dir,
             hub_model_id=self.cfg.hub_id,
@@ -219,16 +220,16 @@ class WhisperModelSetup:
             max_steps=self.cfg.max_steps,
             fp16=self.cfg.fp16 and not mps_is_available(),
             push_to_hub=self.cfg.push_to_hub,
-            evaluation_strategy="steps" if do_eval else "no",
-            eval_steps=self.cfg.eval_steps if do_eval else None,
+            evaluation_strategy="steps",
+            eval_steps=self.cfg.eval_steps,
             save_steps=self.cfg.save_steps,
             logging_steps=self.cfg.logging_steps,
             length_column_name="input_length",
             gradient_checkpointing=True,
             save_total_limit=self.cfg.save_total_limit,
-            load_best_model_at_end=self.cfg.early_stopping if do_eval else False,
-            metric_for_best_model="wer" if do_eval else None,
-            greater_is_better=False if do_eval else None,
+            load_best_model_at_end=self.cfg.early_stopping,
+            metric_for_best_model="wer",
+            greater_is_better=False,
             seed=self.cfg.seed,
             remove_unused_columns=False,
             optim=OptimizerNames.ADAMW_TORCH,
@@ -244,6 +245,7 @@ class WhisperModelSetup:
         return args
 
     def load_saved(self) -> PreTrainedModelData:
+        """Load the model setup."""
         processor: Processor
         processor = WhisperProcessor.from_pretrained(self.cfg.hub_id, token=True)
 
