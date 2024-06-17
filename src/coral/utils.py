@@ -4,6 +4,7 @@ import contextlib
 import logging
 import warnings
 from functools import partialmethod
+from pathlib import Path
 
 import datasets.utils.logging as ds_logging
 import tqdm as tqdm_package
@@ -68,17 +69,25 @@ def disable_tqdm():
         yield
 
 
-def convert_iterable_dataset_to_dataset(iterable_dataset: IterableDataset) -> Dataset:
+def convert_iterable_dataset_to_dataset(
+    iterable_dataset: IterableDataset, dataset_id: str | None = None
+) -> Dataset:
     """Convert an IterableDataset to a Dataset.
 
     Args:
         iterable_dataset:
             The IterableDataset to convert.
+        dataset_id:
+            The ID of the dataset, which is used to store and re-load the dataset.
 
     Returns:
         Dataset:
             The converted Dataset.
     """
+    if dataset_id is not None:
+        dataset_dir = Path.home() / ".cache" / "huggingface" / "datasets" / dataset_id
+        if dataset_dir.exists():
+            return Dataset.load_from_disk(str(dataset_dir))
 
     def gen_from_iterable_dataset():
         yield from tqdm(iterable=iterable_dataset)
@@ -87,4 +96,9 @@ def convert_iterable_dataset_to_dataset(iterable_dataset: IterableDataset) -> Da
         generator=gen_from_iterable_dataset, features=iterable_dataset.features
     )
     assert isinstance(dataset, Dataset)
+
+    if dataset_id is not None:
+        dataset_dir.mkdir(exist_ok=True, parents=True)
+        dataset.save_to_disk(str(dataset_dir))
+
     return dataset
