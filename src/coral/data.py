@@ -133,7 +133,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
 
     # Load CoRal validation and test sets
     if is_main_process:
-        logger.info("Loading validation and test datasets")
+        logger.info("Loading CoRal validation and test datasets")
     split_names = dict(
         val=cfg.evaluation_dataset.val_name, test=cfg.evaluation_dataset.test_name
     )
