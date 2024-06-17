@@ -142,6 +142,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         dataset = all_datasets[0]
 
     # Load CoRal validation and test sets
+    breakpoint()
     val_dataset = load_dataset(
         path=cfg.evaluation_dataset_id,
         split="validation",
