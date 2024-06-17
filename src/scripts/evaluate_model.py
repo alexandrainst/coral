@@ -4,9 +4,12 @@ Usage:
     python evaluate_model.py <key>=<value> <key>=<value> ...
 """
 
+import itertools as it
 import logging
 
 import hydra
+import numpy as np
+import pandas as pd
 from coral.data import load_data
 from coral.model_setup import load_model_setup
 from coral.protocols import Processor
@@ -14,12 +17,12 @@ from coral.utils import convert_iterable_dataset_to_dataset, transformers_output
 from datasets import DatasetDict, IterableDatasetDict, Sequence, Value
 from dotenv import load_dotenv
 from omegaconf import DictConfig
-from transformers import Trainer, TrainingArguments
+from transformers import EvalPrediction, Trainer, TrainingArguments
 
 load_dotenv()
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("coral")
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
@@ -49,11 +52,37 @@ def main(cfg: DictConfig) -> None:
     test_dataset = convert_iterable_dataset_to_dataset(
         iterable_dataset=dataset["test"].take(n=10)
     )
-    predictions = trainer.predict(test_dataset=test_dataset)
-    print(predictions)
-    breakpoint()
+    prediction_object = trainer.predict(test_dataset=test_dataset)
+    predictions = prediction_object.predictions
+    labels = prediction_object.label_ids
+    assert isinstance(predictions, np.ndarray)
+    assert isinstance(labels, np.ndarray)
 
-    # logger.info(f"{cfg.model.name} achieved a WER of {wer:.2%}.")
+    df = test_dataset.to_pandas()
+    assert isinstance(df, pd.DataFrame)
+    df["native_1"] = df.native_language_1 == "Denmark"
+
+    categories = ["age", "gender", "dialect", "native"]
+    unique_category_values = [
+        df[f"{category}_1"].unique().tolist() + [None] for category in categories
+    ]
+
+    records = list()
+    for combination in it.product(*unique_category_values):
+        df_filtered = df.copy()
+        for key, value in zip(categories, combination):
+            if value is not None:
+                df_filtered = df_filtered.query(f"{key}_1 == '{value}'")
+        idxs = df_filtered.index.tolist()
+        combination_scores = model_data.compute_metrics(
+            EvalPrediction(predictions=predictions[idxs], label_ids=labels[idxs])
+        )
+        named_combination = dict(zip(categories, combination))
+        records.append(named_combination | combination_scores)
+        logger.info(f"Scores for {named_combination}: {combination_scores}")
+
+    score_df = pd.DataFrame.from_records(data=records)
+    score_df.to_csv(f"{cfg.pipeline_id}_scores.csv", index=False)
 
 
 def preprocess_transcriptions(
