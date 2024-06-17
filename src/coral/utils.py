@@ -13,6 +13,8 @@ from datasets import Dataset, IterableDataset
 from datasets.utils import disable_progress_bar
 from tqdm.auto import tqdm
 
+DIALECT_MAP: dict[str, str] = {}
+
 
 def block_terminal_output() -> None:
     """Blocks undesired terminal output.

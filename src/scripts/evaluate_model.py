@@ -6,6 +6,7 @@ Usage:
 
 import itertools as it
 import logging
+import re
 
 import hydra
 import numpy as np
@@ -14,7 +15,11 @@ from coral.compute_metrics import compute_wer_metrics
 from coral.data import load_data
 from coral.model_setup import load_model_setup
 from coral.protocols import Processor
-from coral.utils import convert_iterable_dataset_to_dataset, transformers_output_ignored
+from coral.utils import (
+    DIALECT_MAP,
+    convert_iterable_dataset_to_dataset,
+    transformers_output_ignored,
+)
 from datasets import DatasetDict, IterableDatasetDict, Sequence, Value
 from dotenv import load_dotenv
 from omegaconf import DictConfig
@@ -62,6 +67,12 @@ def main(cfg: DictConfig) -> None:
     df = test_dataset.to_pandas()
     assert isinstance(df, pd.DataFrame)
     df["native_1"] = df.native_language_1 == "Denmark"
+
+    # Fix dialects
+    df.dialect_1 = [
+        re.sub(r"\(.*\)", "", dialect.lower()).strip() for dialect in df.dialect_1
+    ]
+    df.dialect_1 = [DIALECT_MAP.get(dialect, dialect) for dialect in df.dialect_1]
 
     categories = ["age", "gender", "dialect", "native"]
     unique_category_values = [
