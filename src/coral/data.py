@@ -132,6 +132,8 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         dataset = IterableDatasetDict(data_dict)
 
     # Load CoRal validation and test sets
+    if is_main_process:
+        logger.info("Loading validation and test datasets")
     split_names = dict(
         val=cfg.evaluation_dataset.val_name, test=cfg.evaluation_dataset.test_name
     )
@@ -152,6 +154,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         split = split.cast_column(
             column="audio", feature=Audio(sampling_rate=cfg.model.sampling_rate)
         )
+        breakpoint()
         split = split.remove_columns(
             [column for column in split.column_names if column not in ["audio", "text"]]
         )
