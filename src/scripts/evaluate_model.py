@@ -45,7 +45,7 @@ def main(cfg: DictConfig) -> None:
         tokenizer=getattr(model_data.processor, "tokenizer"),
     )
 
-    predictions = trainer.predict(test_dataset=dataset["test"])
+    predictions = trainer.predict(test_dataset=dataset["test"].select(range(10)))
     print(predictions)
     breakpoint()
 
