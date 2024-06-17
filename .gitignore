@@ -113,3 +113,5 @@ models/
 
 # Weights and Biases experiment tracking
 wandb/
+
+*.xlsx
