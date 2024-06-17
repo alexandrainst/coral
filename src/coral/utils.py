@@ -8,6 +8,7 @@ from functools import partialmethod
 import datasets.utils.logging as ds_logging
 import tqdm
 import transformers.utils.logging as hf_logging
+from datasets import Dataset, IterableDataset
 from datasets.utils import disable_progress_bar
 
 
@@ -64,3 +65,25 @@ def disable_tqdm():
 
     with monkeypatched(tqdm.std.tqdm, "__init__", _patch):
         yield
+
+
+def convert_iterable_dataset_to_dataset(iterable_dataset: IterableDataset) -> Dataset:
+    """Convert an IterableDataset to a Dataset.
+
+    Args:
+        iterable_dataset:
+            The IterableDataset to convert.
+
+    Returns:
+        Dataset:
+            The converted Dataset.
+    """
+
+    def gen_from_iterable_dataset():
+        yield from iterable_dataset
+
+    dataset = Dataset.from_generator(
+        generator=gen_from_iterable_dataset, features=iterable_dataset.features
+    )
+    assert isinstance(dataset, Dataset)
+    return dataset

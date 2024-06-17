@@ -10,8 +10,8 @@ import hydra
 from coral.data import load_data
 from coral.model_setup import load_model_setup
 from coral.protocols import Processor
-from coral.utils import transformers_output_ignored
-from datasets import DatasetDict, IterableDataset, IterableDatasetDict, Sequence, Value
+from coral.utils import convert_iterable_dataset_to_dataset, transformers_output_ignored
+from datasets import DatasetDict, IterableDatasetDict, Sequence, Value
 from dotenv import load_dotenv
 from omegaconf import DictConfig
 from transformers import Trainer, TrainingArguments
@@ -45,9 +45,10 @@ def main(cfg: DictConfig) -> None:
         tokenizer=getattr(model_data.processor, "tokenizer"),
     )
 
-    test_dataset = dataset["test"].take(n=10)
-    assert isinstance(test_dataset, IterableDataset)
-
+    logger.info("Converting iterable test dataset to a regular dataset.")
+    test_dataset = convert_iterable_dataset_to_dataset(
+        iterable_dataset=dataset["test"].take(n=10)
+    )
     predictions = trainer.predict(test_dataset=test_dataset)
     print(predictions)
     breakpoint()
