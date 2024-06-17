@@ -48,11 +48,8 @@ kenlm = ["kenlm"]
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = [
-    '--verbose',
     '--durations=10',
     '--color=yes',
-    '-s',
-    '-vv',
     '--doctest-modules',
     '--cov=src/coral',
 ]
