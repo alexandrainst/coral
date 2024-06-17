@@ -39,7 +39,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
     # Note if we're on the main process, if we are running in a distributed setting
     is_main_process = os.getenv("RANK", "0") == "0"
 
-    all_datasets: list[DatasetDict | IterableDatasetDict] = list()
+    all_datasets: list[Dataset | IterableDataset] = list()
     for dataset_name, dataset_cfg in cfg.datasets.items():
         if is_main_process:
             logger.info(f"Loading dataset {dataset_name!r}")
@@ -54,13 +54,13 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
                     f"Please check that the provided dataset directory {train_path} "
                     "contains arrow files of the form 'data-*.arrow'."
                 )
-            dataset = load_dataset("arrow", data_files=data_files, streaming=True)
+            ds = load_dataset("arrow", data_files=data_files, streaming=True)
 
         # Load dataset from the Hugging Face Hub. The HUGGINGFACE_HUB_TOKEN is only
         # used during CI - normally it is expected that the user is logged in to the
         # Hugging Face Hub using the `huggingface-cli login` command.
         else:
-            dataset = load_dataset(
+            ds = load_dataset(
                 path=dataset_cfg.id,
                 name=dataset_cfg.subset,
                 split=dataset_cfg.train_name,
@@ -68,32 +68,28 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
                 streaming=True,
             )
 
-        assert isinstance(dataset, Dataset) or isinstance(
-            dataset, IterableDataset
-        ), f"Unsupported dataset type: {type(dataset)}"
+        assert isinstance(ds, Dataset) or isinstance(
+            ds, IterableDataset
+        ), f"Unsupported dataset type: {type(ds)}"
 
         if dataset_cfg.text_column != "text":
-            dataset = dataset.rename_column(dataset_cfg.text_column, "text")
+            ds = ds.rename_column(dataset_cfg.text_column, "text")
 
         if dataset_cfg.audio_column != "audio":
-            dataset = dataset.rename_column(dataset_cfg.audio_column, "audio")
+            ds = ds.rename_column(dataset_cfg.audio_column, "audio")
 
-        dataset = dataset.cast_column(
+        ds = ds.cast_column(
             column="audio", feature=Audio(sampling_rate=cfg.model.sampling_rate)
         )
-        dataset = dataset.remove_columns(
-            [
-                column
-                for column in dataset.column_names
-                if column not in ["audio", "text"]
-            ]
+        ds = ds.remove_columns(
+            [column for column in ds.column_names if column not in ["audio", "text"]]
         )
-        dataset = dataset.shuffle(seed=cfg.seed)
+        ds = ds.shuffle(seed=cfg.seed)
 
         if cfg.model.clean_dataset:
-            dataset = clean_dataset(cfg, dataset=dataset)
+            ds = clean_dataset(cfg, dataset=ds)
 
-        all_datasets.append(dataset)
+        all_datasets.append(ds)
 
     assert len(all_datasets) > 0, "No datasets were loaded"
 
@@ -119,21 +115,20 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
             )
 
         train = interleave_datasets(
-            datasets=[dataset["train"] for dataset in all_datasets],
+            datasets=[ds for ds in all_datasets],
             probabilities=probabilities,
             seed=cfg.seed,
             split=NamedSplit("train"),
             stopping_strategy="all_exhausted",
         )
-
-        data_dict = dict(train=train)
-        if isinstance(train, Dataset):
-            dataset = DatasetDict(data_dict)
-        else:
-            dataset = IterableDatasetDict(data_dict)
-
     else:
-        dataset = all_datasets[0]
+        train = all_datasets[0]
+
+    data_dict = dict(train=train)
+    if isinstance(train, Dataset):
+        dataset = DatasetDict(data_dict)
+    else:
+        dataset = IterableDatasetDict(data_dict)
 
     # Load CoRal validation and test sets
     split_names = dict(
