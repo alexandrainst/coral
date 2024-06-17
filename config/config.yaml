@@ -15,7 +15,13 @@ dirs:
 
 seed: 4242
 
-evaluation_dataset_id: CoRal-dataset/coral_v1.0
+evaluation_dataset:
+  id: CoRal-dataset/coral_v1.0
+  subset: null
+  val_name: validation
+  test_name: test
+  text_column: text
+  audio_column: filename
 
 # Dataset parameters
 characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'

@@ -11,6 +11,7 @@ from datasets import (
     Audio,
     Dataset,
     DatasetDict,
+    IterableDataset,
     IterableDatasetDict,
     NamedSplit,
     interleave_datasets,
@@ -62,21 +63,14 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
             dataset = load_dataset(
                 path=dataset_cfg.id,
                 name=dataset_cfg.subset,
+                split=dataset_cfg.train_name,
                 token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
                 streaming=True,
             )
 
-        assert isinstance(dataset, DatasetDict) or isinstance(
-            dataset, IterableDatasetDict
+        assert isinstance(dataset, Dataset) or isinstance(
+            dataset, IterableDataset
         ), f"Unsupported dataset type: {type(dataset)}"
-
-        splits_dict = dict(train=dataset[dataset_cfg.train_name])
-        if isinstance(dataset, DatasetDict):
-            dataset = DatasetDict(splits_dict)
-        elif isinstance(dataset, IterableDatasetDict):
-            dataset = IterableDatasetDict(splits_dict)
-        else:
-            raise ValueError(f"Unsupported dataset type: {type(dataset)}")
 
         if dataset_cfg.text_column != "text":
             dataset = dataset.rename_column(dataset_cfg.text_column, "text")
@@ -90,7 +84,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         dataset = dataset.remove_columns(
             [
                 column
-                for column in dataset["train"].column_names
+                for column in dataset.column_names
                 if column not in ["audio", "text"]
             ]
         )
@@ -142,27 +136,38 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         dataset = all_datasets[0]
 
     # Load CoRal validation and test sets
-    breakpoint()
-    val_dataset = load_dataset(
-        path=cfg.evaluation_dataset_id,
-        split="validation",
-        token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+    split_names = dict(
+        val=cfg.evaluation_dataset.val_name, test=cfg.evaluation_dataset.test_name
     )
-    test_dataset = load_dataset(
-        path=cfg.evaluation_dataset_id,
-        split="test",
-        token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-    )
-    dataset["val"] = val_dataset
-    dataset["test"] = test_dataset
-    breakpoint()
+    for new_split_name, old_split_name in split_names.items():
+        breakpoint()
+        split = load_dataset(
+            path=cfg.evaluation_dataset_id,
+            split=old_split_name,
+            token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+        )
+        if cfg.evaluation_dataset.text_column != "text":
+            split = split.rename_column(cfg.evaluation_dataset.text_column, "text")
+
+        if cfg.evaluation_dataset.audio_column != "audio":
+            split = split.rename_column(cfg.evaluation_dataset.audio_column, "audio")
+
+        split = split.cast_column(
+            column="audio", feature=Audio(sampling_rate=cfg.model.sampling_rate)
+        )
+        split = split.remove_columns(
+            [column for column in split.column_names if column not in ["audio", "text"]]
+        )
+        if cfg.model.clean_dataset:
+            split = clean_dataset(cfg=cfg, dataset=split)
+        dataset[new_split_name] = split
 
     return dataset
 
 
 def clean_dataset(
-    cfg: DictConfig, dataset: DatasetDict | IterableDatasetDict
-) -> DatasetDict | IterableDatasetDict:
+    cfg: DictConfig, dataset: Dataset | IterableDataset
+) -> Dataset | IterableDataset:
     """Clean the transcriptions in a dataset.
 
     Args:
@@ -231,8 +236,7 @@ def clean_dataset(
     )
 
     # After calling `map` the DatasetInfo is lost, so we need to add it back in
-    for split in dataset.keys():
-        mapped[split]._info = dataset[split]._info
+    mapped._info = dataset._info
 
     return mapped
 
