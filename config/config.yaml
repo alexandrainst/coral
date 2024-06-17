@@ -15,6 +15,8 @@ dirs:
 
 seed: 4242
 
+evaluation_dataset_id: CoRal-dataset/coral_v1.0
+
 # Dataset parameters
 characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
 max_seconds_per_example: 10
@@ -26,10 +28,7 @@ padding: longest
 
 # This is a list of the sampling probability of each dataset, where null means that
 # each dataset will be sampled equally often
-dataset_probabilities:
-  train: null
-  val: null
-  test: null
+dataset_probabilities: null
 
 # Model parameters
 pipeline_id: ${model.name}-finetuned

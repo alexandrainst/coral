@@ -2,7 +2,5 @@ nota:
   id: alexandrainst/nota
   subset: null
   train_name: train
-  val_name: null
-  test_name: null
   text_column: text
   audio_column: audio

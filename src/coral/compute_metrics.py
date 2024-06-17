@@ -1,11 +1,12 @@
-"""Function used to compute metrics during ASR training of Wave2Vec 2.0 models."""
+"""Function used to compute metrics during ASR training of Wav2Vec 2.0 models."""
+
+import logging
+import os
 
 import numpy as np
 from evaluate.loading import load as load_metric
 from numpy.typing import NDArray
 from transformers import EvalPrediction, PreTrainedTokenizerBase
-import logging
-import os
 
 from .protocols import Processor
 
