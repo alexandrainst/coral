@@ -82,6 +82,7 @@ def main(cfg: DictConfig) -> None:
         if not len(df_filtered):
             continue
         idxs = df_filtered.index.tolist()
+        breakpoint()
         combination_scores = compute_metrics(
             EvalPrediction(predictions=predictions[idxs], label_ids=labels[idxs])
         )
