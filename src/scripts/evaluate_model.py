@@ -5,19 +5,26 @@ Usage:
 """
 
 import hydra
-from datasets import DatasetDict, IterableDatasetDict, Sequence, Value
-from omegaconf import DictConfig
-from transformers import Trainer, TrainingArguments
-
 from coral.data import load_data
 from coral.model_setup import load_model_setup
 from coral.protocols import Processor
 from coral.utils import transformers_output_ignored
+from datasets import DatasetDict, IterableDatasetDict, Sequence, Value
+from dotenv import load_dotenv
+from omegaconf import DictConfig
+from transformers import Trainer, TrainingArguments
+
+load_dotenv()
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
 def main(cfg: DictConfig) -> None:
-    """Evaluate a speech model on a dataset."""
+    """Evaluate a speech model on a dataset.
+
+    Args:
+        cfg:
+            The Hydra configuration object.
+    """
     eval_dataset_cfg = list(cfg.datasets.values())[0]
 
     with transformers_output_ignored():
@@ -45,6 +52,18 @@ def main(cfg: DictConfig) -> None:
 def preprocess_transcriptions(
     dataset: DatasetDict | IterableDatasetDict, processor: Processor
 ) -> DatasetDict | IterableDatasetDict:
+    """Preprocess the transcriptions in the dataset.
+
+    Args:
+        dataset:
+            The dataset to preprocess.
+        processor:
+            The processor to use for tokenization.
+
+    Returns:
+        The preprocessed dataset.
+    """
+
     def tokenize_examples(example: dict) -> dict:
         example["labels"] = processor(text=example["text"], truncation=True).input_ids
         example["input_length"] = len(example["labels"])

@@ -7,8 +7,12 @@ from typing import Generator
 import pytest
 from coral.data import load_data
 from datasets import DatasetDict, IterableDatasetDict
+from dotenv import load_dotenv
 from hydra import compose, initialize
 from omegaconf import DictConfig
+
+load_dotenv()
+
 
 # Initialise Hydra
 initialize(config_path="../config", version_base=None)

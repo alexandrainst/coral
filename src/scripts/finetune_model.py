@@ -4,15 +4,18 @@ Usage:
     python finetune_model.py <key>=<value> <key>=<value> ...
 """
 
-import hydra
-from omegaconf import DictConfig
-import os
 import logging
+import os
 
+import hydra
 from coral.finetune import finetune
-
+from dotenv import load_dotenv
+from omegaconf import DictConfig
 
 logger = logging.getLogger(__name__)
+
+
+load_dotenv()
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
