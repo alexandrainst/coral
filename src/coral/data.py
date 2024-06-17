@@ -142,7 +142,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
             path=cfg.evaluation_dataset.id,
             split=old_split_name,
             token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-            streaming=True,
+            # streaming=True,
             trust_remote_code=True,
         )
         if cfg.evaluation_dataset.text_column != "text":
