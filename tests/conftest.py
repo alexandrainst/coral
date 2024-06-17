@@ -58,6 +58,4 @@ def cfg(request) -> Generator[DictConfig, None, None]:
 @pytest.fixture(scope="session")
 def dataset(cfg) -> Generator[DatasetDict | IterableDatasetDict, None, None]:
     """ASR Dataset."""
-    dataset = load_data(cfg)
-    breakpoint()
-    yield dataset
+    yield load_data(cfg)
