@@ -50,7 +50,9 @@ def main(cfg: DictConfig) -> None:
     )
 
     logger.info("Converting iterable test dataset to a regular dataset.")
-    test_dataset = convert_iterable_dataset_to_dataset(iterable_dataset=dataset["test"])
+    test_dataset = convert_iterable_dataset_to_dataset(
+        iterable_dataset=dataset["validation"]
+    )
     prediction_object = trainer.predict(test_dataset=test_dataset)
     predictions = prediction_object.predictions
     labels = prediction_object.label_ids
