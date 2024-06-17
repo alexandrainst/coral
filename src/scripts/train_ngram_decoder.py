@@ -41,8 +41,7 @@ def train_ngram_model(cfg: DictConfig) -> None:
     kenlm_dir = Path.home() / ".cache" / "kenlm"
     if not kenlm_dir.exists():
         download_and_extract(
-            url="https://kheafield.com/code/kenlm.tar.gz",
-            target_dir=kenlm_dir,
+            url="https://kheafield.com/code/kenlm.tar.gz", target_dir=kenlm_dir
         )
 
     # Compile `kenlm` if it hasn't already been compiled
@@ -97,7 +96,6 @@ def train_ngram_model(cfg: DictConfig) -> None:
         if ngram_path.exists():
             ngram_path.unlink()
 
-    # Load the pretrained processor
     processor = AutoProcessor.from_pretrained(cfg.model_dir)
 
     # Extract the vocabulary, which will be used to build the CTC decoder
@@ -105,7 +103,6 @@ def train_ngram_model(cfg: DictConfig) -> None:
     sorted_vocab_list = sorted(vocab_dict.items(), key=lambda item: item[1])
     sorted_vocab_dict = {k.lower(): v for k, v in sorted_vocab_list}
 
-    # Build the CTC decoder
     decoder = build_ctcdecoder(
         labels=list(sorted_vocab_dict.keys()), kenlm_model_path=str(correct_ngram_path)
     )
