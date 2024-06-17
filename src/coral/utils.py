@@ -79,6 +79,7 @@ def convert_iterable_dataset_to_dataset(iterable_dataset: IterableDataset) -> Da
         Dataset:
             The converted Dataset.
     """
+    breakpoint()
 
     def gen_from_iterable_dataset():
         yield from tqdm(iterable=iterable_dataset)
