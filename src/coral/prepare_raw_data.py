@@ -1,4 +1,4 @@
-"""Functions for preparing the raw data"""
+"""Functions for preparing the raw data."""
 
 import datetime
 import sqlite3
@@ -141,14 +141,14 @@ def make_speaker_metadata(raw_path: Path, metadata_path: Path) -> pd.DataFrame:
     """Make a speaker metadata dataframe from the raw data.
 
     Args:
-        raw_path (Path):
+        raw_path:
             The path to the raw data.
-        metadata_path (Path):
+        metadata_path:
             The path to the metadata file.
 
     Returns:
-        pd.DataFrame:
-            The speaker metadata."""
+        The speaker metadata.
+    """
     speaker_metadata = pd.read_excel(metadata_path, index_col=0)
 
     # Replace all nan values with empty strings, because any nan values are
@@ -219,18 +219,21 @@ def make_speaker_metadata(raw_path: Path, metadata_path: Path) -> pd.DataFrame:
 def make_recording_metadata(
     speakers: pd.DataFrame, raw_path: Path, sentences: pd.DataFrame, metadata_path: Path
 ) -> pd.DataFrame:
-    """Make a recording metadata file from the raw data
+    """Make a recording metadata file from the raw data.
 
     Args:
-        speakers (pd.DataFrame):
-            The speakers dataframe
-        raw_path (Path):
-            The path to the raw data
-        sentences (pd.DataFrame):
-            The sentences dataframe
+        speakers:
+            The speakers dataframe.
+        raw_path:
+            The path to the raw data.
+        sentences:
+            The sentences dataframe.
+        metadata_path:
+            The path to the metadata file.
 
     Returns:
-        pd.DataFrame: The recording metadata dataframe."""
+        The recording metadata dataframe.
+    """
     metadata_path = raw_path / "metadata.xlsx"
 
     # Make speaker-metadata file
@@ -440,13 +443,13 @@ def prepare_raw_data(
     """Prepare the raw data.
 
     Args:
-        input_path (Path or str, optional):
+        input_path:
             Path to the raw data. Defaults to "data/raw".
-        output_path (Path or str, optional):
+        output_path:
             Path to the processed data. Defaults to "data/processed".
-        metadata_path (Path or str, optional):
+        metadata_path:
             Path to the metadata. Defaults to "data/raw/metadata.csv".
-        hidden_input_path (Path or str, optional):
+        hidden_output_path:
             Path to save sensitive information. Defaults to "data/hidden".
     """
     input_path = Path(input_path)
@@ -483,12 +486,13 @@ def prepare_raw_data(
     rows_to_remove: list[int] = []
 
     def change_codec_and_rename_files(row: pd.Series, row_i: int) -> None:
-        """
-        Convert the audio files to .wav and place them in the output path.
+        """Convert the audio files to .wav and place them in the output path.
 
         Args:
-            row (pd.Series): A row in the recording metadata dataframe
-            row_i (int): The index of the row in the recording metadata dataframe
+            row:
+                A row in the recording metadata dataframe
+            row_i:
+                The index of the row in the recording metadata dataframe
         """
         filename = input_path / row["filename"]
 
@@ -576,13 +580,14 @@ def prepare_raw_data(
 
 
 def correct_country(country: str) -> str:
-    """Converts a country name or alpha-2 language code to a full country name
+    """Converts a country name or alpha-2 language code to a full country name.
 
     Args:
-        country (str): A country name or alpha-2 code
+        country:
+            A country name or alpha-2 code.
 
     Returns:
-        str: The full country name
+        The full country name.
     """
     if len(country) == 2:
         country_obj = pycountry.countries.get(alpha_2=country)
@@ -596,13 +601,14 @@ def correct_country(country: str) -> str:
 
 
 def correct_country_list(country_list: str) -> str:
-    """Converts a str containing a list of countries to a list of full country names
+    """Converts a str containing a list of countries to a list of full country names.
 
     Args:
-        country_list (str): A string containing a list of countries
+        country_list:
+            A string containing a list of countries
 
     Returns:
-        str: A string containing a list of full country names.
+        A string containing a list of full country names.
     """
     for delimiter in [",", ";", " "]:
         if len(country_list.split(delimiter)) > 1:
@@ -619,10 +625,11 @@ def correct_timestamp(timestamp: str) -> str:
     """Uniformises a timestamp.
 
     Args:
-        timestamp (str): The timestamp to convert
+        timestamp:
+            The timestamp to convert
 
     Returns:
-        str: The converted timestamp
+        The converted timestamp
     """
     if ":" in timestamp:
         format = "%d/%m/%Y, %H:%M:%S"
@@ -637,14 +644,15 @@ def correct_timestamp(timestamp: str) -> str:
 
 
 def get_data_from_db(db_folder: Path) -> pd.DataFrame:
-    """Gets the data from the database
+    """Gets the data from the database.
 
     Args:
-        db_folder (Path): The path to the folder containing the database
-            the database should be named "db.sqlite3"
+        db_folder:
+            The path to the folder containing the database the database should be named
+            "db.sqlite3"
 
     Returns:
-        pd.DataFrame: The data from the database
+        The data from the database
     """
     connection = sqlite3.connect(db_folder / "db.sqlite3")
     read_aloud_data = pd.read_sql_query(
@@ -660,12 +668,15 @@ def speaker_id(name: str, email: str) -> str:
     unique id. We use the adler32 hash function because it is fast and has a
     low collision rate for short strings, and produces hash-values which are
     integers with 8 or 9 digits, we use the first 8 digits as the id.
+
     Args:
-        name (str): The name of the speaker
-        email (str): The email of the speaker
+        name:
+            The name of the speaker.
+        email:
+            The email of the speaker.
 
     Returns:
-        str: The speaker id
+        The speaker id.
     """
     return "t" + str(adler32(bytes(name + email, "utf-8")))[0:8]
 
@@ -679,11 +690,15 @@ def recording_id(filename: str, data_folder: Path) -> str | None:
     or 9 digits, we use the first 8 digits as the id.
     If the recording cannot be decoded, we use the adler32 hash function on the
     filename instead.
+
     Args:
-        filename (str): The filename of the recording
+        filename:
+            The filename of the recording.
+        data_folder:
+            The path to the data folder.
 
     Returns:
-        str: The recording id
+        The recording id.
     """
     file_path = data_folder / filename
     try:
@@ -695,10 +710,13 @@ def recording_id(filename: str, data_folder: Path) -> str | None:
 
 
 def fix_corrupt_files_offset(data: pd.DataFrame, data_path: Path) -> pd.DataFrame:
-    """Fix corrupt files which cause offset in the metadata
+    """Fix corrupt files which cause offset in the metadata.
 
     Args:
-        data (pd.DataFrame): The data to check for corrupt files
+        data:
+            The data to check for corrupt files.
+        data_path:
+            The path to the data.
 
     Returns:
         The fixed dataframe.
@@ -714,7 +732,7 @@ def fix_corrupt_files_offset(data: pd.DataFrame, data_path: Path) -> pd.DataFram
 
 
 def make_readme() -> str:
-    """Makes a README.md file"""
+    """Return the content of the README.md file."""
     return """# CoRal data
 
     The CoRal data is a collection of recordings of people reading aloud and having

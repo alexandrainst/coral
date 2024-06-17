@@ -1,4 +1,4 @@
-"""Functions related to visualization"""
+"""Functions related to visualisation."""
 
 from pathlib import Path
 
@@ -14,8 +14,7 @@ def plot_training_loss(
     title: str = DEFAULT_LOSS_TITLE,
     log_scale: bool = False,
 ) -> None:
-    """
-    Plot the training loss over steps from a trainer's state.
+    """Plot the training loss over steps from a trainer's state.
 
     Args:
         trainer_state (TrainerState):
