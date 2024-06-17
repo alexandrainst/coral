@@ -65,6 +65,7 @@ def main(cfg: DictConfig) -> None:
     unique_category_values = [
         df[f"{category}_1"].unique().tolist() + [None] for category in categories
     ]
+    breakpoint()
 
     records = list()
     for combination in it.product(*unique_category_values):
