@@ -140,11 +140,11 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         val=cfg.evaluation_dataset.val_name, test=cfg.evaluation_dataset.test_name
     )
     for new_split_name, old_split_name in split_names.items():
-        breakpoint()
         split = load_dataset(
             path=cfg.evaluation_dataset.id,
             split=old_split_name,
             token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+            streaming=True,
         )
         if cfg.evaluation_dataset.text_column != "text":
             split = split.rename_column(cfg.evaluation_dataset.text_column, "text")
