@@ -5,7 +5,6 @@ import logging
 import os
 import sys
 import time
-from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 from typing import Callable, Type
@@ -14,8 +13,6 @@ import torch
 from omegaconf import DictConfig
 from torch.backends.mps import is_available as mps_is_available
 from transformers import (
-    BatchEncoding,
-    BatchFeature,
     EvalPrediction,
     SchedulerType,
     Trainer,
@@ -26,89 +23,17 @@ from transformers import (
     Wav2Vec2Processor,
     Wav2Vec2ProcessorWithLM,
 )
-from transformers.data.data_collator import DataCollatorMixin
 from transformers.trainer import OptimizerNames
 
 from .compute_metrics import compute_wer_metrics
-from .protocols import PreTrainedModelData, Processor
+from .data_collators import DataCollatorCTCWithPadding
+from .data_models import ModelSetup, PreTrainedModelData, Processor
 from .utils import transformers_output_ignored
 
 logger = logging.getLogger(__package__)
 
 
-@dataclass
-class DataCollatorCTCWithPadding(DataCollatorMixin):
-    """Data collator that will dynamically pad the inputs received.
-
-    Args:
-        processor:
-            The processor used for proccessing the data.
-        max_seconds_per_example:
-            The maximum number of seconds per example.
-        padding:
-            Select a strategy to pad the returned sequences (according to the model's
-            padding side and padding index) among:
-            * True or 'longest':
-                Pad to the longest sequence in the batch (or no padding if only a
-                single sequence if provided).
-            * 'max_length':
-                Pad to a maximum length specified with the argument max_length or to
-                the maximum acceptable input length for the model if that argument is
-                not provided.
-            * False or 'do_not_pad':
-                No padding (i.e., can output a batch with sequences of different
-                lengths).
-            Defaults to True.
-    """
-
-    processor: Wav2Vec2Processor
-    max_seconds_per_example: float
-    padding: bool | str
-    return_tensors: str = "pt"
-
-    def torch_call(self, features: list[dict]) -> BatchFeature:
-        """Collate the features.
-
-        Args:
-            features:
-                A list of feature dicts.
-
-        Returns:
-            BatchFeature:
-                A dictionary of the collated features.
-        """
-        if "input_values" in features[0]:
-            audio_features = [dict(input_values=f["input_values"]) for f in features]
-        elif "audio" in features[0]:
-            audio_features = [dict(input_values=f["audio"]["array"]) for f in features]
-        else:
-            raise ValueError(
-                "Features must contain either 'input_values' or 'audio' key."
-            )
-        batch: BatchFeature = self.processor.pad(
-            audio_features,
-            padding=self.padding,
-            return_tensors=self.return_tensors,
-            max_length=16_000 * self.max_seconds_per_example,
-        )
-
-        label_features = [dict(input_ids=feature["labels"]) for feature in features]
-        labels_batch: BatchEncoding = self.processor.pad(
-            labels=label_features,
-            padding=self.padding,
-            return_tensors=self.return_tensors,
-            max_length=512,
-        )
-
-        # Replace padding with -100 to ignore loss correctly
-        non_one_entries: torch.Tensor = labels_batch.attention_mask.ne(1)
-        labels: torch.Tensor = labels_batch.input_ids.masked_fill(non_one_entries, -100)
-
-        batch["labels"] = labels
-        return batch
-
-
-class Wav2Vec2ModelSetup:
+class Wav2Vec2ModelSetup(ModelSetup):
     """Model setup for Wav2Vec 2.0 models."""
 
     def __init__(self, cfg: DictConfig) -> None:
@@ -119,7 +44,7 @@ class Wav2Vec2ModelSetup:
                 The Hydra configuration object.
         """
         self.cfg = cfg
-        self.processor: Wav2Vec2Processor
+        self.processor: Processor
 
     def load_processor(self) -> Wav2Vec2Processor:
         """Return the processor for the model."""
@@ -274,35 +199,42 @@ class Wav2Vec2ModelSetup:
         if not Path(model_id).exists():
             model_id = self.cfg.hub_id
 
-        processor: Processor
+        processor: Wav2Vec2Processor | Wav2Vec2ProcessorWithLM
         if self.cfg.model.language_model_decoder is not None:
             try:
                 processor = Wav2Vec2ProcessorWithLM.from_pretrained(
                     model_id, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
                 )
             except (FileNotFoundError, ValueError):
-                processor = Wav2Vec2Processor.from_pretrained(
+                processor_or_tup = Wav2Vec2Processor.from_pretrained(
                     model_id, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
                 )
+                assert not isinstance(processor_or_tup, tuple)
+                processor = processor_or_tup
         else:
-            processor = Wav2Vec2Processor.from_pretrained(
+            processor_or_tup = Wav2Vec2Processor.from_pretrained(
                 model_id, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
             )
+            assert not isinstance(processor_or_tup, tuple)
+            processor = processor_or_tup
 
-        model = Wav2Vec2ForCTC.from_pretrained(
+        model_or_tup = Wav2Vec2ForCTC.from_pretrained(
             model_id, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
         )
+        assert isinstance(model_or_tup, Wav2Vec2ForCTC)
+        model = model_or_tup
+
         data_collator = DataCollatorCTCWithPadding(
             processor=processor,
             max_seconds_per_example=self.cfg.max_seconds_per_example,
             padding=self.cfg.padding,
         )
-        compute_metrics = partial(compute_wer_metrics, processor=processor)
+
         return PreTrainedModelData(
             processor=processor,
             model=model,
             data_collator=data_collator,
-            compute_metrics=compute_metrics,
+            compute_metrics=partial(compute_wer_metrics, processor=processor),
         )
 
 

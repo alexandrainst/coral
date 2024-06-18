@@ -2,7 +2,6 @@
 
 import logging
 import sys
-from dataclasses import dataclass
 from functools import partial
 from typing import Callable, Type
 
@@ -10,7 +9,6 @@ import torch
 from omegaconf import DictConfig
 from torch.backends.mps import is_available as mps_is_available
 from transformers import (
-    BatchFeature,
     EvalPrediction,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
@@ -19,100 +17,17 @@ from transformers import (
     WhisperForConditionalGeneration,
     WhisperProcessor,
 )
-from transformers.data.data_collator import DataCollatorMixin
 from transformers.trainer import OptimizerNames
 
 from .compute_metrics import compute_wer_metrics
-from .protocols import PreTrainedModelData, Processor
+from .data_collators import DataCollatorSpeechSeq2SeqWithPadding
+from .data_models import ModelSetup, PreTrainedModelData, Processor
 from .utils import transformers_output_ignored
 
 logger = logging.getLogger(__package__)
 
 
-@dataclass
-class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
-    """Data collator that will dynamically pad the inputs received.
-
-    Args:
-        processor:
-            The processor used for proccessing the data.
-        max_seconds_per_example:
-            The maximum number of seconds per example.
-        padding:
-            Select a strategy to pad the returned sequences (according to the model's
-            padding side and padding index) among:
-            * True or 'longest':
-                Pad to the longest sequence in the batch (or no padding if only a
-                single sequence if provided).
-            * 'max_length':
-                Pad to a maximum length specified with the argument max_length or to
-                the maximum acceptable input length for the model if that argument is
-                not provided.
-            * False or 'do_not_pad':
-                No padding (i.e., can output a batch with sequences of different
-                lengths).
-            Defaults to True.
-    """
-
-    processor: WhisperProcessor
-    max_seconds_per_example: float
-    padding: bool | str = True
-    return_tensors: str = "pt"
-
-    def torch_call(self, features: list[dict]) -> BatchFeature:
-        """Collate the features.
-
-        Args:
-            features:
-                A list of feature dicts.
-
-        Returns:
-            BatchFeature:
-                A dictionary of the collated features.
-        """
-        if "input_features" in features[0]:
-            audio_features = [
-                dict(input_features=f["input_features"]) for f in features
-            ]
-        elif "audio" in features[0]:
-            audio_features = [dict(audio=f["audio"]["array"]) for f in features]
-        else:
-            raise ValueError(
-                "Features must contain either 'input_features' or 'audio' key."
-            )
-        batch = self.processor.feature_extractor.pad(
-            audio_features,
-            padding=self.padding,
-            return_tensors=self.return_tensors,
-            max_length=16_000 * self.max_seconds_per_example,
-        )
-
-        # Get the tokenized label sequences
-        label_features = [{"input_ids": feature["labels"]} for feature in features]
-
-        # Pad the labels to max length
-        labels_batch = self.processor.tokenizer.pad(
-            label_features,
-            padding=self.padding,
-            return_tensors=self.return_tensors,
-            max_length=512,
-        )
-
-        # replace padding with -100 to ignore loss correctly
-        labels = labels_batch["input_ids"].masked_fill(
-            labels_batch.attention_mask.ne(1), -100
-        )
-
-        # if bos token is appended in previous tokenization step,
-        # cut bos token here as it's append later anyways
-        if (labels[:, 0] == self.processor.tokenizer.bos_token_id).all().cpu().item():
-            labels = labels[:, 1:]
-
-        batch["labels"] = labels
-        return batch
-
-
-class WhisperModelSetup:
+class WhisperModelSetup(ModelSetup):
     """Model setup for Whisper models."""
 
     def __init__(self, cfg: DictConfig) -> None:

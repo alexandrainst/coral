@@ -11,8 +11,8 @@ from wandb.sdk.wandb_init import init as wandb_init
 from wandb.sdk.wandb_run import finish as wandb_finish
 
 from .data import load_data
+from .data_models import ModelSetup
 from .model_setup import load_model_setup
-from .protocols import ModelSetup
 from .utils import disable_tqdm
 
 logger = logging.getLogger(__package__)

@@ -13,8 +13,8 @@ from transformers import EvalPrediction, Trainer, TrainingArguments
 
 from .compute_metrics import compute_wer_metrics
 from .data import load_data
+from .data_models import Processor
 from .model_setup import load_model_setup
-from .protocols import Processor
 from .utils import (
     DIALECT_MAP,
     convert_iterable_dataset_to_dataset,

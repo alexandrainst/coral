@@ -8,7 +8,7 @@ from evaluate.loading import load as load_metric
 from numpy.typing import NDArray
 from transformers import EvalPrediction, PreTrainedTokenizerBase
 
-from .protocols import Processor
+from .data_models import Processor
 
 logger = logging.getLogger(__package__)
 
