@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 
 import torch
-from transformers import BatchEncoding, BatchFeature, WhisperProcessor
+from transformers import BatchEncoding, BatchFeature
 from transformers.data.data_collator import DataCollatorMixin
 
 from .data_models import Processor
@@ -106,7 +106,7 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
             Defaults to True.
     """
 
-    processor: WhisperProcessor
+    processor: Processor
     max_seconds_per_example: float
     padding: bool | str = True
     return_tensors: str = "pt"
