@@ -220,7 +220,7 @@ class WhisperModelSetup:
             max_steps=self.cfg.max_steps,
             fp16=self.cfg.fp16 and not mps_is_available(),
             push_to_hub=self.cfg.push_to_hub,
-            evaluation_strategy="steps",
+            eval_strategy="steps",
             eval_steps=self.cfg.eval_steps,
             save_steps=self.cfg.save_steps,
             logging_steps=self.cfg.logging_steps,
