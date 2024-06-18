@@ -24,7 +24,7 @@ from .utils import (
 load_dotenv()
 
 
-logger = logging.getLogger("coral")
+logger = logging.getLogger(__package__)
 
 
 def evaluate(cfg: DictConfig) -> pd.DataFrame:

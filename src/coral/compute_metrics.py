@@ -10,7 +10,7 @@ from transformers import EvalPrediction, PreTrainedTokenizerBase
 
 from .protocols import Processor
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__package__)
 
 
 def compute_wer_metrics(
