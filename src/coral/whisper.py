@@ -67,8 +67,7 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
                 A list of feature dicts.
 
         Returns:
-            BatchFeature:
-                A dictionary of the collated features.
+            A dictionary of the collated features.
         """
         if "input_features" in features[0]:
             audio_features = [

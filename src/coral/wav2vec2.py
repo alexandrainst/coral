@@ -74,8 +74,7 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
                 A list of feature dicts.
 
         Returns:
-            BatchFeature:
-                A dictionary of the collated features.
+            A dictionary of the collated features.
         """
         if "input_values" in features[0]:
             audio_features = [dict(input_values=f["input_values"]) for f in features]

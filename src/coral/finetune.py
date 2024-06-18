@@ -22,8 +22,10 @@ def prepare_dataset_example(example: dict, processor: Callable) -> dict:
     """Prepare a dataset example for the model.
 
     Args:
-        example: The example from the dataset.
-        processor: The processor to use.
+        example:
+            The example from the dataset.
+        processor:
+            The processor to use.
 
     Returns:
         The prepared example.
@@ -50,8 +52,10 @@ def example_audio_is_short(example: dict, max_seconds_per_example: int) -> bool:
     """Check if the example audio is too short.
 
     Args:
-        example: The example from the dataset.
-        max_seconds_per_example: The maximum number of seconds per example.
+        example:
+            The example from the dataset.
+        max_seconds_per_example:
+            The maximum number of seconds per example.
 
     Returns:
         Whether the example audio is too short.
@@ -63,7 +67,8 @@ def finetune(cfg: DictConfig) -> None:
     """Finetune a model on a dataset.
 
     Args:
-        cfg: The Hydra cfguration object.
+        cfg:
+            The Hydra configuration object.
     """
     # Note if we're on the main process, if we are running in a distributed setting
     is_main_process = os.getenv("RANK", "0") == "0"
@@ -120,7 +125,8 @@ def load_early_stopping_callback(cfg: DictConfig) -> list[TrainerCallback]:
     """Load the early stopping callback for the trainer.
 
     Args:
-        cfg: The Hydra configuration object.
+        cfg:
+            The Hydra configuration object.
 
     Returns:
         The callbacks.
