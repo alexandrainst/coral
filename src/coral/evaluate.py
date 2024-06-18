@@ -86,7 +86,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
         df_filtered = df.copy()
         for key, value in zip(categories, combination):
             if value is not None:
-                df_filtered = df_filtered.query(f"{key}_1 == '{value}'")
+                df_filtered = df_filtered.query(f"{key}_1 == @value")
         if not len(df_filtered):
             continue
 
