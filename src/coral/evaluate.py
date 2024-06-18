@@ -73,6 +73,13 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
         df[f"{category}_1"].unique().tolist() + [None] for category in categories
     ]
 
+    # Get predictions
+    prediction_object = trainer.predict(test_dataset=test_dataset)
+    predictions = prediction_object.predictions
+    labels = prediction_object.label_ids
+    assert isinstance(predictions, np.ndarray)
+    assert isinstance(labels, np.ndarray)
+
     # Iterate over all combinations of categories
     records = list()
     for combination in it.product(*unique_category_values):
@@ -80,17 +87,9 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
         df_filtered = df.copy()
         for key, value in zip(categories, combination):
             if value is not None:
-                breakpoint()
                 df_filtered = df_filtered.query(f"{key}_1 == @value")
         if not len(df_filtered):
             continue
-
-        # Get predictions
-        prediction_object = trainer.predict(test_dataset=test_dataset)
-        predictions = prediction_object.predictions
-        labels = prediction_object.label_ids
-        assert isinstance(predictions, np.ndarray)
-        assert isinstance(labels, np.ndarray)
 
         # Compute scores for the combination
         idxs = df_filtered.index.tolist()
@@ -100,6 +99,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
             log_examples=False,
         )
         named_combination = dict(zip(categories, combination))
+        breakpoint()
         records.append(named_combination | combination_scores)
 
         # Log the scores
