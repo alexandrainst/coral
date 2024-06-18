@@ -62,7 +62,9 @@ def evaluate(cfg: DictConfig) -> pd.DataFrame:
 
     df = test_dataset.to_pandas()
     assert isinstance(df, pd.DataFrame)
-    df["native_1"] = df.native_language_1 == "Denmark"
+
+    # Make a new binary feature of whether the native language is Danish
+    df["native_1"] = df.native_language_1.isin(["Danmark", "Denmark", "Dansk"])
 
     # Fix dialects
     df.dialect_1 = [
