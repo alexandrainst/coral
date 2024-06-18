@@ -38,7 +38,7 @@ def pytest_unconfigure() -> None:
     ),
     ids=lambda x: f"model: {x[0]}, dataset: {x[1]}",
 )
-def cfg(request) -> Generator[DictConfig, None, None]:
+def config(request) -> Generator[DictConfig, None, None]:
     """Hydra configuration."""
     model, datasets = request.param
     yield compose(
@@ -56,6 +56,6 @@ def cfg(request) -> Generator[DictConfig, None, None]:
 
 
 @pytest.fixture(scope="session")
-def dataset(cfg) -> Generator[DatasetDict | IterableDatasetDict, None, None]:
+def dataset(config) -> Generator[DatasetDict | IterableDatasetDict, None, None]:
     """ASR Dataset."""
-    yield load_data(cfg)
+    yield load_data(config)
