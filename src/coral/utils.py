@@ -63,7 +63,16 @@ class transformers_output_ignored:
 
 @contextlib.contextmanager
 def monkeypatched(obj, name, patch):
-    """Temporarily monkeypatch."""
+    """Temporarily monkeypatch.
+
+    Args:
+        obj:
+            The object to monkeypatch.
+        name:
+            The name of the attribute to monkeypatch.
+        patch:
+            The patch to apply.
+    """
     old_attr = getattr(obj, name)
     setattr(obj, name, patch(old_attr))
     try:
@@ -95,8 +104,7 @@ def convert_iterable_dataset_to_dataset(
             The ID of the dataset, which is used to store and re-load the dataset.
 
     Returns:
-        Dataset:
-            The converted Dataset.
+        The converted Dataset.
     """
     if dataset_id is not None:
         dataset_dir = Path.home() / ".cache" / "huggingface" / "datasets" / dataset_id

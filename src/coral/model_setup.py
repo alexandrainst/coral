@@ -11,12 +11,11 @@ def load_model_setup(cfg: DictConfig) -> ModelSetup:
     """Get the model setup for the given configuration.
 
     Args:
-        cfg (DictConfig):
+        cfg:
             The Hydra configuration object.
 
     Returns:
-        ModelSetup:
-            The model setup.
+        The model setup.
     """
     model_type: str = cfg.model.type
     match model_type:
