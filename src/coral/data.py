@@ -54,12 +54,17 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
                     f"Please check that the provided dataset directory {train_path} "
                     "contains arrow files of the form 'data-*.arrow'."
                 )
-            ds = load_dataset(
-                "arrow",
-                data_files=data_files,
-                split=dataset_cfg.train_name,
-                streaming=True,
-            )
+            try:
+                ds = load_dataset(
+                    "arrow",
+                    data_files=data_files,
+                    split=dataset_cfg.train_name,
+                    streaming=True,
+                )
+            except ValueError:
+                ds = load_dataset(
+                    "arrow", data_files=data_files, split="train", streaming=True
+                )
 
         # Load dataset from the Hugging Face Hub. The HUGGINGFACE_HUB_TOKEN is only
         # used during CI - normally it is expected that the user is logged in to the
