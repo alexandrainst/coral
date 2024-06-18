@@ -4,7 +4,7 @@ import re
 
 import pytest
 from coral.data import clean_example
-from datasets import DatasetDict, IterableDatasetDict
+from datasets import IterableDatasetDict
 
 
 class TestLoadData:
@@ -12,9 +12,7 @@ class TestLoadData:
 
     def test_dataset_type(self, dataset) -> None:
         """Test that the dataset is of the correct type."""
-        assert isinstance(dataset, DatasetDict) or isinstance(
-            dataset, IterableDatasetDict
-        )
+        assert isinstance(dataset, IterableDatasetDict)
 
     def test_split_names(self, dataset) -> None:
         """Test that the dataset has the correct split names."""

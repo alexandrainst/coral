@@ -99,7 +99,6 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
             log_examples=False,
         )
         named_combination = dict(zip(categories, combination))
-        breakpoint()
         records.append(named_combination | combination_scores)
 
         # Log the scores

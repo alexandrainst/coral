@@ -58,4 +58,4 @@ def config(request) -> Generator[DictConfig, None, None]:
 @pytest.fixture(scope="session")
 def dataset(config) -> Generator[DatasetDict | IterableDatasetDict, None, None]:
     """ASR Dataset."""
-    yield load_data(config)
+    yield load_data(config=config)
