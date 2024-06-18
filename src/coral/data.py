@@ -10,7 +10,6 @@ from unicodedata import normalize
 from datasets import (
     Audio,
     Dataset,
-    DatasetDict,
     IterableDataset,
     IterableDatasetDict,
     NamedSplit,
@@ -22,7 +21,7 @@ from omegaconf import DictConfig
 logger = logging.getLogger(__package__)
 
 
-def load_data(config: DictConfig) -> DatasetDict | IterableDatasetDict:
+def load_data(config: DictConfig) -> IterableDatasetDict:
     """Load an audio dataset for training.
 
     Args:
@@ -136,10 +135,7 @@ def load_data(config: DictConfig) -> DatasetDict | IterableDatasetDict:
         train = all_datasets[0]
 
     data_dict = dict(train=train)
-    if isinstance(train, Dataset):
-        dataset = DatasetDict(data_dict)
-    else:
-        dataset = IterableDatasetDict(data_dict)
+    dataset = IterableDatasetDict(data_dict)
 
     # Load CoRal validation and test sets
     if is_main_process:
@@ -164,10 +160,7 @@ def load_data(config: DictConfig) -> DatasetDict | IterableDatasetDict:
         split = split.cast_column(
             column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
         )
-        # TODO: Decide if we want to keep the original columns
-        # split = split.remove_columns(
-        #     [column for column in split.column_names if column not in ["audio", "text"]]
-        # )
+        assert isinstance(split, IterableDataset)
         if config.model.clean_dataset:
             split = clean_dataset(config=config, dataset=split)
         dataset[new_split_name] = split

@@ -40,7 +40,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     with transformers_output_ignored():
         model_data = load_model_setup(config=config).load_saved()
 
-    dataset: DatasetDict | IterableDatasetDict = load_data(config=config)
+    dataset = load_data(config=config)
     dataset = preprocess_transcriptions(dataset=dataset, processor=model_data.processor)
 
     trainer = Trainer(
@@ -118,7 +118,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
 
 def preprocess_transcriptions(
     dataset: DatasetDict | IterableDatasetDict, processor: Processor
-) -> DatasetDict | IterableDatasetDict:
+) -> IterableDatasetDict:
     """Preprocess the transcriptions in the dataset.
 
     Args:
@@ -146,5 +146,6 @@ def preprocess_transcriptions(
         )
         mapped[split]._info.features["input_length"] = Value(dtype="int64")
         mapped[split]._info = dataset[split]._info
+    assert isinstance(mapped, IterableDatasetDict)
 
     return mapped
