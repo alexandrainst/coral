@@ -27,20 +27,20 @@ load_dotenv()
 logger = logging.getLogger(__package__)
 
 
-def evaluate(cfg: DictConfig) -> pd.DataFrame:
+def evaluate(config: DictConfig) -> pd.DataFrame:
     """Evaluate a model on the CoRal test dataset.
 
     Args:
-        cfg:
+        config:
             The Hydra configuration object.
 
     Returns:
         A DataFrame with the evaluation scores.
     """
     with transformers_output_ignored():
-        model_data = load_model_setup(cfg=cfg).load_saved()
+        model_data = load_model_setup(config=config).load_saved()
 
-    dataset: DatasetDict | IterableDatasetDict = load_data(cfg=cfg)
+    dataset: DatasetDict | IterableDatasetDict = load_data(config=config)
     dataset = preprocess_transcriptions(dataset=dataset, processor=model_data.processor)
 
     trainer = Trainer(

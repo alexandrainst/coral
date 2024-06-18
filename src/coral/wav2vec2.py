@@ -36,14 +36,14 @@ logger = logging.getLogger(__package__)
 class Wav2Vec2ModelSetup(ModelSetup):
     """Model setup for Wav2Vec 2.0 models."""
 
-    def __init__(self, cfg: DictConfig) -> None:
+    def __init__(self, config: DictConfig) -> None:
         """Initialise the model setup.
 
         Args:
-            cfg:
+            config:
                 The Hydra configuration object.
         """
-        self.cfg = cfg
+        self.config = config
         self.processor: Processor
 
     def load_processor(self) -> Wav2Vec2Processor:
@@ -52,9 +52,9 @@ class Wav2Vec2ModelSetup(ModelSetup):
         # initialisation
         while True:
             try:
-                dump_vocabulary(self.cfg)
+                dump_vocabulary(self.config)
                 tokenizer: Wav2Vec2CTCTokenizer = Wav2Vec2CTCTokenizer.from_pretrained(
-                    self.cfg.model_dir,
+                    self.config.model_dir,
                     pad_token="<pad>",
                     unk_token="<unk>",
                     bos_token="<s>",
@@ -79,7 +79,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
 
         extractor = Wav2Vec2FeatureExtractor(
             feature_size=1,
-            sampling_rate=self.cfg.model.sampling_rate,
+            sampling_rate=self.config.model.sampling_rate,
             padding_value=0.0,
             do_normalize=True,
             return_attention_mask=True,
@@ -94,19 +94,19 @@ class Wav2Vec2ModelSetup(ModelSetup):
         """Return the model for the model."""
         with transformers_output_ignored():
             model = Wav2Vec2ForCTC.from_pretrained(
-                self.cfg.model.pretrained_model_id,
-                activation_dropout=self.cfg.model.activation_dropout,
-                attention_dropout=self.cfg.model.attention_dropout,
-                hidden_dropout=self.cfg.model.hidden_dropout,
-                feat_proj_dropout=self.cfg.model.feat_proj_dropout,
-                final_dropout=self.cfg.model.final_dropout,
+                self.config.model.pretrained_model_id,
+                activation_dropout=self.config.model.activation_dropout,
+                attention_dropout=self.config.model.attention_dropout,
+                hidden_dropout=self.config.model.hidden_dropout,
+                feat_proj_dropout=self.config.model.feat_proj_dropout,
+                final_dropout=self.config.model.final_dropout,
                 apply_spec_augment=True,
-                mask_time_prob=self.cfg.model.mask_time_prob,
-                mask_time_length=self.cfg.model.mask_time_length,
-                mask_feature_prob=self.cfg.model.mask_feature_prob,
-                mask_feature_length=self.cfg.model.mask_feature_length,
-                layerdrop=self.cfg.model.layerdrop,
-                ctc_loss_reduction=self.cfg.model.ctc_loss_reduction,
+                mask_time_prob=self.config.model.mask_time_prob,
+                mask_time_length=self.config.model.mask_time_length,
+                mask_feature_prob=self.config.model.mask_feature_prob,
+                mask_feature_length=self.config.model.mask_feature_length,
+                layerdrop=self.config.model.layerdrop,
+                ctc_loss_reduction=self.config.model.ctc_loss_reduction,
                 pad_token_id=self.processor.tokenizer.pad_token_id,
                 bos_token_id=self.processor.tokenizer.bos_token_id,
                 eos_token_id=self.processor.tokenizer.eos_token_id,
@@ -115,7 +115,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
             )
         assert isinstance(model, Wav2Vec2ForCTC)
 
-        if self.cfg.model.freeze_feature_encoder:
+        if self.config.model.freeze_feature_encoder:
             for param in model.wav2vec2.parameters():
                 param.requires_grad = False
 
@@ -125,8 +125,8 @@ class Wav2Vec2ModelSetup(ModelSetup):
         """Return the data collator for the model."""
         return DataCollatorCTCWithPadding(
             processor=self.processor,
-            max_seconds_per_example=self.cfg.max_seconds_per_example,
-            padding=self.cfg.padding,
+            max_seconds_per_example=self.config.max_seconds_per_example,
+            padding=self.config.padding,
         )
 
     def load_trainer_class(self) -> Type[Trainer]:
@@ -141,66 +141,66 @@ class Wav2Vec2ModelSetup(ModelSetup):
         """Return the training arguments for the model."""
         # Compute the gradient accumulation based on the total batch size in the config
         num_devices = max(torch.cuda.device_count(), 1)
-        per_device_total_batch_size = self.cfg.total_batch_size // num_devices
+        per_device_total_batch_size = self.config.total_batch_size // num_devices
         gradient_accumulation_steps = (
-            per_device_total_batch_size // self.cfg.per_device_batch_size
+            per_device_total_batch_size // self.config.per_device_batch_size
         )
 
         if gradient_accumulation_steps == 0:
             logger.warning(
-                f"Your `total_batch_size` is too small ({self.cfg.total_batch_size}), "
+                f"Your `total_batch_size` is too small ({self.config.total_batch_size}), "
                 f"relative to the number of devices ({num_devices}) and your "
-                f"`per_device_batch_size` ({self.cfg.per_device_batch_size}). It has "
+                f"`per_device_batch_size` ({self.config.per_device_batch_size}). It has "
                 f"been set to `per_device_batch_size * num_devices` = "
-                f"{self.cfg.per_device_batch_size * num_devices}."
+                f"{self.config.per_device_batch_size * num_devices}."
             )
             gradient_accumulation_steps = 1
 
         args = TrainingArguments(
-            output_dir=self.cfg.model_dir,
-            hub_model_id=self.cfg.hub_id,
-            per_device_train_batch_size=self.cfg.per_device_batch_size,
-            per_device_eval_batch_size=self.cfg.per_device_batch_size,
+            output_dir=self.config.model_dir,
+            hub_model_id=self.config.hub_id,
+            per_device_train_batch_size=self.config.per_device_batch_size,
+            per_device_eval_batch_size=self.config.per_device_batch_size,
             gradient_accumulation_steps=gradient_accumulation_steps,
-            learning_rate=self.cfg.learning_rate,
+            learning_rate=self.config.learning_rate,
             lr_scheduler_type=SchedulerType.COSINE,
-            warmup_steps=self.cfg.warmup_steps,
-            max_steps=self.cfg.max_steps,
-            fp16=self.cfg.fp16 and not mps_is_available(),
-            push_to_hub=self.cfg.push_to_hub,
+            warmup_steps=self.config.warmup_steps,
+            max_steps=self.config.max_steps,
+            fp16=self.config.fp16 and not mps_is_available(),
+            push_to_hub=self.config.push_to_hub,
             eval_strategy="steps",
-            eval_steps=self.cfg.eval_steps,
-            save_steps=self.cfg.save_steps,
-            save_strategy="no" if self.cfg.save_total_limit == 0 else "steps",
-            logging_steps=self.cfg.logging_steps,
+            eval_steps=self.config.eval_steps,
+            save_steps=self.config.save_steps,
+            save_strategy="no" if self.config.save_total_limit == 0 else "steps",
+            logging_steps=self.config.logging_steps,
             length_column_name="input_length",
             gradient_checkpointing=True,
-            save_total_limit=self.cfg.save_total_limit,
-            load_best_model_at_end=self.cfg.early_stopping,
+            save_total_limit=self.config.save_total_limit,
+            load_best_model_at_end=self.config.early_stopping,
             metric_for_best_model="wer",
             greater_is_better=False,
-            seed=self.cfg.seed,
+            seed=self.config.seed,
             remove_unused_columns=False,
             optim=OptimizerNames.ADAMW_TORCH,
-            adam_beta1=self.cfg.adam_first_momentum,
-            adam_beta2=self.cfg.adam_second_momentum,
-            report_to=["wandb"] if self.cfg.wandb else [],
-            ignore_data_skip=self.cfg.ignore_data_skip,
+            adam_beta1=self.config.adam_first_momentum,
+            adam_beta2=self.config.adam_second_momentum,
+            report_to=["wandb"] if self.config.wandb else [],
+            ignore_data_skip=self.config.ignore_data_skip,
             save_safetensors=True,
             use_cpu=hasattr(sys, "_called_from_test"),
-            dataloader_num_workers=self.cfg.dataloader_num_workers,
+            dataloader_num_workers=self.config.dataloader_num_workers,
             ddp_find_unused_parameters=False,
         )
         return args
 
     def load_saved(self) -> PreTrainedModelData:
         """Return the saved model data for the model."""
-        model_id = self.cfg.model_dir
+        model_id = self.config.model_dir
         if not Path(model_id).exists():
-            model_id = self.cfg.hub_id
+            model_id = self.config.hub_id
 
         processor: Wav2Vec2Processor | Wav2Vec2ProcessorWithLM
-        if self.cfg.model.language_model_decoder is not None:
+        if self.config.model.language_model_decoder is not None:
             try:
                 processor = Wav2Vec2ProcessorWithLM.from_pretrained(
                     model_id, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
@@ -226,8 +226,8 @@ class Wav2Vec2ModelSetup(ModelSetup):
 
         data_collator = DataCollatorCTCWithPadding(
             processor=processor,
-            max_seconds_per_example=self.cfg.max_seconds_per_example,
-            padding=self.cfg.padding,
+            max_seconds_per_example=self.config.max_seconds_per_example,
+            padding=self.config.padding,
         )
 
         return PreTrainedModelData(
@@ -238,23 +238,23 @@ class Wav2Vec2ModelSetup(ModelSetup):
         )
 
 
-def dump_vocabulary(cfg: DictConfig) -> None:
+def dump_vocabulary(config: DictConfig) -> None:
     """Extracts the vocabulary from the dataset and dumps it to a file.
 
-    It will dump the file to `${cfg.model_dir}/vocab.json`.
+    It will dump the file to `${config.model_dir}/vocab.json`.
 
     Args:
-        cfg:
+        config:
             The Hydra configuration object.
     """
     # Build the set of all unique characters in the dataset
-    unique_characters: set[str] = set(cfg.characters_to_keep + "|")
+    unique_characters: set[str] = set(config.characters_to_keep + "|")
 
     # Build vocabulary
     vocab = {char: idx for idx, char in enumerate(unique_characters)}
 
     # Dump the vocabulary to a json file
-    model_dir = Path(cfg.model_dir)
+    model_dir = Path(config.model_dir)
     model_dir.mkdir(parents=True, exist_ok=True)
     vocab_path = model_dir / "vocab.json"
     with vocab_path.open("w") as f:

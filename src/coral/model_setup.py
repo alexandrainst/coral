@@ -7,21 +7,21 @@ from .wav2vec2 import Wav2Vec2ModelSetup
 from .whisper import WhisperModelSetup
 
 
-def load_model_setup(cfg: DictConfig) -> ModelSetup:
+def load_model_setup(config: DictConfig) -> ModelSetup:
     """Get the model setup for the given configuration.
 
     Args:
-        cfg:
+        config:
             The Hydra configuration object.
 
     Returns:
         The model setup.
     """
-    model_type: str = cfg.model.type
+    model_type: str = config.model.type
     match model_type:
         case "wav2vec2":
-            return Wav2Vec2ModelSetup(cfg=cfg)
+            return Wav2Vec2ModelSetup(config=config)
         case "whisper":
-            return WhisperModelSetup(cfg=cfg)
+            return WhisperModelSetup(config=config)
         case _:
             raise ValueError(f"Unsupported model type: {model_type!r}")

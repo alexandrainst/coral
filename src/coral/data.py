@@ -22,11 +22,11 @@ from omegaconf import DictConfig
 logger = logging.getLogger(__package__)
 
 
-def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
+def load_data(config: DictConfig) -> DatasetDict | IterableDatasetDict:
     """Load an audio dataset for training.
 
     Args:
-        cfg:
+        config:
             The Hydra configuration object.
 
     Returns:
@@ -40,13 +40,13 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
     is_main_process = os.getenv("RANK", "0") == "0"
 
     all_datasets: list[Dataset | IterableDataset] = list()
-    for dataset_name, dataset_cfg in cfg.datasets.items():
+    for dataset_name, dataset_config in config.datasets.items():
         if is_main_process:
             logger.info(f"Loading dataset {dataset_name!r}")
 
         # Load from disk if the dataset ID is a path
-        if Path(dataset_cfg.id).exists():
-            train_path = Path(dataset_cfg.id) / dataset_cfg.train_name
+        if Path(dataset_config.id).exists():
+            train_path = Path(dataset_config.id) / dataset_config.train_name
             data_files = list(map(str, train_path.glob("data-*.arrow")))
             if len(data_files) == 0:
                 raise FileNotFoundError(
@@ -58,7 +58,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
                 ds = load_dataset(
                     "arrow",
                     data_files=data_files,
-                    split=dataset_cfg.train_name,
+                    split=dataset_config.train_name,
                     streaming=True,
                 )
             except ValueError:
@@ -71,9 +71,9 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         # Hugging Face Hub using the `huggingface-cli login` command.
         else:
             ds = load_dataset(
-                path=dataset_cfg.id,
-                name=dataset_cfg.subset,
-                split=dataset_cfg.train_name,
+                path=dataset_config.id,
+                name=dataset_config.subset,
+                split=dataset_config.train_name,
                 token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
                 streaming=True,
                 trust_remote_code=True,
@@ -83,22 +83,22 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
             ds, IterableDataset
         ), f"Unsupported dataset type: {type(ds)}"
 
-        if dataset_cfg.text_column != "text":
-            ds = ds.rename_column(dataset_cfg.text_column, "text")
+        if dataset_config.text_column != "text":
+            ds = ds.rename_column(dataset_config.text_column, "text")
 
-        if dataset_cfg.audio_column != "audio":
-            ds = ds.rename_column(dataset_cfg.audio_column, "audio")
+        if dataset_config.audio_column != "audio":
+            ds = ds.rename_column(dataset_config.audio_column, "audio")
 
         ds = ds.cast_column(
-            column="audio", feature=Audio(sampling_rate=cfg.model.sampling_rate)
+            column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
         )
         ds = ds.remove_columns(
             [column for column in ds.column_names if column not in ["audio", "text"]]
         )
-        ds = ds.shuffle(seed=cfg.seed)
+        ds = ds.shuffle(seed=config.seed)
 
-        if cfg.model.clean_dataset:
-            ds = clean_dataset(cfg, dataset=ds)
+        if config.model.clean_dataset:
+            ds = clean_dataset(config, dataset=ds)
 
         all_datasets.append(ds)
 
@@ -107,7 +107,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
     if len(all_datasets) > 1:
         if is_main_process:
             logger.info("Interleaving datasets")
-            if cfg.dataset_probabilities is None and len(all_datasets) > 1:
+            if config.dataset_probabilities is None and len(all_datasets) > 1:
                 logger.warning(
                     "No dataset probabilities were specified for the training split. "
                     "This means that each dataset will be sampled with equal "
@@ -116,7 +116,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
                     "not what you want."
                 )
 
-        probabilities = cfg.dataset_probabilities
+        probabilities = config.dataset_probabilities
         if probabilities is None:
             probabilities = [1 / len(all_datasets)] * len(all_datasets)
             probabilities[-1] = 1 - sum(probabilities[:-1])
@@ -128,7 +128,7 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
         train = interleave_datasets(
             datasets=[ds for ds in all_datasets],
             probabilities=probabilities,
-            seed=cfg.seed,
+            seed=config.seed,
             split=NamedSplit("train"),
             stopping_strategy="all_exhausted",
         )
@@ -145,43 +145,43 @@ def load_data(cfg: DictConfig) -> DatasetDict | IterableDatasetDict:
     if is_main_process:
         logger.info("Loading CoRal validation and test datasets")
     split_names = dict(
-        val=cfg.evaluation_dataset.val_name, test=cfg.evaluation_dataset.test_name
+        val=config.evaluation_dataset.val_name, test=config.evaluation_dataset.test_name
     )
     for new_split_name, old_split_name in split_names.items():
         split = load_dataset(
-            path=cfg.evaluation_dataset.id,
+            path=config.evaluation_dataset.id,
             split=old_split_name,
             token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
             streaming=True,
             trust_remote_code=True,
         )
-        if cfg.evaluation_dataset.text_column != "text":
-            split = split.rename_column(cfg.evaluation_dataset.text_column, "text")
+        if config.evaluation_dataset.text_column != "text":
+            split = split.rename_column(config.evaluation_dataset.text_column, "text")
 
-        if cfg.evaluation_dataset.audio_column != "audio":
-            split = split.rename_column(cfg.evaluation_dataset.audio_column, "audio")
+        if config.evaluation_dataset.audio_column != "audio":
+            split = split.rename_column(config.evaluation_dataset.audio_column, "audio")
 
         split = split.cast_column(
-            column="audio", feature=Audio(sampling_rate=cfg.model.sampling_rate)
+            column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
         )
         # TODO: Decide if we want to keep the original columns
         # split = split.remove_columns(
         #     [column for column in split.column_names if column not in ["audio", "text"]]
         # )
-        if cfg.model.clean_dataset:
-            split = clean_dataset(cfg=cfg, dataset=split)
+        if config.model.clean_dataset:
+            split = clean_dataset(config=config, dataset=split)
         dataset[new_split_name] = split
 
     return dataset
 
 
 def clean_dataset(
-    cfg: DictConfig, dataset: Dataset | IterableDataset
+    config: DictConfig, dataset: Dataset | IterableDataset
 ) -> Dataset | IterableDataset:
     """Clean the transcriptions in a dataset.
 
     Args:
-        cfg:
+        config:
             The Hydra configuration object
         dataset:
             The dataset to be cleaned.
@@ -234,7 +234,7 @@ def clean_dataset(
     # transcriptions, as they do not have an influence on the pronunciation of the
     # words.
     non_standard_characters_regex = re.compile(
-        f"[^{re.escape(cfg.characters_to_keep + ' |')}]"
+        f"[^{re.escape(config.characters_to_keep + ' |')}]"
     )
 
     mapped = dataset.map(
