@@ -168,7 +168,9 @@ class WhisperModelSetup(ModelSetup):
             self.cfg.hub_id, token=True
         )
         data_collator = DataCollatorSpeechSeq2SeqWithPadding(
-            processor=processor, padding=self.cfg.padding
+            processor=processor,
+            max_seconds_per_example=self.cfg.max_seconds_per_example,
+            padding=self.cfg.padding,
         )
         compute_metrics = partial(compute_wer_metrics, processor=processor)
         return PreTrainedModelData(
