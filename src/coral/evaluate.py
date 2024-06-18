@@ -67,6 +67,13 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     ]
     df.dialect_1 = [DIALECT_MAP.get(dialect, dialect) for dialect in df.dialect_1]
 
+    # Get unique values for each category
+    categories = ["age", "gender", "dialect", "native"]
+    unique_category_values = [
+        df[f"{category}_1"].unique().tolist() + [None] for category in categories
+    ]
+    breakpoint()
+
     # Get predictions
     prediction_object = trainer.predict(test_dataset=test_dataset)
     predictions = prediction_object.predictions
@@ -75,10 +82,6 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     assert isinstance(labels, np.ndarray)
 
     # Iterate over all combinations of categories
-    categories = ["age", "gender", "dialect", "native"]
-    unique_category_values = [
-        df[f"{category}_1"].unique().tolist() + [None] for category in categories
-    ]
     records = list()
     for combination in it.product(*unique_category_values):
         # Apply the combination of filters
