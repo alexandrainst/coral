@@ -162,7 +162,9 @@ class WhisperModelSetup(ModelSetup):
     def load_saved(self) -> PreTrainedModelData:
         """Load the model setup."""
         processor: Processor
-        processor = WhisperProcessor.from_pretrained(self.cfg.hub_id, token=True)
+        processor_or_tup = WhisperProcessor.from_pretrained(self.cfg.hub_id, token=True)
+        assert isinstance(processor_or_tup, WhisperProcessor)
+        processor = processor_or_tup
 
         model = WhisperForConditionalGeneration.from_pretrained(
             self.cfg.hub_id, token=True

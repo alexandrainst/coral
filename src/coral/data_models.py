@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Type
+from typing import Callable, Type, TypeAlias
 
 from omegaconf import DictConfig
 from transformers import (
@@ -16,9 +16,7 @@ from transformers import (
 )
 from transformers.data.data_collator import DataCollatorMixin
 
-Processor = (
-    Type[Wav2Vec2Processor] | Type[Wav2Vec2ProcessorWithLM] | Type[WhisperProcessor]
-)
+Processor: TypeAlias = Wav2Vec2Processor | Wav2Vec2ProcessorWithLM | WhisperProcessor
 
 
 @dataclass
