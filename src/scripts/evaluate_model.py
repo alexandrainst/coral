@@ -4,26 +4,12 @@ Usage:
     python evaluate_model.py <key>=<value> <key>=<value> ...
 """
 
-import itertools as it
 import logging
-import re
 
 import hydra
-import numpy as np
-import pandas as pd
-from coral.compute_metrics import compute_wer_metrics
-from coral.data import load_data
-from coral.model_setup import load_model_setup
-from coral.protocols import Processor
-from coral.utils import (
-    DIALECT_MAP,
-    convert_iterable_dataset_to_dataset,
-    transformers_output_ignored,
-)
-from datasets import DatasetDict, IterableDatasetDict, Sequence, Value
+from coral.evaluate import evaluate
 from dotenv import load_dotenv
 from omegaconf import DictConfig
-from transformers import EvalPrediction, Trainer, TrainingArguments
 
 load_dotenv()
 
@@ -39,109 +25,8 @@ def main(cfg: DictConfig) -> None:
         cfg:
             The Hydra configuration object.
     """
-    with transformers_output_ignored():
-        model_data = load_model_setup(cfg).load_saved()
-
-    dataset: DatasetDict | IterableDatasetDict = load_data(cfg)
-    dataset = preprocess_transcriptions(dataset=dataset, processor=model_data.processor)
-
-    trainer = Trainer(
-        args=TrainingArguments(".", remove_unused_columns=False, report_to=[]),
-        model=model_data.model,
-        data_collator=model_data.data_collator,
-        tokenizer=getattr(model_data.processor, "tokenizer"),
-    )
-
-    logger.info("Converting iterable test dataset to a regular dataset.")
-    test_dataset = convert_iterable_dataset_to_dataset(
-        iterable_dataset=dataset["test"], dataset_id="coral-test"
-    )
-    prediction_object = trainer.predict(test_dataset=test_dataset)
-    predictions = prediction_object.predictions
-    labels = prediction_object.label_ids
-    assert isinstance(predictions, np.ndarray)
-    assert isinstance(labels, np.ndarray)
-
-    df = test_dataset.to_pandas()
-    assert isinstance(df, pd.DataFrame)
-    df["native_1"] = df.native_language_1 == "Denmark"
-
-    # Fix dialects
-    df.dialect_1 = [
-        re.sub(r"\(.*\)", "", dialect.lower()).strip() for dialect in df.dialect_1
-    ]
-    df.dialect_1 = [DIALECT_MAP.get(dialect, dialect) for dialect in df.dialect_1]
-
-    categories = ["age", "gender", "dialect", "native"]
-    unique_category_values = [
-        df[f"{category}_1"].unique().tolist() + [None] for category in categories
-    ]
-
-    records = list()
-    for combination in it.product(*unique_category_values):
-        df_filtered = df.copy()
-        for key, value in zip(categories, combination):
-            if value is not None:
-                df_filtered = df_filtered.query(f"{key}_1 == '{value}'")
-        if not len(df_filtered):
-            continue
-        idxs = df_filtered.index.tolist()
-        combination_scores = compute_wer_metrics(
-            pred=EvalPrediction(predictions=predictions[idxs], label_ids=labels[idxs]),
-            processor=model_data.processor,
-            log_examples=False,
-        )
-        named_combination = dict(zip(categories, combination))
-        records.append(named_combination | combination_scores)
-
-        combination_str = ", ".join(
-            f"{key}={value}"
-            for key, value in named_combination.items()
-            if value is not None
-        )
-        if combination_str == "":
-            combination_str = "entire test set"
-        scores_str = ", ".join(
-            f"{key}={value:.0%}" for key, value in combination_scores.items()
-        )
-        logger.info(f"Scores for {combination_str}: {scores_str}")
-
-    score_df = pd.DataFrame.from_records(data=records)
+    score_df = evaluate(cfg=cfg)
     score_df.to_csv(f"{cfg.pipeline_id}_scores.csv", index=False)
-
-
-def preprocess_transcriptions(
-    dataset: DatasetDict | IterableDatasetDict, processor: Processor
-) -> DatasetDict | IterableDatasetDict:
-    """Preprocess the transcriptions in the dataset.
-
-    Args:
-        dataset:
-            The dataset to preprocess.
-        processor:
-            The processor to use for tokenization.
-
-    Returns:
-        The preprocessed dataset.
-    """
-
-    def tokenize_examples(example: dict) -> dict:
-        example["labels"] = processor(text=example["text"], truncation=True).input_ids
-        example["input_length"] = len(example["labels"])
-        return example
-
-    mapped = dataset.map(tokenize_examples)
-
-    # After calling `map` the DatasetInfo is lost, so we need to add it back in
-    for split in dataset.keys():
-        mapped[split]._info = dataset[split]._info
-        mapped[split]._info.features["labels"] = Sequence(
-            feature=Value(dtype="int64"), length=-1
-        )
-        mapped[split]._info.features["input_length"] = Value(dtype="int64")
-        mapped[split]._info = dataset[split]._info
-
-    return mapped
 
 
 if __name__ == "__main__":

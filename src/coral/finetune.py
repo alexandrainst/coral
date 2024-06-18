@@ -1,19 +1,19 @@
-"""Functions related to the finetuning of Wav2Vec 2.0 models on ASR datasets."""
+"""Finetuning ASR models."""
 
-from functools import partial
 import logging
-from typing import Callable
 import os
+from functools import partial
+from typing import Callable
 
 from omegaconf import DictConfig
 from transformers import EarlyStoppingCallback, TrainerCallback
 from wandb.sdk.wandb_init import init as wandb_init
 from wandb.sdk.wandb_run import finish as wandb_finish
 
-from .utils import disable_tqdm
 from .data import load_data
 from .model_setup import load_model_setup
 from .protocols import ModelSetup
+from .utils import disable_tqdm
 
 logger = logging.getLogger(__package__)
 
@@ -80,9 +80,8 @@ def finetune(cfg: DictConfig) -> None:
     )
     dataset = dataset.filter(
         function=partial(
-            example_audio_is_short,
-            max_seconds_per_example=cfg.max_seconds_per_example,
-        ),
+            example_audio_is_short, max_seconds_per_example=cfg.max_seconds_per_example
+        )
     )
 
     if cfg.wandb and is_main_process:
