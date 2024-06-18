@@ -54,11 +54,6 @@ def evaluate(cfg: DictConfig) -> pd.DataFrame:
     test_dataset = convert_iterable_dataset_to_dataset(
         iterable_dataset=dataset["test"], dataset_id="coral-test"
     )
-    prediction_object = trainer.predict(test_dataset=test_dataset)
-    predictions = prediction_object.predictions
-    labels = prediction_object.label_ids
-    assert isinstance(predictions, np.ndarray)
-    assert isinstance(labels, np.ndarray)
 
     df = test_dataset.to_pandas()
     assert isinstance(df, pd.DataFrame)
@@ -72,19 +67,29 @@ def evaluate(cfg: DictConfig) -> pd.DataFrame:
     ]
     df.dialect_1 = [DIALECT_MAP.get(dialect, dialect) for dialect in df.dialect_1]
 
+    # Get predictions
+    prediction_object = trainer.predict(test_dataset=test_dataset)
+    predictions = prediction_object.predictions
+    labels = prediction_object.label_ids
+    assert isinstance(predictions, np.ndarray)
+    assert isinstance(labels, np.ndarray)
+
+    # Iterate over all combinations of categories
     categories = ["age", "gender", "dialect", "native"]
     unique_category_values = [
         df[f"{category}_1"].unique().tolist() + [None] for category in categories
     ]
-
     records = list()
     for combination in it.product(*unique_category_values):
+        # Apply the combination of filters
         df_filtered = df.copy()
         for key, value in zip(categories, combination):
             if value is not None:
                 df_filtered = df_filtered.query(f"{key}_1 == '{value}'")
         if not len(df_filtered):
             continue
+
+        # Compute scores for the combination
         idxs = df_filtered.index.tolist()
         combination_scores = compute_wer_metrics(
             pred=EvalPrediction(predictions=predictions[idxs], label_ids=labels[idxs]),
@@ -94,6 +99,7 @@ def evaluate(cfg: DictConfig) -> pd.DataFrame:
         named_combination = dict(zip(categories, combination))
         records.append(named_combination | combination_scores)
 
+        # Log the scores
         combination_str = ", ".join(
             f"{key}={value}"
             for key, value in named_combination.items()
