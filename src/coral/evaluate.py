@@ -60,6 +60,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
 
     # Make a new binary feature of whether the native language is Danish
     df["native_1"] = df.native_language_1.isin(["Danmark", "Denmark", "Dansk"])
+    breakpoint()
 
     # Fix dialects
     df.dialect_1 = [
