@@ -85,13 +85,18 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     for combination in it.product(*unique_category_values):
         # Apply the combination of filters
         df_filtered = df.copy()
+        skip_combination = False
         for key, value in zip(categories, combination):
             if value is not None:
                 new_df_filtered = df_filtered.query(f"{key}_1 == @value")
-                if len(new_df_filtered) == len(df_filtered):
-                    continue
+                if (
+                    len(new_df_filtered) == len(df_filtered)
+                    or len(new_df_filtered) == 0
+                ):
+                    skip_combination = True
                 df_filtered = new_df_filtered
-        if not len(df_filtered):
+
+        if skip_combination:
             continue
 
         # Compute scores for the combination
