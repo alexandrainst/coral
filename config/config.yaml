@@ -18,6 +18,7 @@ seed: 4242
 evaluation_dataset:
   id: CoRal-dataset/coral_v1.0
   subset: null
+  split: test
   val_name: validation
   test_name: test
   text_column: text

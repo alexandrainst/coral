@@ -6,7 +6,7 @@ import re
 
 import numpy as np
 import pandas as pd
-from datasets import DatasetDict, IterableDatasetDict, Sequence, Value
+from datasets import Dataset, Sequence, Value
 from dotenv import load_dotenv
 from omegaconf import DictConfig
 from transformers import EvalPrediction, Trainer, TrainingArguments
@@ -28,7 +28,7 @@ logger = logging.getLogger(__package__)
 
 
 def evaluate(config: DictConfig) -> pd.DataFrame:
-    """Evaluate a model on the CoRal test dataset.
+    """Evaluate a model on a CoRal evaluation dataset.
 
     Args:
         config:
@@ -41,18 +41,23 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
         model_data = load_model_setup(config=config).load_saved()
 
     dataset = load_data(config=config)
-    dataset = preprocess_transcriptions(dataset=dataset, processor=model_data.processor)
 
     trainer = Trainer(
         args=TrainingArguments(".", remove_unused_columns=False, report_to=[]),
         model=model_data.model,
         data_collator=model_data.data_collator,
-        tokenizer=getattr(model_data.processor, "tokenizer"),
     )
 
-    logger.info("Converting iterable test dataset to a regular dataset.")
+    split = config.evaluation_dataset.split
+
+    logger.info(f"Converting iterable {split} dataset to a regular dataset.")
     test_dataset = convert_iterable_dataset_to_dataset(
-        iterable_dataset=dataset["test"], dataset_id="coral-test"
+        iterable_dataset=dataset[split], dataset_id=f"coral-{split}"
+    )
+
+    logger.info(f"Preprocessing the {split} split of the CoRal dataset.")
+    test_dataset = preprocess_transcriptions(
+        dataset=test_dataset, processor=model_data.processor
     )
 
     df = test_dataset.to_pandas()
@@ -116,7 +121,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
             if value is not None
         )
         if combination_str == "":
-            combination_str = "entire test set"
+            combination_str = f"entire {split} set"
         scores_str = ", ".join(
             f"{key}={value:.0%}" for key, value in combination_scores.items()
         )
@@ -126,9 +131,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     return score_df
 
 
-def preprocess_transcriptions(
-    dataset: DatasetDict | IterableDatasetDict, processor: Processor
-) -> IterableDatasetDict:
+def preprocess_transcriptions(dataset: Dataset, processor: Processor) -> Dataset:
     """Preprocess the transcriptions in the dataset.
 
     Args:
@@ -147,15 +150,12 @@ def preprocess_transcriptions(
         return example
 
     mapped = dataset.map(tokenize_examples)
+    assert isinstance(mapped, Dataset)
 
     # After calling `map` the DatasetInfo is lost, so we need to add it back in
-    for split in dataset.keys():
-        mapped[split]._info = dataset[split]._info
-        mapped[split]._info.features["labels"] = Sequence(
-            feature=Value(dtype="int64"), length=-1
-        )
-        mapped[split]._info.features["input_length"] = Value(dtype="int64")
-        mapped[split]._info = dataset[split]._info
-    assert isinstance(mapped, IterableDatasetDict)
+    mapped._info = dataset._info
+    mapped._info.features["labels"] = Sequence(feature=Value(dtype="int64"), length=-1)
+    mapped._info.features["input_length"] = Value(dtype="int64")
+    mapped._info = dataset._info
 
     return mapped
