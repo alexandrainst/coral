@@ -66,7 +66,7 @@ def compute_wer_metrics(
     # token IDs and then decode the token IDs to get the predicted string
     else:
         pred_ids: NDArray[np.int_] = np.argmax(predictions, axis=-1)
-        predictions_str = processor.batch_decode(pred_ids).text
+        predictions_str = processor.batch_decode(pred_ids)
 
     # Set the ground truth labels with label id -100 to be the padding token id. This
     # ensures that the WER metric does not consider these labels in its computation.
