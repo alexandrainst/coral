@@ -14,7 +14,6 @@ from pathlib import Path
 import hydra
 import requests
 from datasets import Dataset, load_dataset
-from huggingface_hub import Repository
 from omegaconf import DictConfig
 from pyctcdecode.decoder import build_ctcdecoder
 from transformers import AutoProcessor, Wav2Vec2ProcessorWithLM
@@ -124,9 +123,6 @@ def train_ngram_model(config: DictConfig) -> None:
         decoder=decoder,
     )
 
-    # Clone the repo containing the finetuned model
-    repo = Repository(local_dir=config.model_dir, clone_from=config.model_dir)
-
     # Save the new processor to the repo
     processor_with_lm.save_pretrained(config.model_dir)
 
@@ -142,9 +138,6 @@ def train_ngram_model(config: DictConfig) -> None:
     # Remove the uncompressed ngram model
     if correct_ngram_path.exists():
         correct_ngram_path.unlink()
-
-    # Push the changes to the repo
-    repo.push_to_hub(commit_message="Upload LM-boosted decoder")
 
 
 def download_and_extract(url: str, target_dir: str | Path) -> None:
