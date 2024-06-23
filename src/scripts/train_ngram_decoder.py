@@ -21,7 +21,7 @@ from pyctcdecode.decoder import build_ctcdecoder
 from tqdm.auto import tqdm
 from transformers import AutoProcessor, Wav2Vec2ProcessorWithLM
 
-nltk.download("punkt")
+nltk.download(info_or_id="punkt", quiet=True)
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
