@@ -207,11 +207,10 @@ class Wav2Vec2ModelSetup(ModelSetup):
                     model_path, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
                 )
             except (FileNotFoundError, ValueError):
-                processor_or_tup = Wav2Vec2Processor.from_pretrained(
-                    model_path, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
+                raise FileNotFoundError(
+                    "The model was trained with a language model decoder, but the "
+                    "language model decoder was not found."
                 )
-                assert not isinstance(processor_or_tup, tuple)
-                processor = processor_or_tup
         else:
             processor_or_tup = Wav2Vec2Processor.from_pretrained(
                 model_path, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
