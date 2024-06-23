@@ -76,6 +76,8 @@ def train_ngram_model(config: DictConfig) -> None:
                         stdout=f_out,
                     )
 
+                assert ngram_path.exists(), "Failed to train n-gram language model"
+
         # Add end-of-sentence marker </s> to the n-gram language model to get the final
         # language model
         with ngram_path.open("r") as f_in:
