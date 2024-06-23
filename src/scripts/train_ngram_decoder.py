@@ -17,6 +17,7 @@ import requests
 from datasets import Dataset, load_dataset
 from omegaconf import DictConfig
 from pyctcdecode.decoder import build_ctcdecoder
+from tqdm.auto import tqdm
 from transformers import AutoProcessor, Wav2Vec2ProcessorWithLM
 
 nltk.download("punkt")
@@ -64,7 +65,7 @@ def train_ngram_model(config: DictConfig) -> None:
             # Preprocess the dataset
             sentences = [
                 " ".join(nltk.word_tokenize(sentence, language="danish")).lower()
-                for document in dataset["text"]
+                for document in tqdm(dataset["text"], desc="Preprocessing dataset")
                 for sentence in nltk.sent_tokenize(document.lower(), language="danish")
             ]
             sentences = [
