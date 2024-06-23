@@ -158,7 +158,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
 
         args = TrainingArguments(
             output_dir=self.config.model_dir,
-            hub_model_id=self.config.hub_id,
+            hub_model_id=f"{self.config.hub_organisation}/{self.config.model_id}",
             per_device_train_batch_size=self.config.per_device_batch_size,
             per_device_eval_batch_size=self.config.per_device_batch_size,
             gradient_accumulation_steps=gradient_accumulation_steps,
@@ -195,31 +195,32 @@ class Wav2Vec2ModelSetup(ModelSetup):
 
     def load_saved(self) -> PreTrainedModelData:
         """Return the saved model data for the model."""
-        model_id = self.config.model_dir
-        if not Path(model_id).exists():
-            model_id = self.config.hub_id
+        if Path(self.config.model_dir).exists():
+            model_path = self.config.model_dir
+        else:
+            model_path = f"{self.config.hub_organisation}/{self.config.model_id}"
 
         processor: Wav2Vec2Processor | Wav2Vec2ProcessorWithLM
         if self.config.model.language_model_decoder is not None:
             try:
                 processor = Wav2Vec2ProcessorWithLM.from_pretrained(
-                    model_id, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
+                    model_path, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
                 )
             except (FileNotFoundError, ValueError):
                 processor_or_tup = Wav2Vec2Processor.from_pretrained(
-                    model_id, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
+                    model_path, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
                 )
                 assert not isinstance(processor_or_tup, tuple)
                 processor = processor_or_tup
         else:
             processor_or_tup = Wav2Vec2Processor.from_pretrained(
-                model_id, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
+                model_path, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
             )
             assert not isinstance(processor_or_tup, tuple)
             processor = processor_or_tup
 
         model_or_tup = Wav2Vec2ForCTC.from_pretrained(
-            model_id, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
+            model_path, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
         )
         assert isinstance(model_or_tup, Wav2Vec2ForCTC)
         model = model_or_tup
