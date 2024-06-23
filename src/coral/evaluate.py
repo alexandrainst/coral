@@ -113,7 +113,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     # token IDs and then decode the token IDs to get the predicted string
     else:
         pred_ids: NDArray[np.int_] = np.argmax(predictions, axis=-1)
-        predictions_str = model_data.processor.batch_decode(pred_ids).text
+        predictions_str = model_data.processor.tokenizer.batch_decode(pred_ids)
 
     # Decode the ground truth labels
     labels[labels == -100] = pad_token
