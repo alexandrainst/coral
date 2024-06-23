@@ -235,8 +235,7 @@ def clean_dataset(
             clean_example,
             non_standard_characters_regex=non_standard_characters_regex,
             conversion_dict=conversion_dict,
-        ),
-        load_from_cache_file=False,
+        )
     )
 
     # After calling `map` the DatasetInfo is lost, so we need to add it back in
