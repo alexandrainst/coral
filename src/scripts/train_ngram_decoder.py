@@ -56,9 +56,10 @@ def train_ngram_model(config: DictConfig) -> None:
         subprocess.run(["make", "-j", "2"], cwd=str(kenlm_build_dir))
 
     # Train the n-gram language model if it doesn't already exist
-    correct_ngram_path = Path(config.model_dir) / f"{config.model.decoder.n}gram.arpa"
+    ngram_dir = Path(config.model_dir) / "language_model"
+    correct_ngram_path = ngram_dir / f"{config.model.decoder.n}gram.arpa"
     if not correct_ngram_path.exists():
-        ngram_path = Path(config.model_dir) / f"raw_{config.model.decoder.n}gram.arpa"
+        ngram_path = ngram_dir / f"raw_{config.model.decoder.n}gram.arpa"
         ngram_path.parent.mkdir(parents=True, exist_ok=True)
 
         # If the raw language model does not exist either then train from scratch
