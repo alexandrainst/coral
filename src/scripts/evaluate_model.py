@@ -26,7 +26,7 @@ def main(config: DictConfig) -> None:
             The Hydra configuration object.
     """
     score_df = evaluate(config=config)
-    score_df.to_csv(f"{config.pipeline_id}_scores.csv", index=False)
+    score_df.to_csv(f"{config.model_id}_scores.csv", index=False)
 
 
 if __name__ == "__main__":
