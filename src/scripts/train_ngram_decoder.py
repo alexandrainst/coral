@@ -65,7 +65,9 @@ def train_ngram_model(config: DictConfig) -> None:
         if not ngram_path.exists():
             sentences = [
                 " ".join(nltk.word_tokenize(sentence, language="danish")).lower()
-                for document in tqdm(dataset["text"][:10], desc="Preprocessing dataset")
+                for document in tqdm(
+                    dataset["text"][:1000], desc="Preprocessing dataset"
+                )
                 for sentence in nltk.sent_tokenize(text=document, language="danish")
             ]
             sentences = [
@@ -134,7 +136,6 @@ def train_ngram_model(config: DictConfig) -> None:
     vocab_dict: dict[str, int] = processor.tokenizer.get_vocab()
     sorted_vocab_list = sorted(vocab_dict.items(), key=lambda item: item[1])
     sorted_vocab_dict = {k.lower(): v for k, v in sorted_vocab_list}
-    breakpoint()
 
     decoder = build_ctcdecoder(
         labels=list(sorted_vocab_dict.keys()), kenlm_model_path=str(correct_ngram_path)
