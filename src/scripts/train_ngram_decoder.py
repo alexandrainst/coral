@@ -68,6 +68,7 @@ def train_ngram_model(config: DictConfig) -> None:
                 for document in tqdm(dataset["text"][:10], desc="Preprocessing dataset")
                 for sentence in nltk.sent_tokenize(document.lower(), language="danish")
             ]
+            breakpoint()
             sentences = [
                 sentence
                 for sentence in sentences
