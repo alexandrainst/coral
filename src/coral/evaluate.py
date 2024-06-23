@@ -148,11 +148,13 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
 
         # Compute the scores
         idxs = df_filtered.index.tolist()
+        predictions_filtered = [predictions_str[idx] for idx in idxs]
+        labels_filtered = [labels_str[idx] for idx in idxs]
         wer_computed = wer_metric.compute(
-            predictions=predictions_str[idxs], references=labels_str[idxs]
+            predictions=predictions_filtered, references=labels_filtered
         )
         cer_computed = cer_metric.compute(
-            predictions=predictions_str[idxs], references=labels_str[idxs]
+            predictions=predictions_filtered, references=labels_filtered
         )
         combination_scores = wer_computed | cer_computed
 
