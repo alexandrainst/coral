@@ -271,11 +271,11 @@ def clean_example(
     for key, value in conversion_dict.items():
         doc = doc.replace(key, value)
 
-    # Replace superfluous spaces
-    doc = re.sub(r" +", " ", doc)
-
     # Remove all non-standard characters, and make the document lower case
     doc = re.sub(non_standard_characters_regex, "", doc.lower().strip())
+
+    # Replace superfluous spaces
+    doc = re.sub(r" +", " ", doc)
 
     # Re-assign the cleaned transcription
     example["text"] = doc
