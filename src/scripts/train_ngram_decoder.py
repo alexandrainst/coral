@@ -66,6 +66,8 @@ def train_ngram_model(config: DictConfig) -> None:
             dataset = clean_dataset(dataset=dataset, config=config)
             assert isinstance(dataset, Dataset)
 
+            # Deduplicating the sentences in the dataset is required when training the
+            # n-gram language model
             sentences = list(set(dataset["text"]))
 
             with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as text_file:
