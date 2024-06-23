@@ -8,6 +8,7 @@ import io
 import os
 import subprocess
 import tarfile
+import tempfile
 from pathlib import Path
 
 import hydra
@@ -58,16 +59,22 @@ def train_ngram_model(config: DictConfig) -> None:
 
         # If the raw language model does not exist either then train from scratch
         if not ngram_path.exists():
-            with ngram_path.open("w") as f_out:
-                subprocess.run(
-                    [
-                        str(kenlm_build_dir / "bin" / "lmplz"),
-                        "-o",
-                        str(config.model.decoder.n),
-                    ],
-                    stdin=io.StringIO(" ".join(dataset["text"])),
-                    stdout=f_out,
-                )
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as text_file:
+                # Dump dataset to a temporary text file
+                text_file.write(" ".join(dataset["text"]))
+                text_file.flush()
+
+                # Train the n-gram language model
+                with ngram_path.open("w") as f_out:
+                    subprocess.run(
+                        [
+                            str(kenlm_build_dir / "bin" / "lmplz"),
+                            "-o",
+                            str(config.model.decoder.n),
+                        ],
+                        stdin=text_file,
+                        stdout=f_out,
+                    )
 
         # Add end-of-sentence marker </s> to the n-gram language model to get the final
         # language model
