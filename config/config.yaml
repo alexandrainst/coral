@@ -1,5 +1,5 @@
 defaults:
-  - model: wav2vec2_with_lm
+  - model: wav2vec2-with-lm
   - datasets:
     - common_voice_13_da
   - override hydra/job_logging: custom
