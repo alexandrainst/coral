@@ -80,7 +80,6 @@ def train_ngram_model(config: DictConfig) -> None:
                 ).strip()
                 for sentence in sentences
             ]
-            breakpoint()
 
             with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as text_file:
                 # Dump dataset to a temporary text file
