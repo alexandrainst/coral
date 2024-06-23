@@ -6,6 +6,7 @@ Usage:
 
 import io
 import os
+import re
 import subprocess
 import tarfile
 import tempfile
@@ -66,13 +67,14 @@ def train_ngram_model(config: DictConfig) -> None:
             sentences = [
                 " ".join(nltk.word_tokenize(sentence, language="danish")).lower()
                 for document in tqdm(dataset["text"][:10], desc="Preprocessing dataset")
-                for sentence in nltk.sent_tokenize(document.lower(), language="danish")
-            ]
-            breakpoint()
-            sentences = [
-                sentence
-                for sentence in sentences
-                if all(char in config.characters_to_keep + " " for char in sentence)
+                for sentence in nltk.sent_tokenize(
+                    text=re.sub(
+                        pattern=f"[^{config.characters_to_keep}]",
+                        repl="",
+                        string=document.lower(),
+                    ),
+                    language="danish",
+                )
             ]
             breakpoint()
 
