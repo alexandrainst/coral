@@ -46,6 +46,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
         args=TrainingArguments(".", remove_unused_columns=False, report_to=[]),
         model=model_data.model,
         data_collator=model_data.data_collator,
+        tokenizer=model_data.processor.tokenizer,
     )
 
     split = config.evaluation_dataset.split
