@@ -122,8 +122,8 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     )
 
     # Load metrics
-    wer_metric = load_metric("wer")
-    cer_metric = load_metric("cer")
+    wer_metric = load_metric("wer", trust_remote_code=True)
+    cer_metric = load_metric("cer", trust_remote_code=True)
     assert wer_metric is not None
     assert cer_metric is not None
 
