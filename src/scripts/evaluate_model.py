@@ -1,7 +1,7 @@
 """Evaluate a speech model.
 
 Usage:
-    python evaluate_model.py <key>=<value> <key>=<value> ...
+    python src/scripts/evaluate_model.py <key>=<value> <key>=<value> ...
 """
 
 import logging

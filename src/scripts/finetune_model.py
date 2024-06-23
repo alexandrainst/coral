@@ -1,7 +1,7 @@
 """Finetune a speech model.
 
 Usage:
-    python finetune_model.py <key>=<value> <key>=<value> ...
+    python src/scripts/finetune_model.py <key>=<value> <key>=<value> ...
 """
 
 import logging
@@ -23,7 +23,7 @@ def main(config: DictConfig) -> None:
     """Finetune an ASR model.
 
     Args:
-        config (DictConfig):
+        config:
             The Hydra configuration object.
     """
     # In case we are running in a multi-GPU setting, we need to force certain

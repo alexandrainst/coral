@@ -1,7 +1,7 @@
 """Script that downloads, builds and uploads the Danish part of the NST dataset.
 
 Usage:
-    python build_nst_da.py <destination_dir>
+    python src/scripts/build_nst_da.py <destination_dir>
 """
 
 import datetime as dt
@@ -42,6 +42,12 @@ SAMPLE_RATE = 16_000
 @click.command("Builds and stores the Danish part of the NST dataset.")
 @click.argument("destination_dir", type=click.Path())
 def main(destination_dir) -> None:
+    """Downloads, builds and uploads the Danish part of the NST dataset.
+
+    Args:
+        destination_dir:
+            The directory to download and build the dataset in.
+    """
     raw_dir = Path(destination_dir) / "raw"
     huggingface_dir = Path(destination_dir) / "huggingface"
     raw_dir.mkdir(parents=True, exist_ok=True)
@@ -58,9 +64,7 @@ def main(destination_dir) -> None:
 
     logger.info(f"Saving the dataset to {huggingface_dir}...")
     dataset.save_to_disk(
-        str(huggingface_dir),
-        max_shard_size="500MB",
-        num_proc=mp.cpu_count() - 1,
+        str(huggingface_dir), max_shard_size="500MB", num_proc=mp.cpu_count() - 1
     )
 
 
@@ -68,8 +72,10 @@ def stream_download(url: str, destination_path: str | Path) -> None:
     """Download a file from a URL to a destination path.
 
     Args:
-        url: The URL to download from.
-        destination_path: The path to save the file to.
+        url:
+            The URL to download from.
+        destination_path:
+            The path to save the file to.
     """
     streamer = rq.get(url, stream=True)
     total_size_in_bytes = int(streamer.headers.get("content-length", 0))
@@ -90,7 +96,8 @@ def uncompress_file(filename: str | Path) -> None:
     """Uncompress a file to a directory.
 
     Args:
-        filename: The path to the file to uncompress.
+        filename:
+            The path to the file to uncompress.
     """
     filename = str(filename)
     match get_suffix(filename):
@@ -117,7 +124,8 @@ def reorganise_files(dataset_dir: str | Path) -> None:
     """Reorganise the files into `train` and `test` directories.
 
     Args:
-        dataset_dir: The directory that should contain the dataset.
+        dataset_dir:
+            The directory that should contain the dataset.
     """
     logger.info("Reorganising files")
 
@@ -184,16 +192,14 @@ def remove_bad_files(dataset_dir: Path | str) -> None:
     """Remove audio files that cannot be opened.
 
     Args:
-        dataset_dir: The directory that should contain the dataset.
+        dataset_dir:
+            The directory that should contain the dataset.
     """
     dataset_dir = Path(dataset_dir)
 
     # These filename prefixes were found by running the `find_faulty_audio_clips.py`
     # script
-    bad_file_prefixes = [
-        "dk11x242-18072000-1149_u0047",
-        "dk16xx41-24092000-1951_u0042",
-    ]
+    bad_file_prefixes = ["dk11x242-18072000-1149_u0047", "dk16xx41-24092000-1951_u0042"]
     for split in ["train", "test"]:
         audio_dir = dataset_dir / split / "audio"
         for audio_file in audio_dir.glob("*.wav"):
@@ -223,7 +229,8 @@ def get_suffix(string: str | Path) -> str:
     Contrary to Path.suffix, this also works for strings with multiple suffixes.
 
     Args:
-        string: The string to get the suffix from.
+        string:
+            The string to get the suffix from.
 
     Returns:
         The suffix of the string, or an empty string if there is no suffix.
@@ -240,7 +247,8 @@ def build_huggingface_dataset(dataset_dir: Path | str) -> DatasetDict:
     """Sets up the metadata files and builds the Hugging Face dataset.
 
     Args:
-        dataset_dir: The directory that should contain the dataset.
+        dataset_dir:
+            The directory that should contain the dataset.
 
     Returns:
         The Hugging Face dataset.

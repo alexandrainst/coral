@@ -1,7 +1,10 @@
 """Script that builds the CoRal text-to-speech dataset from the raw data.
 
 Usage:
-    python build_ftspeech.py <transcription-txt-file> <audio-dir> <output-dir>
+    python src/scripts/build_coral_tts.py \
+        <transcription-txt-file> \
+        <audio-dir> \
+        <output-dir>
 """
 
 import logging
@@ -29,9 +32,12 @@ def main(
     """Builds and stores the CoRal text-to-speech dataset.
 
     Args:
-        transcription_file: Path to the transcription file.
-        audio_dir: Path to the directory containing the audio files.
-        output_dir: Path to the directory where the dataset will be stored.
+        transcription_file:
+            Path to the transcription file.
+        audio_dir:
+            Path to the directory containing the audio files.
+        output_dir:
+            Path to the directory where the dataset will be stored.
     """
     transcription_file = Path(transcription_file)
     audio_dir = Path(audio_dir)

@@ -1,7 +1,7 @@
 """Script that pushes a saved dataset to the Hugging Face Hub.
 
 Usage:
-    python push_to_hub.py <saved_dataset_dir> <hub_id> [--private]
+    python src/scripts/push_to_hub.py <saved_dataset_dir> <hub_id> [--private]
 """
 
 import logging
@@ -30,15 +30,19 @@ def main(saved_data_dir: str, hub_id: str, private: bool) -> None:
 
     This also catches RuntimeError exceptions which tends to happen during the upload
     of large datasets, and retries the upload until it succeeds.
+
+    Args:
+        saved_data_dir:
+            The directory where the saved dataset is stored.
+        hub_id:
+            The Hugging Face Hub ID to push the dataset to.
+        private:
+            Whether to make the dataset private on the Hugging Face Hub.
     """
     dataset = DatasetDict.load_from_disk(saved_data_dir)
     while True:
         try:
-            dataset.push_to_hub(
-                repo_id=hub_id,
-                max_shard_size="500MB",
-                private=private,
-            )
+            dataset.push_to_hub(repo_id=hub_id, max_shard_size="500MB", private=private)
             break
         except (RuntimeError, HTTPError) as e:
             logger.error(f"Error while pushing to hub: {e}")
