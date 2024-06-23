@@ -6,7 +6,11 @@ import os
 import numpy as np
 from evaluate.loading import load as load_metric
 from numpy.typing import NDArray
-from transformers import EvalPrediction, PreTrainedTokenizerBase
+from transformers import (
+    EvalPrediction,
+    PreTrainedTokenizerBase,
+    Wav2Vec2ProcessorWithLM,
+)
 
 from .data_models import Processor
 
@@ -38,13 +42,31 @@ def compute_wer_metrics(
     # Shape: [batch_size, seq_len, vocab_size] or [batch_size, seq_len]
     predictions: NDArray[np.int_] | NDArray[np.float_] = pred.predictions
 
-    # If all the logits are -100 for a token, then we set the logit for the
-    # padding token for that token to 0. This is to ensure that this token gets
-    # decoded to a padding token, and are therefore ignored
+    # If all the logits are -100 for a token, then we set the logit for the padding
+    # token for that token to 0. This is to ensure that this token gets decoded to a
+    # padding token, and are therefore ignored
     predictions[np.all(predictions == -100, axis=-1), pad_token] = 0
 
-    pred_ids: NDArray[np.int_] = np.argmax(predictions, axis=-1)
-    predictions_str = processor.batch_decode(pred_ids).text
+    # Decode the predictions to get the transcriptions. When a language model is
+    # attached to the processor then we get the predicted string directly from the
+    # logits. If the vocabulary dimension of the predictions is too small then we pad
+    # with zeros to match the size of the vocabulary
+    if isinstance(processor, Wav2Vec2ProcessorWithLM):
+        vocab_size = tokenizer.get_vocab()
+        mismatch_dim = len(vocab_size) - predictions.shape[-1]
+        predictions = np.pad(
+            array=predictions,
+            pad_width=((0, 0), (0, 0), (0, mismatch_dim)),
+            mode="constant",
+            constant_values=pad_token,
+        )
+        predictions_str = processor.batch_decode(predictions).text
+
+    # Otherwise, if we are not using a language model, we need to convert the logits to
+    # token IDs and then decode the token IDs to get the predicted string
+    else:
+        pred_ids: NDArray[np.int_] = np.argmax(predictions, axis=-1)
+        predictions_str = processor.batch_decode(pred_ids).text
 
     # Set the ground truth labels with label id -100 to be the padding token id. This
     # ensures that the WER metric does not consider these labels in its computation.
