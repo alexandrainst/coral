@@ -12,11 +12,14 @@ import tempfile
 from pathlib import Path
 
 import hydra
+import nltk
 import requests
 from datasets import Dataset, load_dataset
 from omegaconf import DictConfig
 from pyctcdecode.decoder import build_ctcdecoder
 from transformers import AutoProcessor, Wav2Vec2ProcessorWithLM
+
+nltk.download("punkt")
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
@@ -58,9 +61,22 @@ def train_ngram_model(config: DictConfig) -> None:
 
         # If the raw language model does not exist either then train from scratch
         if not ngram_path.exists():
+            # Preprocess the dataset
+            sentences = [
+                " ".join(nltk.word_tokenize(sentence, language="danish")).lower()
+                for document in dataset["text"]
+                for sentence in nltk.sent_tokenize(document.lower(), language="danish")
+            ]
+            sentences = [
+                sentence
+                for sentence in sentences
+                if all(char in config.characters_to_keep + " " for char in sentence)
+            ]
+            breakpoint()
+
             with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as text_file:
                 # Dump dataset to a temporary text file
-                text_file.write(" ".join(dataset["text"]))
+                text_file.write("\n".join(sentences))
                 text_file.flush()
 
                 # Train the n-gram language model

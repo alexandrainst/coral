@@ -32,6 +32,7 @@ kenlm = {url = "https://github.com/kpu/kenlm/archive/master.zip", optional=true}
 matplotlib = "^3.7.3"
 deepspeed = "^0.12.3"
 python-dotenv = "^1.0.1"
+nltk = {version = "^3.8.1", optional = true}
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.1.1"
@@ -44,7 +45,7 @@ mypy = ">=1.9.0"
 nbstripout = ">=0.7.1"
 
 [tool.poetry.extras]
-kenlm = ["kenlm"]
+kenlm = ["kenlm", "nltk"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
