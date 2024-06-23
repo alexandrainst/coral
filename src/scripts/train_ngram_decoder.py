@@ -63,18 +63,18 @@ def train_ngram_model(config: DictConfig) -> None:
 
         # If the raw language model does not exist either then train from scratch
         if not ngram_path.exists():
-            # Preprocess the dataset
             sentences = [
                 " ".join(nltk.word_tokenize(sentence, language="danish")).lower()
                 for document in tqdm(dataset["text"][:10], desc="Preprocessing dataset")
-                for sentence in nltk.sent_tokenize(
-                    text=re.sub(
-                        pattern=f"[^{config.characters_to_keep} ]",
-                        repl="",
-                        string=document.lower(),
-                    ),
-                    language="danish",
+                for sentence in nltk.sent_tokenize(text=document, language="danish")
+            ]
+            sentences = [
+                re.sub(
+                    pattern=f"[^{config.characters_to_keep} ]",
+                    repl="",
+                    string=sentence.lower(),
                 )
+                for sentence in sentences
             ]
             breakpoint()
 
