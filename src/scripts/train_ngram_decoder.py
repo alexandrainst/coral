@@ -12,15 +12,12 @@ import tempfile
 from pathlib import Path
 
 import hydra
-import nltk
 import requests
 from coral.data import clean_dataset
 from datasets import Dataset, enable_progress_bar, load_dataset
 from omegaconf import DictConfig
 from pyctcdecode.decoder import build_ctcdecoder
 from transformers import Wav2Vec2Processor, Wav2Vec2ProcessorWithLM
-
-nltk.download(info_or_id="punkt", quiet=True)
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
