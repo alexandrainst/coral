@@ -95,7 +95,7 @@ def train_ngram_model(config: DictConfig) -> None:
                             str(kenlm_build_dir / "bin" / "lmplz"),
                             "-o",
                             str(config.model.decoder.n),
-                            "--discount_fallback",
+                            # "--discount_fallback",
                         ],
                         stdin=text_file,
                         stdout=f_out,
