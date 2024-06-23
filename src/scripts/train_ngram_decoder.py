@@ -129,7 +129,7 @@ def train_ngram_model(config: DictConfig) -> None:
     # Compress the ngram model
     subprocess.run(
         [
-            "kenlm/build/bin/build_binary",
+            str(kenlm_dir / "build" / "bin" / "build_binary"),
             str(correct_ngram_path),
             str(correct_ngram_path.with_suffix(".bin")),
         ]
