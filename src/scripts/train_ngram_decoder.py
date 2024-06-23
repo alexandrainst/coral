@@ -66,7 +66,11 @@ def train_ngram_model(config: DictConfig) -> None:
                 # Train the n-gram language model
                 with ngram_path.open("w") as f_out:
                     subprocess.run(
-                        ["kenlm/build/bin/lmplz", "-o", str(config.model.decoder.n)],
+                        [
+                            str(kenlm_dir / "build" / "bin" / "lmplz"),
+                            "-o",
+                            str(config.model.decoder.n),
+                        ],
                         stdin=text_file,
                         stdout=f_out,
                     )
