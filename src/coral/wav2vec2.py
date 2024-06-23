@@ -201,7 +201,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
             model_path = f"{self.config.hub_organisation}/{self.config.model_id}"
 
         processor: Wav2Vec2Processor | Wav2Vec2ProcessorWithLM
-        if self.config.model.language_model_decoder is not None:
+        if self.config.model.decoder is not None:
             try:
                 processor = Wav2Vec2ProcessorWithLM.from_pretrained(
                     model_path, token=os.getenv("HUGGINGFACE_HUB_TOKEN", True)
