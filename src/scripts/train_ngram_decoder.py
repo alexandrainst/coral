@@ -77,7 +77,7 @@ def train_ngram_model(config: DictConfig) -> None:
                         repl="",
                         string=sentence.lower(),
                     ),
-                )
+                ).strip()
                 for sentence in sentences
             ]
             breakpoint()
