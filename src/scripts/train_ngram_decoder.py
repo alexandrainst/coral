@@ -63,7 +63,6 @@ def train_ngram_model(config: DictConfig) -> None:
                 # Dump dataset to a temporary text file
                 text_file.write(" ".join(dataset["text"]))
                 text_file.flush()
-                breakpoint()
 
                 # Train the n-gram language model
                 with ngram_path.open("w") as f_out:
@@ -72,6 +71,7 @@ def train_ngram_model(config: DictConfig) -> None:
                             str(kenlm_build_dir / "bin" / "lmplz"),
                             "-o",
                             str(config.model.decoder.n),
+                            "--discount_fallback",
                         ],
                         stdin=text_file,
                         stdout=f_out,
