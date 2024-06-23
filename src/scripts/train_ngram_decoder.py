@@ -124,21 +124,19 @@ def train_ngram_model(config: DictConfig) -> None:
     sorted_vocab_list = sorted(vocab_dict.items(), key=lambda item: item[1])
     sorted_vocab_dict = {k.lower(): v for k, v in sorted_vocab_list}
 
+    # Build the processor with LM included and save it
     decoder = build_ctcdecoder(
         labels=list(sorted_vocab_dict.keys()), kenlm_model_path=str(correct_ngram_path)
     )
-
-    # Build the processor with LM included
     processor_with_lm = Wav2Vec2ProcessorWithLM(
         feature_extractor=processor.feature_extractor,
         tokenizer=processor.tokenizer,
         decoder=decoder,
     )
-
-    # Save the new processor to the repo
     processor_with_lm.save_pretrained(config.model_dir)
 
-    # Remove the ngram model, as the `save_pretrained` method also saves the ngram model
+    # Remove the ngram model again, as the `save_pretrained` method also saves the
+    # ngram model
     if correct_ngram_path.exists():
         correct_ngram_path.unlink()
 
