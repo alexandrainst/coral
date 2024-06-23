@@ -13,6 +13,7 @@ from wandb.sdk.wandb_run import finish as wandb_finish
 from .data import load_data
 from .data_models import ModelSetup
 from .model_setup import load_model_setup
+from .ngram import train_ngram_model
 from .utils import disable_tqdm
 
 logger = logging.getLogger(__package__)
@@ -120,6 +121,9 @@ def finetune(config: DictConfig) -> None:
         model.save_pretrained(config.model_dir)
         if config.push_to_hub:
             trainer.push_to_hub()
+
+    if config.model.decoder is not None:
+        train_ngram_model(config=config)
 
 
 def load_early_stopping_callback(config: DictConfig) -> list[TrainerCallback]:
