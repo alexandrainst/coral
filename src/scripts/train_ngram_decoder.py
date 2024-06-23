@@ -60,7 +60,7 @@ def train_ngram_model(config: DictConfig) -> None:
         if not ngram_path.exists():
             with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as text_file:
                 # Dump dataset to a temporary text file
-                text_file.write("\n\n".join(dataset["text"]))
+                text_file.write(" ".join(dataset["text"]))
                 text_file.flush()
 
                 # Train the n-gram language model
