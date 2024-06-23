@@ -23,4 +23,8 @@ ctc_loss_reduction: sum
 
 # Decoder hyperparameters
 language_model_decoder: ngram
-decoder: null
+decoder:
+  dataset_id: alexandrainst/scandi-wiki
+  dataset_subset: da
+  dataset_split: train
+  n: 5
