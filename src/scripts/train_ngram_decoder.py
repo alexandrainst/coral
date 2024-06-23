@@ -70,9 +70,13 @@ def train_ngram_model(config: DictConfig) -> None:
             ]
             sentences = [
                 re.sub(
-                    pattern=f"[^{config.characters_to_keep} ]",
-                    repl="",
-                    string=sentence.lower(),
+                    pattern=" +",
+                    repl=" ",
+                    string=re.sub(
+                        pattern=f"[^{config.characters_to_keep} ]",
+                        repl="",
+                        string=sentence.lower(),
+                    ),
                 )
                 for sentence in sentences
             ]
