@@ -92,6 +92,8 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     pad_token = model_data.processor.tokenizer.pad_token_id
     predictions[np.all(predictions == -100, axis=-1), pad_token] = 0
 
+    logger.info("Decoding the predictions to get the transcriptions.")
+
     # Decode the predictions to get the transcriptions. When a language model is
     # attached to the processor then we get the predicted string directly from the
     # logits. If the vocabulary dimension of the predictions is too small then we pad
