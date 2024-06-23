@@ -6,12 +6,12 @@ import re
 
 import numpy as np
 import pandas as pd
-from datasets import Dataset, Sequence, Value
+from datasets import Dataset, Sequence, Value, load_metric
 from dotenv import load_dotenv
+from numpy.typing import NDArray
 from omegaconf import DictConfig
-from transformers import EvalPrediction, Trainer, TrainingArguments
+from transformers import Trainer, TrainingArguments, Wav2Vec2ProcessorWithLM
 
-from .compute_metrics import compute_wer_metrics
 from .data import load_data
 from .data_models import Processor
 from .model_setup import load_model_setup
@@ -86,6 +86,45 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     assert isinstance(predictions, np.ndarray)
     assert isinstance(labels, np.ndarray)
 
+    # If all the logits are -100 for a token, then we set the logit for the padding
+    # token for that token to 0. This is to ensure that this token gets decoded to a
+    # padding token, and are therefore ignored
+    pad_token = model_data.processor.tokenizer.pad_token_id
+    predictions[np.all(predictions == -100, axis=-1), pad_token] = 0
+
+    # Decode the predictions to get the transcriptions. When a language model is
+    # attached to the processor then we get the predicted string directly from the
+    # logits. If the vocabulary dimension of the predictions is too small then we pad
+    # with zeros to match the size of the vocabulary
+    if isinstance(model_data.processor, Wav2Vec2ProcessorWithLM):
+        vocab_size = model_data.processor.tokenizer.get_vocab()
+        mismatch_dim = len(vocab_size) - predictions.shape[-1]
+        predictions = np.pad(
+            array=predictions,
+            pad_width=((0, 0), (0, 0), (0, mismatch_dim)),
+            mode="constant",
+            constant_values=pad_token,
+        )
+        predictions_str = model_data.processor.batch_decode(predictions).text
+
+    # Otherwise, if we are not using a language model, we need to convert the logits to
+    # token IDs and then decode the token IDs to get the predicted string
+    else:
+        pred_ids: NDArray[np.int_] = np.argmax(predictions, axis=-1)
+        predictions_str = model_data.processor.batch_decode(pred_ids).text
+
+    # Decode the ground truth labels
+    labels[labels == -100] = pad_token
+    labels_str = model_data.processor.tokenizer.batch_decode(
+        sequences=labels, group_tokens=False
+    )
+
+    # Load metrics
+    wer_metric = load_metric("wer")
+    cer_metric = load_metric("cer")
+    assert wer_metric is not None
+    assert cer_metric is not None
+
     # Iterate over all combinations of categories
     records = list()
     for combination in it.product(*unique_category_values):
@@ -105,13 +144,17 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
         if skip_combination:
             continue
 
-        # Compute scores for the combination
+        # Compute the scores
         idxs = df_filtered.index.tolist()
-        combination_scores = compute_wer_metrics(
-            pred=EvalPrediction(predictions=predictions[idxs], label_ids=labels[idxs]),
-            processor=model_data.processor,
-            log_examples=False,
+        wer_computed = wer_metric.compute(
+            predictions=predictions_str[idxs], references=labels_str[idxs]
         )
+        cer_computed = cer_metric.compute(
+            predictions=predictions_str[idxs], references=labels_str[idxs]
+        )
+        combination_scores = wer_computed | cer_computed
+
+        # Add the combination to the records
         named_combination = dict(zip(categories, combination))
         records.append(named_combination | combination_scores)
 
