@@ -19,7 +19,7 @@ from datasets import Dataset, load_dataset
 from omegaconf import DictConfig
 from pyctcdecode.decoder import build_ctcdecoder
 from tqdm.auto import tqdm
-from transformers import AutoProcessor, Wav2Vec2ProcessorWithLM
+from transformers import Wav2Vec2Processor, Wav2Vec2ProcessorWithLM
 
 nltk.download(info_or_id="punkt", quiet=True)
 
@@ -130,7 +130,7 @@ def train_ngram_model(config: DictConfig) -> None:
         if ngram_path.exists():
             ngram_path.unlink()
 
-    processor = AutoProcessor.from_pretrained(config.model_dir)
+    processor = Wav2Vec2Processor.from_pretrained(config.model_dir)
 
     # Extract the vocabulary, which will be used to build the CTC decoder
     vocab_dict: dict[str, int] = processor.tokenizer.get_vocab()
