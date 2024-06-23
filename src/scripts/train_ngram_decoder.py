@@ -47,6 +47,7 @@ def train_ngram_model(config: DictConfig) -> None:
     kenlm_build_dir = kenlm_dir / "build"
     if not (kenlm_build_dir / "bin" / "lmplz").exists():
         kenlm_build_dir.mkdir(parents=True, exist_ok=True)
+        breakpoint()
         subprocess.run(["cmake", ".."], cwd=str(kenlm_build_dir))
         subprocess.run(["make", "-j", "2"], cwd=str(kenlm_build_dir))
 
