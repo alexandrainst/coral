@@ -66,14 +66,15 @@ def train_ngram_model(config: DictConfig) -> None:
             dataset = clean_dataset(dataset=dataset, config=config)
             assert isinstance(dataset, Dataset)
 
+            sentences = list(set(dataset["text"]))
+
             with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as text_file:
                 # Dump dataset to a temporary text file
-                sentences = list(set(dataset["text"]))
                 text_file.write(" ".join(sentences))
                 text_file.flush()
 
                 # Train the n-gram language model
-                with ngram_path.open("w") as f_out:
+                with Path(text_file.name).open() as f_in, ngram_path.open("w") as f_out:
                     subprocess.run(
                         [
                             str(kenlm_build_dir / "bin" / "lmplz"),
@@ -81,7 +82,7 @@ def train_ngram_model(config: DictConfig) -> None:
                             str(config.model.decoder.n),
                             "--discount_fallback",
                         ],
-                        stdin=text_file,
+                        stdin=f_in,
                         stdout=f_out,
                     )
 
