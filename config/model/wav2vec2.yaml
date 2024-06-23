@@ -24,7 +24,7 @@ ctc_loss_reduction: sum
 # Decoder hyperparameters
 language_model_decoder: ngram
 decoder:
-  dataset_id: DDSC/reddit-da-asr-preprocessed
+  dataset_id: alexandrainst/lexdk-open
   dataset_subset: null
   dataset_split: train
   n: 5
