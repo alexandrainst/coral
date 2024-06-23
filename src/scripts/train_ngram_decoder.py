@@ -69,7 +69,7 @@ def train_ngram_model(config: DictConfig) -> None:
                 for document in tqdm(dataset["text"][:10], desc="Preprocessing dataset")
                 for sentence in nltk.sent_tokenize(
                     text=re.sub(
-                        pattern=f"[^{config.characters_to_keep}]",
+                        pattern=f"[^{config.characters_to_keep} ]",
                         repl="",
                         string=document.lower(),
                     ),
