@@ -64,6 +64,7 @@ def train_ngram_model(config: DictConfig) -> None:
 
             dataset = clean_dataset(dataset=dataset, config=config)
             assert isinstance(dataset, Dataset)
+            breakpoint()
 
             with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as text_file:
                 # Dump dataset to a temporary text file
