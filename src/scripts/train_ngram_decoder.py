@@ -6,7 +6,6 @@ Usage:
 
 import io
 import os
-import re
 import subprocess
 import tarfile
 import tempfile
@@ -15,10 +14,10 @@ from pathlib import Path
 import hydra
 import nltk
 import requests
+from coral.data import clean_dataset
 from datasets import Dataset, load_dataset
 from omegaconf import DictConfig
 from pyctcdecode.decoder import build_ctcdecoder
-from tqdm.auto import tqdm
 from transformers import Wav2Vec2Processor, Wav2Vec2ProcessorWithLM
 
 nltk.download(info_or_id="punkt", quiet=True)
@@ -63,30 +62,12 @@ def train_ngram_model(config: DictConfig) -> None:
             )
             assert isinstance(dataset, Dataset)
 
-            sentences = [
-                " ".join(nltk.word_tokenize(sentence, language="danish")).lower()
-                for document in tqdm(
-                    dataset["text"][:1000], desc="Preprocessing dataset"
-                )
-                for sentence in nltk.sent_tokenize(text=document, language="danish")
-            ]
-            sentences = [
-                re.sub(
-                    pattern=" +",
-                    repl=" ",
-                    string=re.sub(
-                        pattern=f"[^{config.characters_to_keep} ]",
-                        repl="",
-                        string=sentence.lower(),
-                    ),
-                ).strip()
-                for sentence in sentences
-            ]
-            sentences = list(set(sentences))
+            dataset = clean_dataset(dataset=dataset, config=config)
+            assert isinstance(dataset, Dataset)
 
             with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as text_file:
                 # Dump dataset to a temporary text file
-                text_file.write("\n".join(sentences))
+                text_file.write("\n".join(" ".join(dataset["text"])))
                 text_file.flush()
 
                 # Train the n-gram language model
