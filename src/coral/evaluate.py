@@ -80,6 +80,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     ]
 
     # Get predictions
+    breakpoint()
     prediction_object = trainer.predict(test_dataset=test_dataset)
     predictions = prediction_object.predictions
     labels = prediction_object.label_ids
