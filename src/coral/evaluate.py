@@ -156,7 +156,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
         cer_computed = cer_metric.compute(
             predictions=predictions_filtered, references=labels_filtered
         )
-        combination_scores = wer_computed | cer_computed
+        combination_scores = dict(wer=wer_computed, cer=cer_computed)
 
         # Add the combination to the records
         named_combination = dict(zip(categories, combination))
