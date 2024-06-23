@@ -150,8 +150,8 @@ def train_ngram_model(config: DictConfig) -> None:
     # Remove the auxiliary files
     if correct_ngram_path.exists():
         correct_ngram_path.unlink()
-    if new_ngram_path.exists():
-        new_ngram_path.unlink()
+    # if new_ngram_path.exists():
+    #     new_ngram_path.unlink()
 
 
 def download_and_extract(url: str, target_dir: str | Path) -> None:
