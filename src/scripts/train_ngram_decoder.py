@@ -32,14 +32,6 @@ def train_ngram_model(config: DictConfig) -> None:
         config:
             Hydra configuration dictionary.
     """
-    dataset = load_dataset(
-        path=config.model.decoder.dataset_id,
-        name=config.model.decoder.dataset_subset,
-        split=config.model.decoder.dataset_split,
-        token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-    )
-    assert isinstance(dataset, Dataset)
-
     # Ensure that the `kenlm` directory exists, and download if otherwise
     cache_dir = Path.home() / ".cache"
     kenlm_dir = cache_dir / "kenlm"
@@ -63,6 +55,14 @@ def train_ngram_model(config: DictConfig) -> None:
 
         # If the raw language model does not exist either then train from scratch
         if not ngram_path.exists():
+            dataset = load_dataset(
+                path=config.model.decoder.dataset_id,
+                name=config.model.decoder.dataset_subset,
+                split=config.model.decoder.dataset_split,
+                token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+            )
+            assert isinstance(dataset, Dataset)
+
             sentences = [
                 " ".join(nltk.word_tokenize(sentence, language="danish")).lower()
                 for document in tqdm(
