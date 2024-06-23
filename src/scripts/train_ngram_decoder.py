@@ -45,10 +45,10 @@ def train_ngram_model(config: DictConfig) -> None:
 
     # Compile `kenlm` if it hasn't already been compiled
     kenlm_build_dir = kenlm_dir / "build"
-    if not kenlm_build_dir.exists():
+    if not kenlm_build_dir.exists() and (kenlm_build_dir / "bin" / "lmplz").exists():
         kenlm_build_dir.mkdir(parents=True, exist_ok=True)
-        subprocess.run(["cmake", ".."], cwd=str(kenlm_dir / "build"))
-        subprocess.run(["make", "-j", "2"], cwd=str(kenlm_dir / "build"))
+        subprocess.run(["cmake", ".."], cwd=str(kenlm_build_dir))
+        subprocess.run(["make", "-j", "2"], cwd=str(kenlm_build_dir))
 
     # Train the n-gram language model if it doesn't already exist
     correct_ngram_path = Path(config.model_dir) / f"{config.model.decoder.n}gram.arpa"
@@ -67,7 +67,7 @@ def train_ngram_model(config: DictConfig) -> None:
                 with ngram_path.open("w") as f_out:
                     subprocess.run(
                         [
-                            str(kenlm_dir / "build" / "bin" / "lmplz"),
+                            str(kenlm_build_dir / "bin" / "lmplz"),
                             "-o",
                             str(config.model.decoder.n),
                         ],
@@ -129,7 +129,7 @@ def train_ngram_model(config: DictConfig) -> None:
     # Compress the ngram model
     subprocess.run(
         [
-            str(kenlm_dir / "build" / "bin" / "build_binary"),
+            str(kenlm_build_dir / "bin" / "build_binary"),
             str(correct_ngram_path),
             str(correct_ngram_path.with_suffix(".bin")),
         ]
@@ -147,9 +147,9 @@ def download_and_extract(url: str, target_dir: str | Path) -> None:
     """Download and extract a compressed file from a URL.
 
     Args:
-        url (str):
+        url:
             URL to download from.
-        target_dir (str | Path):
+        target_dir:
             Path to the directory where the file should be downloaded to.
     """
     # Download the file and load the data as bytes into memory
