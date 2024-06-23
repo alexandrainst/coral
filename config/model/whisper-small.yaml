@@ -1,6 +1,6 @@
-name: whisper_medium
+name: whisper-small
 type: whisper
-pretrained_model_id: openai/whisper-medium
+pretrained_model_id: openai/whisper-small
 freeze_feature_encoder: false
 
 # Data hyperparameters
