@@ -22,5 +22,4 @@ layerdrop: 0.1  # NOTE: This will automatically be set to 0 in a multi-gpu setti
 ctc_loss_reduction: sum
 
 # Decoder hyperparameters
-language_model_decoder: ngram
 decoder: null
