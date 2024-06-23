@@ -134,6 +134,7 @@ def train_ngram_model(config: DictConfig) -> None:
     vocab_dict: dict[str, int] = processor.tokenizer.get_vocab()
     sorted_vocab_list = sorted(vocab_dict.items(), key=lambda item: item[1])
     sorted_vocab_dict = {k.lower(): v for k, v in sorted_vocab_list}
+    breakpoint()
 
     decoder = build_ctcdecoder(
         labels=list(sorted_vocab_dict.keys()), kenlm_model_path=str(correct_ngram_path)
