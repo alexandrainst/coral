@@ -68,7 +68,8 @@ def train_ngram_model(config: DictConfig) -> None:
 
             with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as text_file:
                 # Dump dataset to a temporary text file
-                text_file.write("\n".join(" ".join(dataset["text"])))
+                sentences = list(set(dataset["text"]))
+                text_file.write(" ".join(sentences))
                 text_file.flush()
 
                 # Train the n-gram language model
