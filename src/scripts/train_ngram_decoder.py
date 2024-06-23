@@ -37,17 +37,17 @@ def train_ngram_model(config: DictConfig) -> None:
     assert isinstance(dataset, Dataset)
 
     # Ensure that the `kenlm` directory exists, and download if otherwise
-    kenlm_dir = Path.home() / ".cache" / "kenlm"
+    cache_dir = Path.home() / ".cache"
+    kenlm_dir = cache_dir / "kenlm"
     if not kenlm_dir.exists():
         download_and_extract(
-            url="https://kheafield.com/code/kenlm.tar.gz", target_dir=kenlm_dir
+            url="https://kheafield.com/code/kenlm.tar.gz", target_dir=cache_dir
         )
 
     # Compile `kenlm` if it hasn't already been compiled
     kenlm_build_dir = kenlm_dir / "build"
     if not (kenlm_build_dir / "bin" / "lmplz").exists():
         kenlm_build_dir.mkdir(parents=True, exist_ok=True)
-        breakpoint()
         subprocess.run(["cmake", ".."], cwd=str(kenlm_build_dir))
         subprocess.run(["make", "-j", "2"], cwd=str(kenlm_build_dir))
 
