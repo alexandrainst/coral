@@ -28,7 +28,6 @@ def train_ngram_model(config: DictConfig) -> None:
         config:
             Hydra configuration dictionary.
     """
-    # Load the dataset
     dataset = load_dataset(
         path=config.model.decoder.dataset_id,
         name=config.model.decoder.dataset_subset,
@@ -55,19 +54,22 @@ def train_ngram_model(config: DictConfig) -> None:
     correct_ngram_path = Path(config.model_dir) / f"{config.model.decoder.n}gram.arpa"
     if not correct_ngram_path.exists():
         ngram_path = Path(config.model_dir) / f"raw_{config.model.decoder.n}gram.arpa"
+        ngram_path.parent.mkdir(parents=True, exist_ok=True)
 
         # If the raw language model does not exist either then train from scratch
         if not ngram_path.exists():
-            # Dump dataset to a temporary text file
             with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as text_file:
-                with text_file.open() as f_in:
-                    f_in.write(" ".join(dataset["text"]))
-                    with ngram_path.open("w") as f_out:
-                        subprocess.run(
-                            ["kenlm/build/bin/lmplz", "-o", config.model.decoder.n],
-                            stdin=f_in,
-                            stdout=f_out,
-                        )
+                # Dump dataset to a temporary text file
+                text_file.write("\n\n".join(dataset["text"]))
+                text_file.flush()
+
+                # Train the n-gram language model
+                with ngram_path.open("w") as f_out:
+                    subprocess.run(
+                        ["kenlm/build/bin/lmplz", "-o", str(config.model.decoder.n)],
+                        stdin=text_file,
+                        stdout=f_out,
+                    )
 
         # Add end-of-sentence marker </s> to the n-gram language model to get the final
         # language model
@@ -156,3 +158,7 @@ def download_and_extract(url: str, target_dir: str | Path) -> None:
     # Extract the file
     with tarfile.open(fileobj=io.BytesIO(data)) as tar:
         tar.extractall(path=target_dir)
+
+
+if __name__ == "__main__":
+    train_ngram_model()
