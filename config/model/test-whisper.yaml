@@ -1,4 +1,4 @@
-name: test_whisper
+name: test-whisper
 type: whisper
 pretrained_model_id: openai/whisper-tiny
 freeze_feature_encoder: true
