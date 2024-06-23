@@ -56,10 +56,9 @@ def train_ngram_model(config: DictConfig) -> None:
         subprocess.run(["make", "-j", "2"], cwd=str(kenlm_build_dir))
 
     # Train the n-gram language model if it doesn't already exist
-    ngram_dir = Path(config.model_dir) / "language_model"
-    correct_ngram_path = ngram_dir / f"{config.model.decoder.n}gram.arpa"
+    correct_ngram_path = Path(config.model_dir) / f"{config.model.decoder.n}gram.arpa"
     if not correct_ngram_path.exists():
-        ngram_path = ngram_dir / f"raw_{config.model.decoder.n}gram.arpa"
+        ngram_path = Path(config.model_dir) / f"raw_{config.model.decoder.n}gram.arpa"
         ngram_path.parent.mkdir(parents=True, exist_ok=True)
 
         # If the raw language model does not exist either then train from scratch
@@ -153,17 +152,22 @@ def train_ngram_model(config: DictConfig) -> None:
     processor_with_lm.save_pretrained(config.model_dir)
 
     # Compress the ngram model
+    new_ngram_path = (
+        Path(config.model_dir) / "language_model" / f"{config.model.decoder.n}gram.arpa"
+    )
     subprocess.run(
         [
             str(kenlm_build_dir / "bin" / "build_binary"),
-            str(correct_ngram_path),
-            str(correct_ngram_path.with_suffix(".bin")),
+            str(new_ngram_path),
+            str(new_ngram_path.with_suffix(".bin")),
         ]
     )
 
-    # Remove the uncompressed ngram model
+    # Remove the auxiliary files
     if correct_ngram_path.exists():
         correct_ngram_path.unlink()
+    if new_ngram_path.exists():
+        new_ngram_path.unlink()
 
 
 def download_and_extract(url: str, target_dir: str | Path) -> None:
