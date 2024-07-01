@@ -32,7 +32,7 @@ def pytest_unconfigure() -> None:
     scope="session",
     params=list(
         it.product(
-            ["test_wav2vec2", "test_whisper"],
+            ["test-wav2vec2", "test-whisper"],
             ["test_dataset", "[test_dataset,test_dataset]"],
         )
     ),
