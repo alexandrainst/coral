@@ -13,7 +13,7 @@ import sqlite3
 from pathlib import Path
 
 import click
-from datasets import Audio, Dataset
+from datasets import Audio, Dataset, DatasetDict, disable_progress_bars
 from joblib import Parallel, delayed
 from tqdm.auto import tqdm
 
@@ -23,6 +23,12 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger("build_coral_asr")
+
+
+VALIDATION_SET_SPEAKER_IDS: list[str] = list()
+
+
+TEST_SET_SPEAKER_IDS: list[str] = list()
 
 
 @click.command()
@@ -61,16 +67,57 @@ def main(
     batch_size: int,
 ) -> None:
     """Build and upload the CoRal speech recognition dataset."""
-    logger.info("Initialised the build script of the CoRal speech recognition dataset.")
+    disable_progress_bars()
 
     metadata_database_path = Path(metadata_database_path)
     audio_dir = Path(audio_dir)
+
+    read_aloud_dataset = build_read_aloud_dataset(
+        metadata_database_path=metadata_database_path,
+        audio_dir=audio_dir,
+        batch_size=batch_size,
+    )
+    conversation_dataset = build_conversation_dataset(
+        metadata_database_path=metadata_database_path,
+        audio_dir=audio_dir,
+        batch_size=batch_size,
+    )
+
+    read_aloud_dataset = split_dataset(dataset=read_aloud_dataset)
+    conversation_dataset = split_dataset(dataset=conversation_dataset)
+
+    upload_dataset(
+        read_aloud_dataset=read_aloud_dataset,
+        conversation_dataset=conversation_dataset,
+        hub_id=hub_id,
+    )
+
+    logger.info(f"All done! See the dataset at https://hf.co/datasets/{hub_id}.")
+
+
+def build_read_aloud_dataset(
+    metadata_database_path: Path, audio_dir: Path, batch_size: int
+) -> Dataset:
+    """Build the CoRal read-aloud dataset.
+
+    Args:
+        metadata_database_path:
+            Path to the SQLite database containing the metadata.
+        audio_dir:
+            Path to the directory containing the audio files.
+        batch_size:
+            Number of rows to fetch from the SQLite database at once.
+
+    Returns:
+        The CoRal read-aloud dataset.
+    """
+    logger.info("Building the CoRal read-aloud speech recognition dataset...")
 
     # Get the number of samples in the SQLite database. We don't do any merges here to
     # save some time. That means that the count will be an upper bound rather than a
     # precise number of samples, but we deal with that when we actually fetch the data
     logger.info("Fetching the number of metadata samples in the SQLite database...")
-    count_query = "SELECT COUNT(*) FROM Recordings"
+    count_query = "SELECT COUNT(*) FROM Recordings LIMIT 10"
     with sqlite3.connect(database=metadata_database_path) as connection:
         cursor = connection.cursor()
         cursor.execute(count_query)
@@ -138,28 +185,26 @@ def main(
             delayed(list_audio_files)(subdir)
             for subdir in tqdm(audio_subdirs, desc="Collecting audio file paths")
         )
-        assert isinstance(all_audio_path_lists, list)
     all_audio_paths = [
         path for path_list in all_audio_path_lists for path in path_list or []
     ]
 
     # Match the audio files to the metadata, to ensure that there is a 1-to-1
     # correspondence between them
-    row_ids_to_keep: list[int] = list()
-    for idx, row in enumerate(tqdm(rows, desc="Matching audio files to metadata")):
-        recording_id: str = row[0]
-        candidate_audio_paths = [
-            path for path in all_audio_paths if recording_id in path.stem
-        ]
-        if not candidate_audio_paths:
-            continue
-        row.append(str(candidate_audio_paths[0]))
-        row_ids_to_keep.append(idx)
-    rows = [row for idx, row in enumerate(rows) if idx in row_ids_to_keep]
+    with Parallel(n_jobs=-1) as parallel:
+        matched_audio_paths = parallel(
+            delayed(get_audio_path)(row, all_audio_paths)
+            for row in tqdm(rows, desc="Matching audio files to metadata")
+        )
+    rows = [
+        row + [str(audio_path)]
+        for row, audio_path in zip(rows, matched_audio_paths)
+        if audio_path is not None
+    ]
 
     # Build the dataset from the metadata and the audio files. This embeds all the audio
     # files into the dataset as parquet files
-    logger.info("Building the dataset...")
+    logger.info("Building the read-aloud dataset...")
     dataset = Dataset.from_dict(
         mapping={
             "id_recording": [row[0] for row in rows],
@@ -174,16 +219,99 @@ def main(
         }
     )
     dataset = dataset.cast_column("audio", Audio(sampling_rate=16_000))
-    logger.info("Finished building the dataset.")
+    logger.info("Finished building the read-aloud dataset.")
 
-    # Upload the dataset to the Hugging Face Hub
-    logger.info(f"Uploading the dataset to {hub_id!r} on the Hugging Face Hub...")
-    dataset.push_to_hub(
-        repo_id=hub_id, split="train", private=True, max_shard_size="500MB"
+    return dataset
+
+
+def build_conversation_dataset(
+    metadata_database_path: Path, audio_dir: Path, batch_size: int
+) -> Dataset:
+    """Build the CoRal conversation dataset.
+
+    Args:
+        metadata_database_path:
+            Path to the SQLite database containing the metadata.
+        audio_dir:
+            Path to the directory containing the audio files.
+        batch_size:
+            Number of rows to fetch from the SQLite database at once.
+
+    Returns:
+        The CoRal read-aloud dataset.
+    """
+    # TODO: Implement this function
+    return Dataset.from_dict({})
+
+
+def split_dataset(dataset: Dataset) -> DatasetDict | None:
+    """Split a dataset into train, validation and test sets.
+
+    Args:
+        dataset:
+            The dataset to split.
+
+    Returns:
+        The split dataset, or None if no training samples are found.
+
+    Raises:
+        ValueError:
+            If no training samples are found.
+    """
+    train_dataset = dataset.filter(
+        function=lambda example: example["id_speaker"] not in VALIDATION_SET_SPEAKER_IDS
+        and example["id_speaker"] not in TEST_SET_SPEAKER_IDS
     )
-    logger.info("Finished uploading the dataset to the Hugging Face Hub.")
+    if len(train_dataset) == 0:
+        return None
+    splits = dict(train=train_dataset)
 
-    logger.info(f"All done! See the dataset at https://hf.co/datasets/{hub_id}.")
+    validation_dataset = dataset.filter(
+        function=lambda example: example["id_speaker"] in VALIDATION_SET_SPEAKER_IDS
+    )
+    if len(validation_dataset) > 0:
+        splits["val"] = validation_dataset
+
+    test_dataset = dataset.filter(
+        function=lambda example: example["id_speaker"] in TEST_SET_SPEAKER_IDS
+    )
+    if len(test_dataset) > 0:
+        splits["test"] = test_dataset
+
+    return DatasetDict(splits)
+
+
+def upload_dataset(
+    read_aloud_dataset: DatasetDict | None,
+    conversation_dataset: DatasetDict | None,
+    hub_id: str,
+) -> None:
+    """Upload the dataset to the Hugging Face Hub.
+
+    Args:
+        read_aloud_dataset:
+            The read-aloud dataset, or None if no such dataset exists.
+        conversation_dataset:
+            The conversation dataset, or None if no such dataset exists.
+        hub_id:
+            Identifier of the Hugging Face Hub repository.
+    """
+    logger.info(f"Uploading the dataset to {hub_id!r} on the Hugging Face Hub...")
+    if read_aloud_dataset is not None:
+        read_aloud_dataset.push_to_hub(
+            repo_id=hub_id,
+            config_name="read_aloud",
+            private=True,
+            max_shard_size="500MB",
+        )
+    if conversation_dataset is not None:
+        conversation_dataset.push_to_hub(
+            repo_id=hub_id,
+            config_name="conversation",
+            private=True,
+            max_shard_size="500MB",
+        )
+    logger.info("Finished uploading the dataset to the Hugging Face Hub.")
 
 
 def list_audio_files(audio_dir: Path) -> list[Path]:
@@ -197,6 +325,27 @@ def list_audio_files(audio_dir: Path) -> list[Path]:
         A list of paths to the audio files.
     """
     return list(audio_dir.glob("*.wav"))
+
+
+def get_audio_path(row: list[str], all_audio_paths: list[Path]) -> Path | None:
+    """Get the path to the audio file corresponding to the given row of metadata.
+
+    Args:
+        row:
+            The row of metadata.
+        all_audio_paths:
+            A list of all the audio file paths.
+
+    Returns:
+        The path to the audio file, or None if no such file exists.
+    """
+    recording_id: str = row[0]
+    candidate_audio_paths = [
+        path for path in all_audio_paths if recording_id in path.stem
+    ]
+    if not candidate_audio_paths:
+        return None
+    return candidate_audio_paths[0]
 
 
 if __name__ == "__main__":
