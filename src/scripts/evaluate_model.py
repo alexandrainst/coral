@@ -1,67 +1,32 @@
 """Evaluate a speech model.
 
 Usage:
-    python evaluate_model.py <key>=<value> <key>=<value> ...
+    python src/scripts/evaluate_model.py <key>=<value> <key>=<value> ...
 """
 
-import hydra
-from datasets import DatasetDict, IterableDatasetDict, Sequence, Value
-from omegaconf import DictConfig
-from transformers import Trainer, TrainingArguments
+import logging
 
-from coral.data import load_data
-from coral.model_setup import load_model_setup
-from coral.protocols import Processor
-from coral.utils import transformers_output_ignored
+import hydra
+from coral.evaluate import evaluate
+from dotenv import load_dotenv
+from omegaconf import DictConfig
+
+load_dotenv()
+
+
+logger = logging.getLogger("coral")
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
-def main(cfg: DictConfig) -> None:
-    """Evaluate a speech model on a dataset."""
-    eval_dataset_cfg = list(cfg.datasets.values())[0]
+def main(config: DictConfig) -> None:
+    """Evaluate a speech model on a dataset.
 
-    with transformers_output_ignored():
-        model_data = load_model_setup(cfg).load_saved()
-
-    dataset: DatasetDict | IterableDatasetDict = load_data(cfg)
-    dataset = preprocess_transcriptions(dataset=dataset, processor=model_data.processor)
-
-    trainer = Trainer(
-        args=TrainingArguments(".", remove_unused_columns=False, report_to=[]),
-        model=model_data.model,
-        data_collator=model_data.data_collator,
-        compute_metrics=model_data.compute_metrics,
-        eval_dataset=dataset,
-        tokenizer=getattr(model_data.processor, "tokenizer"),
-    )
-
-    metrics = trainer.evaluate(eval_dataset=dataset["test"])
-    wer = metrics["eval_wer"]
-
-    print(f"\n*** RESULTS ON {eval_dataset_cfg.dataset.name} ***")
-    print(f"{eval_dataset_cfg.hub_id} achieved a WER of {wer:.2%}.\n")
-
-
-def preprocess_transcriptions(
-    dataset: DatasetDict | IterableDatasetDict, processor: Processor
-) -> DatasetDict | IterableDatasetDict:
-    def tokenize_examples(example: dict) -> dict:
-        example["labels"] = processor(text=example["text"], truncation=True).input_ids
-        example["input_length"] = len(example["labels"])
-        return example
-
-    mapped = dataset.map(tokenize_examples)
-
-    # After calling `map` the DatasetInfo is lost, so we need to add it back in
-    for split in dataset.keys():
-        mapped[split]._info = dataset[split]._info
-        mapped[split]._info.features["labels"] = Sequence(
-            feature=Value(dtype="int64"), length=-1
-        )
-        mapped[split]._info.features["input_length"] = Value(dtype="int64")
-        mapped[split]._info = dataset[split]._info
-
-    return mapped
+    Args:
+        config:
+            The Hydra configuration object.
+    """
+    score_df = evaluate(config=config)
+    score_df.to_csv(f"{config.pipeline_id}_scores.csv", index=False)
 
 
 if __name__ == "__main__":

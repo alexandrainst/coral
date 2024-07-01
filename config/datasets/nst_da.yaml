@@ -2,7 +2,5 @@ nst_da:
   id: alexandrainst/nst-da
   subset: null
   train_name: train
-  val_name: null
-  test_name: test
   text_column: text
   audio_column: audio

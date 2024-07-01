@@ -1,7 +1,7 @@
 """Train an n-gram language model for the decoder of a finetuned Wav2Vec 2.0 model.
 
 Usage:
-    python train_ngram_decoder.py <key>=<value> <key>=<value> ...
+    python src/scripts/train_ngram_decoder.py <key>=<value> <key>=<value> ...
 """
 
 import io
@@ -21,18 +21,18 @@ from transformers import AutoProcessor, Wav2Vec2ProcessorWithLM
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
-def train_ngram_model(cfg: DictConfig) -> None:
+def train_ngram_model(config: DictConfig) -> None:
     """Trains an ngram language model.
 
     Args:
-        cfg (DictConfig):
+        config:
             Hydra configuration dictionary.
     """
     # Load the dataset
     dataset = load_dataset(
-        path=cfg.model.decoder.dataset_id,
-        name=cfg.model.decoder.dataset_subset,
-        split=cfg.model.decoder.dataset_split,
+        path=config.model.decoder.dataset_id,
+        name=config.model.decoder.dataset_subset,
+        split=config.model.decoder.dataset_split,
         token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
     )
     assert isinstance(dataset, Dataset)
@@ -41,8 +41,7 @@ def train_ngram_model(cfg: DictConfig) -> None:
     kenlm_dir = Path.home() / ".cache" / "kenlm"
     if not kenlm_dir.exists():
         download_and_extract(
-            url="https://kheafield.com/code/kenlm.tar.gz",
-            target_dir=kenlm_dir,
+            url="https://kheafield.com/code/kenlm.tar.gz", target_dir=kenlm_dir
         )
 
     # Compile `kenlm` if it hasn't already been compiled
@@ -53,9 +52,9 @@ def train_ngram_model(cfg: DictConfig) -> None:
         subprocess.run(["make", "-j", "2"], cwd=str(kenlm_dir / "build"))
 
     # Train the n-gram language model if it doesn't already exist
-    correct_ngram_path = Path(cfg.model_dir) / f"{cfg.model.decoder.n}gram.arpa"
+    correct_ngram_path = Path(config.model_dir) / f"{config.model.decoder.n}gram.arpa"
     if not correct_ngram_path.exists():
-        ngram_path = Path(cfg.model_dir) / f"raw_{cfg.model.decoder.n}gram.arpa"
+        ngram_path = Path(config.model_dir) / f"raw_{config.model.decoder.n}gram.arpa"
 
         # If the raw language model does not exist either then train from scratch
         if not ngram_path.exists():
@@ -65,7 +64,7 @@ def train_ngram_model(cfg: DictConfig) -> None:
                     f_in.write(" ".join(dataset["text"]))
                     with ngram_path.open("w") as f_out:
                         subprocess.run(
-                            ["kenlm/build/bin/lmplz", "-o", cfg.model.decoder.n],
+                            ["kenlm/build/bin/lmplz", "-o", config.model.decoder.n],
                             stdin=f_in,
                             stdout=f_out,
                         )
@@ -97,15 +96,13 @@ def train_ngram_model(cfg: DictConfig) -> None:
         if ngram_path.exists():
             ngram_path.unlink()
 
-    # Load the pretrained processor
-    processor = AutoProcessor.from_pretrained(cfg.model_dir)
+    processor = AutoProcessor.from_pretrained(config.model_dir)
 
     # Extract the vocabulary, which will be used to build the CTC decoder
     vocab_dict: dict[str, int] = processor.tokenizer.get_vocab()
     sorted_vocab_list = sorted(vocab_dict.items(), key=lambda item: item[1])
     sorted_vocab_dict = {k.lower(): v for k, v in sorted_vocab_list}
 
-    # Build the CTC decoder
     decoder = build_ctcdecoder(
         labels=list(sorted_vocab_dict.keys()), kenlm_model_path=str(correct_ngram_path)
     )
@@ -118,10 +115,10 @@ def train_ngram_model(cfg: DictConfig) -> None:
     )
 
     # Clone the repo containing the finetuned model
-    repo = Repository(local_dir=cfg.model_dir, clone_from=cfg.model_dir)
+    repo = Repository(local_dir=config.model_dir, clone_from=config.model_dir)
 
     # Save the new processor to the repo
-    processor_with_lm.save_pretrained(cfg.model_dir)
+    processor_with_lm.save_pretrained(config.model_dir)
 
     # Compress the ngram model
     subprocess.run(

@@ -1,25 +1,30 @@
-"""Function used to compute metrics during ASR training of Wave2Vec 2.0 models."""
+"""Function used to compute metrics during ASR training of Wav2Vec 2.0 models."""
+
+import logging
+import os
 
 import numpy as np
 from evaluate.loading import load as load_metric
 from numpy.typing import NDArray
 from transformers import EvalPrediction, PreTrainedTokenizerBase
-import logging
-import os
 
-from .protocols import Processor
+from .data_models import Processor
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__package__)
 
 
-def compute_wer_metrics(pred: EvalPrediction, processor: Processor) -> dict[str, float]:
+def compute_wer_metrics(
+    pred: EvalPrediction, processor: Processor, log_examples: bool = True
+) -> dict[str, float]:
     """Compute the word error rate of predictions.
 
     Args:
-        pred (EvalPrediction):
+        pred:
             Prediction output of the speech recognition model.
-        processor (Processor):
+        processor:
             Audio and transcription processor.
+        log_examples:
+            Whether to log examples of the predictions and the ground truth labels.
 
     Returns:
         dict:
@@ -80,7 +85,7 @@ def compute_wer_metrics(pred: EvalPrediction, processor: Processor) -> dict[str,
 
     # Log both the predictions and the ground truth labels
     is_main_process = os.getenv("RANK", "0") == "0"
-    if is_main_process:
+    if is_main_process and log_examples:
         random_idx = np.random.randint(0, len(predictions_str))
         logger.info(f"Sample document: {labels_str[random_idx]}")
         logger.info(f"Predicted: {predictions_str[random_idx]}")

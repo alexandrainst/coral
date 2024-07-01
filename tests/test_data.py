@@ -3,22 +3,24 @@
 import re
 
 import pytest
-from datasets import DatasetDict, IterableDatasetDict
-
 from coral.data import clean_example
+from datasets import IterableDatasetDict
 
 
 class TestLoadData:
+    """Unit tests for the `load_data` function."""
+
     def test_dataset_type(self, dataset) -> None:
-        assert isinstance(dataset, DatasetDict) or isinstance(
-            dataset, IterableDatasetDict
-        )
+        """Test that the dataset is of the correct type."""
+        assert isinstance(dataset, IterableDatasetDict)
 
     def test_split_names(self, dataset) -> None:
+        """Test that the dataset has the correct split names."""
         assert set(dataset.keys()) == {"train", "val", "test"}
 
-    def test_train_samples(self, dataset, cfg) -> None:
-        if cfg.model.clean_dataset:
+    def test_train_samples(self, dataset, config) -> None:
+        """Test that the training dataset has the correct samples."""
+        if config.model.clean_dataset:
             samples = [sample["text"] for sample in dataset["train"]]
             assert samples == [
                 "hver rose på træet i haven havde sin historie",
@@ -30,6 +32,8 @@ class TestLoadData:
 
 
 class TestCleanExample:
+    """Unit tests for the `clean_example` function."""
+
     transcription = "\nThis is a (test) [sentence]\u0301 with \n{aa} and ğ. "
 
     empty_regex = re.compile(r"")
@@ -117,6 +121,7 @@ class TestCleanExample:
         conversion_dict: dict[str, str],
         expected: str,
     ) -> None:
+        """Test that the `clean_example` function works as expected."""
         example = dict(text=transcription)
         cleaned_transcription = clean_example(
             example=example,

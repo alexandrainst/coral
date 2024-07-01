@@ -1,19 +1,19 @@
-"""Functions related to the finetuning of Wav2Vec 2.0 models on ASR datasets."""
+"""Finetuning ASR models."""
 
-from functools import partial
 import logging
-from typing import Callable
 import os
+from functools import partial
+from typing import Callable
 
 from omegaconf import DictConfig
 from transformers import EarlyStoppingCallback, TrainerCallback
 from wandb.sdk.wandb_init import init as wandb_init
 from wandb.sdk.wandb_run import finish as wandb_finish
 
-from .utils import disable_tqdm
 from .data import load_data
+from .data_models import ModelSetup
 from .model_setup import load_model_setup
-from .protocols import ModelSetup
+from .utils import disable_tqdm
 
 logger = logging.getLogger(__package__)
 
@@ -22,8 +22,10 @@ def prepare_dataset_example(example: dict, processor: Callable) -> dict:
     """Prepare a dataset example for the model.
 
     Args:
-        example: The example from the dataset.
-        processor: The processor to use.
+        example:
+            The example from the dataset.
+        processor:
+            The processor to use.
 
     Returns:
         The prepared example.
@@ -50,8 +52,10 @@ def example_audio_is_short(example: dict, max_seconds_per_example: int) -> bool:
     """Check if the example audio is too short.
 
     Args:
-        example: The example from the dataset.
-        max_seconds_per_example: The maximum number of seconds per example.
+        example:
+            The example from the dataset.
+        max_seconds_per_example:
+            The maximum number of seconds per example.
 
     Returns:
         Whether the example audio is too short.
@@ -59,20 +63,21 @@ def example_audio_is_short(example: dict, max_seconds_per_example: int) -> bool:
     return example["num_seconds"] <= max_seconds_per_example
 
 
-def finetune(cfg: DictConfig) -> None:
+def finetune(config: DictConfig) -> None:
     """Finetune a model on a dataset.
 
     Args:
-        cfg: The Hydra cfguration object.
+        config:
+            The Hydra configuration object.
     """
     # Note if we're on the main process, if we are running in a distributed setting
     is_main_process = os.getenv("RANK", "0") == "0"
 
-    model_setup: ModelSetup = load_model_setup(cfg)
+    model_setup: ModelSetup = load_model_setup(config)
     processor = model_setup.load_processor()
-    processor.save_pretrained(cfg.model_dir)
+    processor.save_pretrained(config.model_dir)
     model = model_setup.load_model()
-    dataset = load_data(cfg)
+    dataset = load_data(config)
 
     dataset = dataset.map(
         function=partial(prepare_dataset_example, processor=processor),
@@ -81,16 +86,16 @@ def finetune(cfg: DictConfig) -> None:
     dataset = dataset.filter(
         function=partial(
             example_audio_is_short,
-            max_seconds_per_example=cfg.max_seconds_per_example,
-        ),
+            max_seconds_per_example=config.max_seconds_per_example,
+        )
     )
 
-    if cfg.wandb and is_main_process:
+    if config.wandb and is_main_process:
         wandb_init(
-            project=cfg.wandb_project,
-            group=cfg.wandb_group,
-            name=cfg.wandb_name,
-            config=dict(cfg),
+            project=config.wandb_project,
+            group=config.wandb_group,
+            name=config.wandb_name,
+            config=dict(config),
         )
 
     if "val" not in dataset and is_main_process:
@@ -104,32 +109,33 @@ def finetune(cfg: DictConfig) -> None:
         train_dataset=dataset["train"],
         eval_dataset=dataset["val"] if "val" in dataset else None,
         tokenizer=getattr(processor, "tokenizer"),
-        callbacks=load_early_stopping_callback(cfg) if "val" in dataset else None,
+        callbacks=load_early_stopping_callback(config) if "val" in dataset else None,
     )
 
     with disable_tqdm():
-        trainer.train(resume_from_checkpoint=cfg.resume_from_checkpoint)
+        trainer.train(resume_from_checkpoint=config.resume_from_checkpoint)
 
     if is_main_process:
         wandb_finish()
-        model.save_pretrained(cfg.model_dir)
-        if cfg.push_to_hub:
+        model.save_pretrained(config.model_dir)
+        if config.push_to_hub:
             trainer.push_to_hub()
 
 
-def load_early_stopping_callback(cfg: DictConfig) -> list[TrainerCallback]:
+def load_early_stopping_callback(config: DictConfig) -> list[TrainerCallback]:
     """Load the early stopping callback for the trainer.
 
     Args:
-        cfg: The Hydra configuration object.
+        config:
+            The Hydra configuration object.
 
     Returns:
         The callbacks.
     """
     callbacks: list[TrainerCallback] = list()
-    if cfg.early_stopping:
+    if config.early_stopping:
         early_stopping_callback = EarlyStoppingCallback(
-            early_stopping_patience=cfg.early_stopping_patience
+            early_stopping_patience=config.early_stopping_patience
         )
         callbacks = [early_stopping_callback]
     return callbacks

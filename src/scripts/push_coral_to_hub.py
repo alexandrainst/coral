@@ -1,27 +1,27 @@
 """Pushes the processed CoRal dataset to the Hugging Face Hub.
 
 Usage:
-    python src/scripts/push_coral_to_hub.py\
-            --recording_metadata_path <path/to/metadata>\
-            --speaker_metadata_path <path/to/speaker_metadata>\
-            --sentence_metadata_path <path/to/sentence_metadata>\
-            --hub_id <hub_id>\
-            --major_version <major_version>\
-            --minor_version <minor_version>\
-            [--private]\
+    python src/scripts/push_coral_to_hub.py \
+            --recording_metadata_path <path/to/metadata> \
+            --speaker_metadata_path <path/to/speaker_metadata> \
+            --sentence_metadata_path <path/to/sentence_metadata> \
+            --hub_id <hub_id> \
+            --major_version <major_version> \
+            --minor_version <minor_version> \
+            [--private] \
             [--max_num_conversation_recordings <value>]
 """
 
-import os
-from pathlib import Path
-from datasets import Dataset, Audio, DatasetDict
-from datetime import datetime
-from huggingface_hub import HfApi
-import pandas as pd
-import click
 import logging
+import os
 import time
+from datetime import datetime
+from pathlib import Path
 
+import click
+import pandas as pd
+from datasets import Audio, Dataset, DatasetDict
+from huggingface_hub import HfApi
 from requests import HTTPError
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(message)s")
@@ -137,7 +137,27 @@ def main(
     private: bool,
     max_num_conversation_recordings: int,
 ) -> None:
+    """Push the CoRal test dataset to the Hugging Face Hub.
 
+    Args:
+        recording_metadata_path:
+            The path to the recording metadata.
+        speaker_metadata_path:
+            The path to the speaker metadata.
+        sentence_metadata_path:
+            The path to the sentence metadata.
+        hub_id:
+            The Hugging Face Hub id.
+        major_version:
+            The major version number of the dataset.
+        minor_version:
+            The minor version number of the dataset.
+        private:
+            Whether to make the dataset private on the Hugging Face Hub.
+        max_num_conversation_recordings:
+            The maximum number of conversation recordings to include in the validation
+            set.
+    """
     # Load the metadata and split into test/train speakers
     recording_metadata_path = Path(recording_metadata_path)
     recording_metadata = pd.read_excel(recording_metadata_path, index_col=0)
@@ -321,8 +341,7 @@ def main(
         "filename", Audio()
     )
     validationset = Dataset.from_dict(validation_read_aloud_df).cast_column(
-        "filename",
-        Audio(),
+        "filename", Audio()
     )
     dataset_dict = DatasetDict(
         {
@@ -371,14 +390,20 @@ def main(
         logger.info(f"The dataset {hub_id_v} doesn't exist on the hub. Proceeding...")
 
     # Push the dataset to the hub
-    push_to_hub(dataset_dict, hub_id_v, private)
+    push_to_hub(dataset_dict=dataset_dict, hub_id_v=hub_id_v, private=private)
 
 
-def push_to_hub(
-    dataset_dict: DatasetDict,
-    hub_id_v: str,
-    private: bool,
-) -> None:
+def push_to_hub(dataset_dict: DatasetDict, hub_id_v: str, private: bool) -> None:
+    """Pushes a dataset to the Hugging Face Hub.
+
+    Args:
+        dataset_dict:
+            The dataset to push to the hub.
+        hub_id_v:
+            The Hugging Face Hub id.
+        private:
+            Whether to make the dataset private on the Hugging Face Hub.
+    """
     while True:
         try:
             dataset_dict.push_to_hub(

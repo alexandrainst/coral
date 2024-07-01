@@ -12,7 +12,7 @@ license = "MIT"
 python = ">=3.11,<3.13"
 hydra-core = "^1.1.1"
 evaluate = "^0.4.0"
-transformers = "^4.40.0"
+transformers = "^4.41.0"
 torch = "^2.0.0"
 librosa = "^0.10.0"
 soundfile = "^0.12.1"
@@ -31,6 +31,7 @@ wave = "^0.0.2"
 kenlm = {url = "https://github.com/kpu/kenlm/archive/master.zip", optional=true}
 matplotlib = "^3.7.3"
 deepspeed = "^0.12.3"
+python-dotenv = "^1.0.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.1.1"
@@ -48,11 +49,8 @@ kenlm = ["kenlm"]
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = [
-    '--verbose',
     '--durations=10',
     '--color=yes',
-    '-s',
-    '-vv',
     '--doctest-modules',
     '--cov=src/coral',
 ]

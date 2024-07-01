@@ -5,11 +5,14 @@ import sys
 from typing import Generator
 
 import pytest
+from coral.data import load_data
 from datasets import DatasetDict, IterableDatasetDict
+from dotenv import load_dotenv
 from hydra import compose, initialize
 from omegaconf import DictConfig
 
-from coral.data import load_data
+load_dotenv()
+
 
 # Initialise Hydra
 initialize(config_path="../config", version_base=None)
@@ -35,7 +38,8 @@ def pytest_unconfigure() -> None:
     ),
     ids=lambda x: f"model: {x[0]}, dataset: {x[1]}",
 )
-def cfg(request) -> Generator[DictConfig, None, None]:
+def config(request) -> Generator[DictConfig, None, None]:
+    """Hydra configuration."""
     model, datasets = request.param
     yield compose(
         config_name="config",
@@ -52,5 +56,6 @@ def cfg(request) -> Generator[DictConfig, None, None]:
 
 
 @pytest.fixture(scope="session")
-def dataset(cfg) -> Generator[DatasetDict | IterableDatasetDict, None, None]:
-    yield load_data(cfg)
+def dataset(config) -> Generator[DatasetDict | IterableDatasetDict, None, None]:
+    """ASR Dataset."""
+    yield load_data(config=config)
