@@ -1,5 +1,5 @@
 defaults:
-  - model: wav2vec2
+  - model: wav2vec2-with-lm
   - datasets:
     - common_voice_13_da
   - override hydra/job_logging: custom
@@ -38,9 +38,9 @@ padding: longest
 dataset_probabilities: null
 
 # Model parameters
-pipeline_id: ${model.name}-finetuned-${now:%Y-%m-%d}
-hub_id: alexandrainst/${pipeline_id}
-model_dir: ${dirs.models}/${pipeline_id}
+model_id: ${model.name}-${now:%Y-%m-%d}
+model_dir: ${dirs.models}/${model_id}
+hub_organisation: alexandrainst
 push_to_hub: false
 fp16: true
 
@@ -48,7 +48,7 @@ fp16: true
 wandb: false
 wandb_project: CoRal
 wandb_group: default
-wandb_name: null
+wandb_name: ${model_id}
 resume_from_checkpoint: false
 ignore_data_skip: false
 save_total_limit: 2

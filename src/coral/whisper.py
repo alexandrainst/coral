@@ -3,6 +3,7 @@
 import logging
 import sys
 from functools import partial
+from pathlib import Path
 from typing import Callable, Type
 
 import torch
@@ -128,7 +129,7 @@ class WhisperModelSetup(ModelSetup):
 
         args = Seq2SeqTrainingArguments(
             output_dir=self.config.model_dir,
-            hub_model_id=self.config.hub_id,
+            hub_model_id=f"{self.config.hub_organisation}/{self.config.model_id}",
             per_device_train_batch_size=self.config.per_device_batch_size,
             per_device_eval_batch_size=self.config.per_device_batch_size,
             gradient_accumulation_steps=gradient_accumulation_steps,
@@ -163,15 +164,18 @@ class WhisperModelSetup(ModelSetup):
 
     def load_saved(self) -> PreTrainedModelData:
         """Load the model setup."""
+        if Path(self.config.model_dir).exists():
+            model_path = self.config.model_dir
+        else:
+            model_path = f"{self.config.hub_organisation}/{self.config.model_id}"
+
         processor: Processor
-        processor_or_tup = WhisperProcessor.from_pretrained(
-            self.config.hub_id, token=True
-        )
+        processor_or_tup = WhisperProcessor.from_pretrained(model_path, token=True)
         assert isinstance(processor_or_tup, WhisperProcessor)
         processor = processor_or_tup
 
         model_or_tup = WhisperForConditionalGeneration.from_pretrained(
-            self.config.hub_id, token=True
+            model_path, token=True
         )
         assert isinstance(model_or_tup, WhisperForConditionalGeneration)
         model = model_or_tup

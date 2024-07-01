@@ -36,7 +36,7 @@ class TestCleanExample:
 
     transcription = "\nThis is a (test) [sentence]\u0301 with \n{aa} and ğ. "
 
-    empty_regex = re.compile(r"")
+    empty_regex = re.compile(r"^_^")
     parens_regex = re.compile(r"[\(\)\[\]\{\}]")
     newline_regex = re.compile(r"[\n\r]")
 
@@ -62,37 +62,37 @@ class TestCleanExample:
                 transcription,
                 empty_regex,
                 empty_conversion_dict,
-                "this is a (test) [sentence]\u0301 with \n{aa} and ğ.",
+                "this is a (test) [sentence]\u0301 with\n{aa} and ğ.",
             ),
             (
                 transcription,
                 empty_regex,
                 diacritics_conversion_dict,
-                "this is a (test) [sentence]\u0301 with \n{å} and g.",
+                "this is a (test) [sentence]\u0301 with\n{å} and g.",
             ),
             (
                 transcription,
                 empty_regex,
                 empty_whitespace_conversion_dict,
-                "this is a (test) [sentence] with \n{aa} and ğ.",
+                "this is a (test) [sentence] with\n{aa} and ğ.",
             ),
             (
                 transcription,
                 parens_regex,
                 empty_conversion_dict,
-                "this is a test sentence\u0301 with \naa and ğ.",
+                "this is a test sentence \u0301 with\naa and ğ.",
             ),
             (
                 transcription,
                 parens_regex,
                 diacritics_conversion_dict,
-                "this is a test sentence\u0301 with \nå and g.",
+                "this is a test sentence \u0301 with\nå and g.",
             ),
             (
                 transcription,
                 parens_regex,
                 empty_whitespace_conversion_dict,
-                "this is a test sentence with \naa and ğ.",
+                "this is a test sentence with\naa and ğ.",
             ),
             (
                 transcription,

@@ -43,7 +43,6 @@ install: ## Install dependencies
 	@$(MAKE) --quiet install-poetry
 	@$(MAKE) --quiet setup-poetry
 	@$(MAKE) --quiet setup-environment-variables
-	@$(MAKE) --quiet setup-git
 	@echo "Installed the 'coral' project."
 
 install-brew:
@@ -97,28 +96,14 @@ install-poetry:
 	fi
 
 setup-poetry:
-	@poetry env use python3.11 && poetry install
+	@poetry env use python3.11 && poetry install --extras kenlm
+	@poetry run pre-commit install
 
 setup-environment-variables:
 	@poetry run python src/scripts/fix_dot_env_file.py
 
 setup-environment-variables-non-interactive:
 	@poetry run python src/scripts/fix_dot_env_file.py --non-interactive
-
-setup-git:
-	@git config --global init.defaultBranch main
-	@git init
-	@git config --local user.name ${GIT_NAME}
-	@git config --local user.email ${GIT_EMAIL}
-	@if [ ${GPG_KEY_ID} = "" ]; then \
-		echo "No GPG key ID specified. Skipping GPG signing."; \
-		git config --local commit.gpgsign false; \
-	else \
-		git config --local commit.gpgsign true; \
-		git config --local user.signingkey ${GPG_KEY_ID}; \
-		echo "Signed with GPG key ID ${GPG_KEY_ID}."; \
-	fi
-	@poetry run pre-commit install
 
 docs:  ## Generate documentation
 	@poetry run pdoc --docformat google src/coral -o docs

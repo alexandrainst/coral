@@ -1,4 +1,4 @@
-name: whisper_large
+name: whisper-large
 type: whisper
 pretrained_model_id: openai/whisper-large-v2
 freeze_feature_encoder: false
