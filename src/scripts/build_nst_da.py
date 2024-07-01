@@ -20,8 +20,12 @@ import requests as rq
 from datasets import Audio, Dataset, DatasetDict
 from tqdm.auto import tqdm
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(message)s")
-logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s ⋅ %(name)s ⋅ %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("build_nst_da")
 
 
 BASE_URL = "https://www.nb.no/sbfil/talegjenkjenning/16kHz_2020/dk_2020"
