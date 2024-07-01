@@ -9,7 +9,9 @@ import sqlite3
 from pathlib import Path
 
 import click
-from datasets import Dataset
+from datasets import Audio, Dataset
+from joblib import Parallel, delayed
+from tqdm.auto import tqdm
 
 logging.basicConfig(
     level=logging.INFO,
@@ -50,10 +52,12 @@ def main(
     metadata_database_path = Path(metadata_database_path)
     audio_dir = Path(audio_dir)
 
+    # Fetch all metadata from the SQLite database.
+    logger.info("Fetching all metadata from the SQLite database...")
     non_id_features = [
-        "text",
         "datetime_start",
         "datetime_end",
+        "text",
         "location",
         "location_roomdim",
         "noise_level",
@@ -71,7 +75,6 @@ def main(
         "occupation",
         "validated",
     ]
-
     non_id_features_str = ",\n".join(non_id_features)
     sql_query = f"""
         SELECT
@@ -84,15 +87,43 @@ def main(
             Recordings
             INNER JOIN Sentences ON Recordings.id_sentence = Sentences.id_sentence
             INNER JOIN Speakers ON Recordings.id_speaker = Speakers.id_speaker
-        LIMIT 10
     """
-
-    logger.info("Fetching all metadata from the SQLite database...")
     with sqlite3.connect(database=metadata_database_path) as connection:
         cursor = connection.cursor()
         cursor.execute(sql_query)
-        rows = cursor.fetchall()
+        rows = list(map(list, cursor.fetchall()))
+    logger.info(f"Fetched {len(rows):,} rows from the SQLite database.")
 
+    # Get a list of all the audio file paths. We need this since the audio files lie in
+    # subdirectories of the main audio directory.
+    audio_subdirs = list(audio_dir.iterdir())
+    with Parallel(n_jobs=-1) as parallel:
+        all_audio_path_lists = parallel(
+            delayed(list_audio_files)(subdir)
+            for subdir in tqdm(audio_subdirs, desc="Collecting audio file paths")
+        )
+        assert isinstance(all_audio_path_lists, list)
+    all_audio_paths = [
+        path for path_list in all_audio_path_lists for path in path_list or []
+    ]
+
+    # Match the audio files to the metadata, to ensure that there is a 1-to-1
+    # correspondence between them.
+    row_ids_to_keep: list[int] = list()
+    for idx, row in enumerate(tqdm(rows, desc="Matching audio files to metadata")):
+        recording_id: str = row[0]
+        candidate_audio_paths = [
+            path for path in all_audio_paths if recording_id in path.stem
+        ]
+        if not candidate_audio_paths:
+            continue
+        row.append(str(candidate_audio_paths[0]))
+        row_ids_to_keep.append(idx)
+    rows = [row for idx, row in enumerate(rows) if idx in row_ids_to_keep]
+
+    # Build the dataset from the metadata and the audio files. This embeds all the audio
+    # files into the dataset as parquet files.
+    logger.info("Building the dataset...")
     dataset = Dataset.from_dict(
         mapping={
             "id_recording": [row[0] for row in rows],
@@ -103,26 +134,33 @@ def main(
                 feature: [row[i] for row in rows]
                 for i, feature in enumerate(non_id_features, start=4)
             },
+            "audio": [row[-1] for row in rows],
         }
     )
+    dataset = dataset.cast_column("audio", Audio(sampling_rate=16_000))
+    logger.info("Finished building the dataset.")
 
-    logger.info(f"Fetched {len(dataset):,} rows from the SQLite database.")
-    logger.info("Fetching all corresponding audio files...")
-
-    # TODO: Implement the fetching of the audio files.
-
-    logger.info("Finished fetching all audio files. Building the dataset...")
-
-    # TODO: Implement the building of the dataset.
-
-    logger.info(
-        f"Finished building the dataset. Uploading the dataset to {hub_id!r} on "
-        "the Hugging Face Hub..."
+    # Upload the dataset to the Hugging Face Hub.
+    logger.info(f"Uploading the dataset to {hub_id!r} on the Hugging Face Hub...")
+    dataset.push_to_hub(
+        repo_id=hub_id, split="train", private=True, max_shard_size="500MB"
     )
+    logger.info("Finished uploading the dataset to the Hugging Face Hub.")
 
-    # TODO: Implement the uploading of the dataset to the Hugging Face Hub.
+    logger.info(f"All done! See the dataset at https://hf.co/datasets/{hub_id}.")
 
-    logger.info("Finished uploading the dataset to the Hugging Face Hub. All done!")
+
+def list_audio_files(audio_dir: Path) -> list[Path]:
+    """List all the audio files in the given directory.
+
+    Args:
+        audio_dir:
+            The directory containing the audio files.
+
+    Returns:
+        A list of paths to the audio files.
+    """
+    return list(audio_dir.glob("*.wav"))
 
 
 if __name__ == "__main__":
