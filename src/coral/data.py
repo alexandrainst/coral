@@ -275,7 +275,7 @@ def clean_example(
     doc = re.sub(non_standard_characters_regex, " ", doc.lower().strip())
 
     # Replace superfluous spaces
-    doc = re.sub(r" +", " ", doc)
+    doc = re.sub(r" +", " ", doc).strip()
 
     # Re-assign the cleaned transcription
     example["text"] = doc
