@@ -31,11 +31,11 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          poetry env use "${{ matrix.python-version }}"
+          poetry env use "3.11"
           poetry install --no-interaction --no-cache
 
       - name: Build documentation
-        run: poetry run pdoc --docformat google src/coral_models -o docs
+        run: poetry run pdoc --docformat google src/coral -o docs
 
       - name: Compress documentation
         run: tar --directory docs/ -hcf artifact.tar .
