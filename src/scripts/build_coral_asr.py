@@ -68,7 +68,7 @@ def main(
 
     # Get the number of samples in the SQLite database. We don't do any merges here to
     # save some time. That means that the count will be an upper bound rather than a
-    # precise number of samples, but we deal with that when we actually fetch the data.
+    # precise number of samples, but we deal with that when we actually fetch the data
     logger.info("Fetching the number of metadata samples in the SQLite database...")
     count_query = "SELECT COUNT(*) FROM Recordings"
     with sqlite3.connect(database=metadata_database_path) as connection:
@@ -77,7 +77,7 @@ def main(
         num_metadata_samples = cursor.fetchone()[0]
     logger.info(f"There are {num_metadata_samples:,} samples in the SQLite database.")
 
-    # Fetch all metadata from the SQLite database.
+    # Fetch all metadata from the SQLite database
     non_id_features = [
         "datetime_start",
         "datetime_end",
@@ -131,7 +131,7 @@ def main(
         pbar.update(num_metadata_samples - pbar.n)
 
     # Get a list of all the audio file paths. We need this since the audio files lie in
-    # subdirectories of the main audio directory.
+    # subdirectories of the main audio directory
     audio_subdirs = list(audio_dir.iterdir())
     with Parallel(n_jobs=-1) as parallel:
         all_audio_path_lists = parallel(
@@ -144,7 +144,7 @@ def main(
     ]
 
     # Match the audio files to the metadata, to ensure that there is a 1-to-1
-    # correspondence between them.
+    # correspondence between them
     row_ids_to_keep: list[int] = list()
     for idx, row in enumerate(tqdm(rows, desc="Matching audio files to metadata")):
         recording_id: str = row[0]
@@ -158,7 +158,7 @@ def main(
     rows = [row for idx, row in enumerate(rows) if idx in row_ids_to_keep]
 
     # Build the dataset from the metadata and the audio files. This embeds all the audio
-    # files into the dataset as parquet files.
+    # files into the dataset as parquet files
     logger.info("Building the dataset...")
     dataset = Dataset.from_dict(
         mapping={
@@ -176,7 +176,7 @@ def main(
     dataset = dataset.cast_column("audio", Audio(sampling_rate=16_000))
     logger.info("Finished building the dataset.")
 
-    # Upload the dataset to the Hugging Face Hub.
+    # Upload the dataset to the Hugging Face Hub
     logger.info(f"Uploading the dataset to {hub_id!r} on the Hugging Face Hub...")
     dataset.push_to_hub(
         repo_id=hub_id, split="train", private=True, max_shard_size="500MB"
