@@ -122,7 +122,7 @@ def finetune(config: DictConfig) -> None:
         if config.push_to_hub:
             trainer.push_to_hub()
 
-    if config.model.decoder is not None:
+    if hasattr(config.model, "decoder") and config.model.decoder is not None:
         train_ngram_model(config=config)
 
 
