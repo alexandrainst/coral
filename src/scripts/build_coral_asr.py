@@ -75,9 +75,7 @@ def main(
         cursor = connection.cursor()
         cursor.execute(count_query)
         num_metadata_samples = cursor.fetchone()[0]
-    logger.info(
-        f"There are at most {num_metadata_samples:,} samples in the SQLite database."
-    )
+    logger.info(f"There are {num_metadata_samples:,} samples in the SQLite database.")
 
     # Fetch all metadata from the SQLite database.
     non_id_features = [
