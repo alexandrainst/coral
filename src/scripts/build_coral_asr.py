@@ -43,8 +43,18 @@ logger = logging.getLogger("build_coral_asr")
     show_default=True,
     help="Identifier of the Hugging Face Hub repository.",
 )
+@click.option(
+    "--batch-size",
+    type=int,
+    default=1000,
+    show_default=True,
+    help="Number of rows to fetch from the SQLite database at once.",
+)
 def main(
-    audio_dir: Path | str, metadata_database_path: Path | str, hub_id: str
+    audio_dir: Path | str,
+    metadata_database_path: Path | str,
+    hub_id: str,
+    batch_size: int,
 ) -> None:
     """Build and upload the CoRal speech recognition dataset."""
     logger.info("Initialised the build script of the CoRal speech recognition dataset.")
@@ -52,8 +62,20 @@ def main(
     metadata_database_path = Path(metadata_database_path)
     audio_dir = Path(audio_dir)
 
+    # Get the number of samples in the SQLite database. We don't do any merges here to
+    # save some time. That means that the count will be an upper bound rather than a
+    # precise number of samples, but we deal with that when we actually fetch the data.
+    logger.info("Fetching the number of metadata samples in the SQLite database...")
+    count_query = "SELECT COUNT(*) FROM Recordings"
+    with sqlite3.connect(database=metadata_database_path) as connection:
+        cursor = connection.cursor()
+        cursor.execute(count_query)
+        num_metadata_samples = cursor.fetchone()[0]
+    logger.info(
+        f"There are at most {num_metadata_samples:,} samples in the SQLite database."
+    )
+
     # Fetch all metadata from the SQLite database.
-    logger.info("Fetching all metadata from the SQLite database...")
     non_id_features = [
         "datetime_start",
         "datetime_end",
@@ -87,12 +109,24 @@ def main(
             Recordings
             INNER JOIN Sentences ON Recordings.id_sentence = Sentences.id_sentence
             INNER JOIN Speakers ON Recordings.id_speaker = Speakers.id_speaker
+        LIMIT {batch_size}
+        OFFSET {{offset}}
     """
-    with sqlite3.connect(database=metadata_database_path) as connection:
-        cursor = connection.cursor()
-        cursor.execute(sql_query)
-        rows = list(map(list, cursor.fetchall()))
-    logger.info(f"Fetched {len(rows):,} rows from the SQLite database.")
+    num_batches = num_metadata_samples // batch_size
+    if num_metadata_samples % batch_size:
+        num_batches += 1
+    rows: list[list[str]] = list()
+    with tqdm(total=num_metadata_samples, desc="Fetching metadata") as pbar:
+        for batch_idx in range(num_batches):
+            with sqlite3.connect(database=metadata_database_path) as connection:
+                cursor = connection.cursor()
+                cursor.execute(sql_query.format(offset=batch_idx * batch_size))
+                batch_rows = list(map(list, cursor.fetchall()))
+            if not batch_rows:
+                break
+            rows.extend(batch_rows)
+            pbar.update(len(batch_rows))
+        pbar.update(num_metadata_samples - pbar.n)
 
     # Get a list of all the audio file paths. We need this since the audio files lie in
     # subdirectories of the main audio directory.
