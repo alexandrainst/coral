@@ -22,9 +22,11 @@ from pathlib import Path
 import click
 
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s ⋅ %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+    level=logging.INFO,
+    format="%(asctime)s ⋅ %(name)s ⋅ %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("download_ftspeech")
 
 
 @click.command("Downloads the FTSpeech corpus.")

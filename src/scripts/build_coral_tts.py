@@ -16,7 +16,12 @@ import pandas as pd
 from datasets import Audio, Dataset, DatasetDict
 from tqdm.auto import tqdm
 
-logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s ⋅ %(name)s ⋅ %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("build_coral_tts")
 
 
 SAMPLE_RATE = 44_100

@@ -19,8 +19,12 @@ import requests
 from datasets import Audio, Dataset, DatasetDict
 from tqdm.auto import tqdm
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(message)s")
-logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s ⋅ %(name)s ⋅ %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("build_nota")
 
 
 BASE_URL = "https://sprogtek-ressources.digst.govcloud.dk/nota/"

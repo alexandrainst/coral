@@ -2,18 +2,25 @@ name: CI
 
 on:
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
     branches:
       - main
 
 jobs:
 
   lint:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: jpetrucciani/black-check@master
+      - uses: jpetrucciani/ruff-check@0.4.8
 
   pytest:
+    if: github.event.pull_request.draft == false
     strategy:
         matrix:
             os: [ubuntu-latest]
@@ -26,7 +33,7 @@ jobs:
         uses: FedericoCarboni/setup-ffmpeg@v2
 
       - name: Install Poetry
-        run: pip3 install poetry==1.5.1
+        run: pip3 install poetry==1.8.2
 
       - name: Set up Python
         uses: actions/setup-python@v4

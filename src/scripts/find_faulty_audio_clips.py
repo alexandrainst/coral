@@ -12,8 +12,12 @@ import click
 import librosa
 from tqdm.auto import tqdm
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(message)s")
-logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s ⋅ %(name)s ⋅ %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("find_faulty_audio_clips")
 
 
 @click.command()

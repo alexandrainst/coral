@@ -1,4 +1,5 @@
-"""
+"""The CoRal project.
+
 .. include:: ../../README.md
 """
 
