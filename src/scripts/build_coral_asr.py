@@ -204,7 +204,6 @@ def build_read_aloud_dataset(
 
     # Build the dataset from the metadata and the audio files. This embeds all the audio
     # files into the dataset as parquet files
-    logger.info("Building the read-aloud dataset...")
     dataset = Dataset.from_dict(
         mapping={
             "id_recording": [row[0] for row in rows],
@@ -220,7 +219,6 @@ def build_read_aloud_dataset(
     )
     dataset = dataset.cast_column("audio", Audio(sampling_rate=16_000))
     logger.info("Finished building the read-aloud dataset.")
-
     return dataset
 
 
@@ -240,8 +238,13 @@ def build_conversation_dataset(
     Returns:
         The CoRal read-aloud dataset.
     """
+    logger.info("Building the CoRal conversation speech recognition dataset...")
+
     # TODO: Implement this function
-    return Dataset.from_dict({})
+    dataset = Dataset.from_dict({})
+
+    logger.info("Finished building the conversation dataset.")
+    return dataset
 
 
 def split_dataset(dataset: Dataset) -> DatasetDict | None:
