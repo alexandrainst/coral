@@ -1,7 +1,11 @@
 """Script that builds and uploads the CoRal speech recognition dataset from the raw data.
 
 Usage:
-    python src/scripts/build_coral_asr.py --nas-dir <path/to/nas/dir> --hub-id <hub-id>
+    python src/scripts/build_coral_asr.py \
+        [--audio-dir <audio_dir>] \
+        [--metadata-database-path <metadata_database_path>] \
+        [--hub-id <hub_id>] \
+        [--batch-size <batch_size>]
 """
 
 import logging
