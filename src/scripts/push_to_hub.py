@@ -11,8 +11,12 @@ import click
 from datasets import DatasetDict
 from requests import HTTPError
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(message)s")
-logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s ⋅ %(name)s ⋅ %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("push_to_hub")
 
 
 @click.command("Pushes a saved dataset to the Hugging Face Hub.")
