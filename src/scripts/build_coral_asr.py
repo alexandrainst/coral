@@ -188,7 +188,7 @@ def build_read_aloud_dataset(
     # Get a list of all the audio file paths. We need this since the audio files lie in
     # subdirectories of the main audio directory
     audio_subdirs = list(audio_dir.iterdir())
-    with Parallel(n_jobs=-1) as parallel:
+    with Parallel(n_jobs=-1, backend="threading") as parallel:
         all_audio_path_lists = parallel(
             delayed(list_audio_files)(subdir)
             for subdir in tqdm(audio_subdirs, desc="Collecting audio file paths")
@@ -199,9 +199,9 @@ def build_read_aloud_dataset(
 
     # Match the audio files to the metadata, to ensure that there is a 1-to-1
     # correspondence between them
-    with Parallel(n_jobs=-1) as parallel:
+    with Parallel(n_jobs=-1, backend="threading") as parallel:
         matched_audio_paths = parallel(
-            delayed(get_audio_path)(row, all_audio_paths)
+            delayed(get_audio_path)(row=row, all_audio_paths=all_audio_paths)
             for row in tqdm(rows, desc="Matching audio files to metadata")
         )
     rows = [
