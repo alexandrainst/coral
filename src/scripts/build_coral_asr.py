@@ -229,6 +229,7 @@ def build_read_aloud_dataset(
     return dataset
 
 
+# TODO: Implement this function
 def build_conversation_dataset(
     metadata_database_path: Path, audio_dir: Path, batch_size: int
 ) -> Dataset:
@@ -245,7 +246,6 @@ def build_conversation_dataset(
     Returns:
         The CoRal read-aloud dataset.
     """
-    # TODO: Implement this function
     dataset = Dataset.from_dict({})
     return dataset
 
