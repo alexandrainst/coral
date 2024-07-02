@@ -264,12 +264,13 @@ def split_dataset(dataset: Dataset) -> DatasetDict | None:
         ValueError:
             If no training samples are found.
     """
+    if len(dataset) == 0:
+        return None
+
     train_dataset = dataset.filter(
         function=lambda example: example["id_speaker"] not in VALIDATION_SET_SPEAKER_IDS
         and example["id_speaker"] not in TEST_SET_SPEAKER_IDS
     )
-    if len(train_dataset) == 0:
-        return None
     splits = dict(train=train_dataset)
 
     validation_dataset = dataset.filter(
