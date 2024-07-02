@@ -77,6 +77,11 @@ def main(
         batch_size=batch_size,
     )
 
+    logger.info(
+        "Splitting the CoRal read-aloud dataset into train, validation and test sets..."
+    )
+    read_aloud_dataset = split_dataset(dataset=read_aloud_dataset)
+
     logger.info("Building the CoRal conversation speech recognition dataset...")
     conversation_dataset = build_conversation_dataset(
         metadata_database_path=metadata_database_path,
@@ -84,8 +89,10 @@ def main(
         batch_size=batch_size,
     )
 
-    logger.info("Splitting the dataset into train, validation and test sets...")
-    read_aloud_dataset = split_dataset(dataset=read_aloud_dataset)
+    logger.info(
+        "Splitting the CoRal conversation dataset into train, validation and test "
+        "sets..."
+    )
     conversation_dataset = split_dataset(dataset=conversation_dataset)
 
     logger.info(f"Uploading the dataset to {hub_id!r} on the Hugging Face Hub...")
