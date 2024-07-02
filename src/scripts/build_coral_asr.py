@@ -13,7 +13,7 @@ import sqlite3
 from pathlib import Path
 
 import click
-from datasets import Audio, Dataset, DatasetDict, disable_progress_bars
+from datasets import Audio, Dataset, DatasetDict
 from joblib import Parallel, delayed
 from tqdm.auto import tqdm
 
@@ -67,8 +67,6 @@ def main(
     batch_size: int,
 ) -> None:
     """Build and upload the CoRal speech recognition dataset."""
-    disable_progress_bars()
-
     metadata_database_path = Path(metadata_database_path)
     audio_dir = Path(audio_dir)
 
