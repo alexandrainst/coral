@@ -5,7 +5,6 @@ Usage:
         [--audio-dir <audio_dir>] \
         [--metadata-database-path <metadata_database_path>] \
         [--hub-id <hub_id>] \
-        [--batch-size <batch_size>]
 """
 
 import logging
@@ -14,7 +13,13 @@ import sqlite3
 from pathlib import Path
 
 import click
-from datasets import Audio, Dataset, DatasetDict
+from datasets import (
+    Audio,
+    Dataset,
+    DatasetDict,
+    disable_progress_bar,
+    enable_progress_bar,
+)
 from joblib import Parallel, delayed
 from tqdm.auto import tqdm
 
@@ -54,18 +59,8 @@ TEST_SET_SPEAKER_IDS: list[str] = list()
     show_default=True,
     help="Identifier of the Hugging Face Hub repository.",
 )
-@click.option(
-    "--batch-size",
-    type=int,
-    default=1000,
-    show_default=True,
-    help="Number of rows to fetch from the SQLite database at once.",
-)
 def main(
-    audio_dir: Path | str,
-    metadata_database_path: Path | str,
-    hub_id: str,
-    batch_size: int,
+    audio_dir: Path | str, metadata_database_path: Path | str, hub_id: str
 ) -> None:
     """Build and upload the CoRal speech recognition dataset."""
     metadata_database_path = Path(metadata_database_path)
@@ -79,45 +74,32 @@ def main(
 
     logger.info("Building the CoRal read-aloud speech recognition dataset...")
     read_aloud_dataset = build_read_aloud_dataset(
-        metadata_database_path=temp_metadata_database_path,
-        audio_dir=audio_dir,
-        batch_size=batch_size,
+        metadata_database_path=temp_metadata_database_path, audio_dir=audio_dir
     )
 
     logger.info("Building the CoRal conversation speech recognition dataset...")
     conversation_dataset = build_conversation_dataset(
-        metadata_database_path=temp_metadata_database_path,
-        audio_dir=audio_dir,
-        batch_size=batch_size,
+        metadata_database_path=temp_metadata_database_path, audio_dir=audio_dir
     )
 
     # Delete the temporary metadata database
     temp_metadata_database_path.unlink()
 
-    logger.info(
-        "Splitting the CoRal read-aloud dataset into train, validation and test sets..."
-    )
+    logger.info("Splitting the datasets into train, validation and test sets...")
     read_aloud_dataset = split_dataset(dataset=read_aloud_dataset)
-
-    logger.info(
-        "Splitting the CoRal conversation dataset into train, validation and test "
-        "sets..."
-    )
     conversation_dataset = split_dataset(dataset=conversation_dataset)
 
-    logger.info(f"Uploading the dataset to {hub_id!r} on the Hugging Face Hub...")
+    logger.info(f"Uploading the datasets to {hub_id!r} on the Hugging Face Hub...")
     upload_dataset(
         read_aloud_dataset=read_aloud_dataset,
         conversation_dataset=conversation_dataset,
         hub_id=hub_id,
     )
 
-    logger.info(f"All done! See the dataset at https://hf.co/datasets/{hub_id}.")
+    logger.info(f"All done! See the datasets at https://hf.co/datasets/{hub_id}.")
 
 
-def build_read_aloud_dataset(
-    metadata_database_path: Path, audio_dir: Path, batch_size: int
-) -> Dataset:
+def build_read_aloud_dataset(metadata_database_path: Path, audio_dir: Path) -> Dataset:
     """Build the CoRal read-aloud dataset.
 
     Args:
@@ -125,8 +107,6 @@ def build_read_aloud_dataset(
             Path to the SQLite database containing the metadata.
         audio_dir:
             Path to the directory containing the audio files.
-        batch_size:
-            Number of rows to fetch from the SQLite database at once.
 
     Returns:
         The CoRal read-aloud dataset.
@@ -134,18 +114,12 @@ def build_read_aloud_dataset(
     # Get the number of samples in the SQLite database. We don't do any merges here to
     # save some time. That means that the count will be an upper bound rather than a
     # precise number of samples, but we deal with that when we actually fetch the data
-    logger.info("Fetching the number of metadata samples in the SQLite database...")
     count_query = "SELECT COUNT(*) FROM Recordings;"
     with sqlite3.connect(database=metadata_database_path) as connection:
         cursor = connection.cursor()
         cursor.execute(count_query)
         num_metadata_samples = cursor.fetchone()[0]
     logger.info(f"There are {num_metadata_samples:,} samples in the SQLite database.")
-
-    # Compute the number of batches
-    num_batches = num_metadata_samples // batch_size
-    if num_metadata_samples % batch_size:
-        num_batches += 1
 
     # Set up which features to fetch from the SQLite database. We exclude the ID
     # features since they need to be handled separately
@@ -183,23 +157,14 @@ def build_read_aloud_dataset(
             Recordings
             INNER JOIN Sentences ON Recordings.id_sentence = Sentences.id_sentence
             INNER JOIN Speakers ON Recordings.id_speaker = Speakers.id_speaker
-        LIMIT {batch_size}
-        OFFSET {{offset}};
     """
 
-    # Open the database connection and start fetching the data
-    rows: list[list[str]] = list()
-    with tqdm(total=num_metadata_samples, desc="Fetching metadata") as pbar:
-        for batch_idx in range(num_batches):
-            with sqlite3.connect(database=metadata_database_path) as connection:
-                cursor = connection.cursor()
-                cursor.execute(selection_query.format(offset=batch_idx * batch_size))
-                batch_rows = list(map(list, cursor.fetchall()))
-            if not batch_rows:
-                break
-            rows.extend(batch_rows)
-            pbar.update(len(batch_rows))
-        pbar.update(num_metadata_samples - pbar.n)
+    # Open the database connection and fetch the data
+    logger.info("Fetching the metadata from the SQLite database...")
+    with sqlite3.connect(database=metadata_database_path) as connection:
+        cursor = connection.cursor()
+        cursor.execute(selection_query)
+        rows = list(map(list, cursor.fetchall()))
 
     # Get a list of all the audio file paths. We need this since the audio files lie in
     # subdirectories of the main audio directory
@@ -249,7 +214,7 @@ def build_read_aloud_dataset(
 
 # TODO: Implement this function
 def build_conversation_dataset(
-    metadata_database_path: Path, audio_dir: Path, batch_size: int
+    metadata_database_path: Path, audio_dir: Path
 ) -> Dataset:
     """Build the CoRal conversation dataset.
 
@@ -258,8 +223,6 @@ def build_conversation_dataset(
             Path to the SQLite database containing the metadata.
         audio_dir:
             Path to the directory containing the audio files.
-        batch_size:
-            Number of rows to fetch from the SQLite database at once.
 
     Returns:
         The CoRal read-aloud dataset.
@@ -285,20 +248,17 @@ def split_dataset(dataset: Dataset) -> DatasetDict | None:
     if len(dataset) == 0:
         return None
 
-    train_dataset = dataset.filter(
-        function=examples_belong_to_train, batched=True, desc="Forming training split"
-    )
+    with no_progress_bar():
+        train_dataset = dataset.filter(function=examples_belong_to_train, batched=True)
     splits = dict(train=train_dataset)
 
-    validation_dataset = dataset.filter(
-        function=examples_belong_to_val, batched=True, desc="Forming validation split"
-    )
-    if len(validation_dataset) > 0:
-        splits["val"] = validation_dataset
+    with no_progress_bar():
+        val_dataset = dataset.filter(function=examples_belong_to_val, batched=True)
+    if len(val_dataset) > 0:
+        splits["val"] = val_dataset
 
-    test_dataset = dataset.filter(
-        function=examples_belong_to_test, batched=True, desc="Forming test split"
-    )
+    with no_progress_bar():
+        test_dataset = dataset.filter(function=examples_belong_to_test, batched=True)
     if len(test_dataset) > 0:
         splits["test"] = test_dataset
 
@@ -326,6 +286,7 @@ def upload_dataset(
             config_name="read_aloud",
             private=True,
             max_shard_size="500MB",
+            commit_message="Add the CoRal read-aloud dataset",
         )
     if conversation_dataset is not None:
         conversation_dataset.push_to_hub(
@@ -333,6 +294,7 @@ def upload_dataset(
             config_name="conversation",
             private=True,
             max_shard_size="500MB",
+            commit_message="Add the CoRal conversation dataset",
         )
 
 
@@ -347,27 +309,6 @@ def list_audio_files(audio_dir: Path) -> list[Path]:
         A list of paths to the audio files.
     """
     return list(audio_dir.glob("*.wav"))
-
-
-def get_audio_path(row: list[str], all_audio_paths: list[Path]) -> Path | None:
-    """Get the path to the audio file corresponding to the given row of metadata.
-
-    Args:
-        row:
-            The row of metadata.
-        all_audio_paths:
-            A list of all the audio file paths.
-
-    Returns:
-        The path to the audio file, or None if no such file exists.
-    """
-    recording_id: str = row[0]
-    candidate_audio_paths = [
-        path for path in all_audio_paths if recording_id in path.stem
-    ]
-    if not candidate_audio_paths:
-        return None
-    return candidate_audio_paths[0]
 
 
 def examples_belong_to_train(examples: dict[str, list]) -> list[bool]:
@@ -415,6 +356,18 @@ def examples_belong_to_test(examples: dict[str, list]) -> list[bool]:
         A list of booleans indicating whether each example belongs to the test set.
     """
     return [speaker_id in TEST_SET_SPEAKER_IDS for speaker_id in examples["id_speaker"]]
+
+
+class no_progress_bar:
+    """Context manager that disables the progress bar."""
+
+    def __enter__(self):
+        """Disable the progress bar."""
+        disable_progress_bar()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Re-enable the progress bar."""
+        enable_progress_bar()
 
 
 if __name__ == "__main__":
