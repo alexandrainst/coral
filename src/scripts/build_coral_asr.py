@@ -4,7 +4,7 @@ Usage:
     python src/scripts/build_coral_asr.py \
         [--audio-dir <audio_dir>] \
         [--metadata-database-path <metadata_database_path>] \
-        [--hub-id <hub_id>] \
+        [--hub-id <hub_id>]
 """
 
 import logging
