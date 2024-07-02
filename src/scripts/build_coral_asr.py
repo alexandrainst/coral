@@ -209,17 +209,19 @@ def build_read_aloud_dataset(
             delayed(list_audio_files)(subdir)
             for subdir in tqdm(audio_subdirs, desc="Collecting audio file paths")
         )
-    all_audio_paths = [
-        path for path_list in all_audio_path_lists for path in path_list or []
-    ]
+    all_audio_paths = {
+        path.stem: path
+        for path_list in all_audio_path_lists
+        for path in path_list or []
+    }
 
     # Match the audio files to the metadata, to ensure that there is a 1-to-1
     # correspondence between them
-    with Parallel(n_jobs=-1, backend="threading") as parallel:
-        matched_audio_paths = parallel(
-            delayed(get_audio_path)(row=row, all_audio_paths=all_audio_paths)
-            for row in tqdm(rows, desc="Matching audio files to metadata")
-        )
+    logger.info("Matching the audio files to the metadata...")
+    recording_ids: list[str] = [row[0] for row in rows]
+    matched_audio_paths = [
+        all_audio_paths.get(recording_id) for recording_id in recording_ids
+    ]
     rows = [
         row + [str(audio_path)]
         for row, audio_path in zip(rows, matched_audio_paths)
