@@ -72,20 +72,25 @@ def main(
     metadata_database_path = Path(metadata_database_path)
     audio_dir = Path(audio_dir)
 
+    logger.info("Building the CoRal read-aloud speech recognition dataset...")
     read_aloud_dataset = build_read_aloud_dataset(
         metadata_database_path=metadata_database_path,
         audio_dir=audio_dir,
         batch_size=batch_size,
     )
+
+    logger.info("Building the CoRal conversation speech recognition dataset...")
     conversation_dataset = build_conversation_dataset(
         metadata_database_path=metadata_database_path,
         audio_dir=audio_dir,
         batch_size=batch_size,
     )
 
+    logger.info("Splitting the dataset into train, validation and test sets...")
     read_aloud_dataset = split_dataset(dataset=read_aloud_dataset)
     conversation_dataset = split_dataset(dataset=conversation_dataset)
 
+    logger.info(f"Uploading the dataset to {hub_id!r} on the Hugging Face Hub...")
     upload_dataset(
         read_aloud_dataset=read_aloud_dataset,
         conversation_dataset=conversation_dataset,
@@ -111,13 +116,11 @@ def build_read_aloud_dataset(
     Returns:
         The CoRal read-aloud dataset.
     """
-    logger.info("Building the CoRal read-aloud speech recognition dataset...")
-
     # Get the number of samples in the SQLite database. We don't do any merges here to
     # save some time. That means that the count will be an upper bound rather than a
     # precise number of samples, but we deal with that when we actually fetch the data
     logger.info("Fetching the number of metadata samples in the SQLite database...")
-    count_query = "SELECT COUNT(*) FROM Recordings LIMIT 10"
+    count_query = "SELECT COUNT(*) FROM Recordings"
     with sqlite3.connect(database=metadata_database_path) as connection:
         cursor = connection.cursor()
         cursor.execute(count_query)
@@ -218,7 +221,6 @@ def build_read_aloud_dataset(
         }
     )
     dataset = dataset.cast_column("audio", Audio(sampling_rate=16_000))
-    logger.info("Finished building the read-aloud dataset.")
     return dataset
 
 
@@ -238,12 +240,8 @@ def build_conversation_dataset(
     Returns:
         The CoRal read-aloud dataset.
     """
-    logger.info("Building the CoRal conversation speech recognition dataset...")
-
     # TODO: Implement this function
     dataset = Dataset.from_dict({})
-
-    logger.info("Finished building the conversation dataset.")
     return dataset
 
 
@@ -299,7 +297,6 @@ def upload_dataset(
         hub_id:
             Identifier of the Hugging Face Hub repository.
     """
-    logger.info(f"Uploading the dataset to {hub_id!r} on the Hugging Face Hub...")
     if read_aloud_dataset is not None:
         read_aloud_dataset.push_to_hub(
             repo_id=hub_id,
@@ -314,7 +311,6 @@ def upload_dataset(
             private=True,
             max_shard_size="500MB",
         )
-    logger.info("Finished uploading the dataset to the Hugging Face Hub.")
 
 
 def list_audio_files(audio_dir: Path) -> list[Path]:
