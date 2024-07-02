@@ -11,6 +11,7 @@ import logging
 import shutil
 import sqlite3
 from pathlib import Path
+from time import sleep
 
 import click
 from datasets import (
@@ -298,17 +299,29 @@ def upload_dataset(
         )
 
 
-def list_audio_files(audio_dir: Path) -> list[Path]:
+def list_audio_files(audio_dir: Path, max_attempts: int = 10) -> list[Path]:
     """List all the audio files in the given directory.
 
     Args:
         audio_dir:
             The directory containing the audio files.
+        max_attempts (optional):
+            The maximum number of attempts to list the audio files. Defaults to 10.
 
     Returns:
         A list of paths to the audio files.
+
+    Raises:
+        OSError:
+            If the audio files cannot be listed.
     """
-    return list(audio_dir.glob("*.wav"))
+    for _ in range(max_attempts):
+        try:
+            return list(audio_dir.glob("*.wav"))
+        except OSError:
+            sleep(1)
+    else:
+        raise OSError(f"Failed to list the audio files in {audio_dir!r}.")
 
 
 def examples_belong_to_train(examples: dict[str, list]) -> list[bool]:
