@@ -208,7 +208,7 @@ def build_read_aloud_dataset(metadata_database_path: Path, audio_dir: Path) -> D
             "audio": [row[-1] for row in rows],
         }
     )
-    dataset = dataset.cast_column("audio", Audio(sampling_rate=16_000))
+    dataset = dataset.cast_column("audio", Audio())
     return dataset
 
 
