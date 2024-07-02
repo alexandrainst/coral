@@ -84,11 +84,6 @@ def main(
         batch_size=batch_size,
     )
 
-    logger.info(
-        "Splitting the CoRal read-aloud dataset into train, validation and test sets..."
-    )
-    read_aloud_dataset = split_dataset(dataset=read_aloud_dataset)
-
     logger.info("Building the CoRal conversation speech recognition dataset...")
     conversation_dataset = build_conversation_dataset(
         metadata_database_path=temp_metadata_database_path,
@@ -140,14 +135,20 @@ def build_read_aloud_dataset(
     # save some time. That means that the count will be an upper bound rather than a
     # precise number of samples, but we deal with that when we actually fetch the data
     logger.info("Fetching the number of metadata samples in the SQLite database...")
-    count_query = "SELECT COUNT(*) FROM Recordings"
+    count_query = "SELECT COUNT(*) FROM Recordings;"
     with sqlite3.connect(database=metadata_database_path) as connection:
         cursor = connection.cursor()
         cursor.execute(count_query)
         num_metadata_samples = cursor.fetchone()[0]
     logger.info(f"There are {num_metadata_samples:,} samples in the SQLite database.")
 
-    # Fetch all metadata from the SQLite database
+    # Compute the number of batches
+    num_batches = num_metadata_samples // batch_size
+    if num_metadata_samples % batch_size:
+        num_batches += 1
+
+    # Set up which features to fetch from the SQLite database. We exclude the ID
+    # features since they need to be handled separately
     non_id_features = [
         "datetime_start",
         "datetime_end",
@@ -170,7 +171,8 @@ def build_read_aloud_dataset(
         "validated",
     ]
     non_id_features_str = ",\n".join(non_id_features)
-    sql_query = f"""
+
+    selection_query = f"""
         SELECT
             Recordings.id_recording,
             Sentences.id_sentence,
@@ -182,17 +184,16 @@ def build_read_aloud_dataset(
             INNER JOIN Sentences ON Recordings.id_sentence = Sentences.id_sentence
             INNER JOIN Speakers ON Recordings.id_speaker = Speakers.id_speaker
         LIMIT {batch_size}
-        OFFSET {{offset}}
+        OFFSET {{offset}};
     """
-    num_batches = num_metadata_samples // batch_size
-    if num_metadata_samples % batch_size:
-        num_batches += 1
+
+    # Open the database connection and start fetching the data
     rows: list[list[str]] = list()
     with tqdm(total=num_metadata_samples, desc="Fetching metadata") as pbar:
         for batch_idx in range(num_batches):
             with sqlite3.connect(database=metadata_database_path) as connection:
                 cursor = connection.cursor()
-                cursor.execute(sql_query.format(offset=batch_idx * batch_size))
+                cursor.execute(selection_query.format(offset=batch_idx * batch_size))
                 batch_rows = list(map(list, cursor.fetchall()))
             if not batch_rows:
                 break
