@@ -268,19 +268,18 @@ def split_dataset(dataset: Dataset) -> DatasetDict | None:
         return None
 
     train_dataset = dataset.filter(
-        function=lambda example: example["id_speaker"] not in VALIDATION_SET_SPEAKER_IDS
-        and example["id_speaker"] not in TEST_SET_SPEAKER_IDS
+        function=examples_belong_to_train, batched=True, desc="Forming training split"
     )
     splits = dict(train=train_dataset)
 
     validation_dataset = dataset.filter(
-        function=lambda example: example["id_speaker"] in VALIDATION_SET_SPEAKER_IDS
+        function=examples_belong_to_val, batched=True, desc="Forming validation split"
     )
     if len(validation_dataset) > 0:
         splits["val"] = validation_dataset
 
     test_dataset = dataset.filter(
-        function=lambda example: example["id_speaker"] in TEST_SET_SPEAKER_IDS
+        function=examples_belong_to_test, batched=True, desc="Forming test split"
     )
     if len(test_dataset) > 0:
         splits["test"] = test_dataset
@@ -351,6 +350,53 @@ def get_audio_path(row: list[str], all_audio_paths: list[Path]) -> Path | None:
     if not candidate_audio_paths:
         return None
     return candidate_audio_paths[0]
+
+
+def examples_belong_to_train(examples: dict[str, list]) -> list[bool]:
+    """Check if each example belongs to the training set.
+
+    Args:
+        examples:
+            A batch of examples.
+
+    Returns:
+        A list of booleans indicating whether each example belongs to the training
+        set.
+    """
+    return [
+        speaker_id not in VALIDATION_SET_SPEAKER_IDS + TEST_SET_SPEAKER_IDS
+        for speaker_id in examples["id_speaker"]
+    ]
+
+
+def examples_belong_to_val(examples: dict[str, list]) -> list[bool]:
+    """Check if each example belongs to the validation set.
+
+    Args:
+        examples:
+            A batch of examples.
+
+    Returns:
+        A list of booleans indicating whether each example belongs to the validation
+        set.
+    """
+    return [
+        speaker_id in VALIDATION_SET_SPEAKER_IDS
+        for speaker_id in examples["id_speaker"]
+    ]
+
+
+def examples_belong_to_test(examples: dict[str, list]) -> list[bool]:
+    """Check if each example belongs to the test set.
+
+    Args:
+        examples:
+            A batch of examples.
+
+    Returns:
+        A list of booleans indicating whether each example belongs to the test set.
+    """
+    return [speaker_id in TEST_SET_SPEAKER_IDS for speaker_id in examples["id_speaker"]]
 
 
 if __name__ == "__main__":
