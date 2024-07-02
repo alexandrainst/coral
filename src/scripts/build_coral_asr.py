@@ -9,6 +9,7 @@ Usage:
 """
 
 import logging
+import shutil
 import sqlite3
 from pathlib import Path
 
@@ -70,9 +71,15 @@ def main(
     metadata_database_path = Path(metadata_database_path)
     audio_dir = Path(audio_dir)
 
+    # Copy the metadata database to the current working directory, since that massively
+    # speeds up the SQL queries
+    logger.info("Copying the metadata database to the current working directory...")
+    temp_metadata_database_path = Path.cwd() / metadata_database_path.name
+    shutil.copy(src=metadata_database_path, dst=temp_metadata_database_path)
+
     logger.info("Building the CoRal read-aloud speech recognition dataset...")
     read_aloud_dataset = build_read_aloud_dataset(
-        metadata_database_path=metadata_database_path,
+        metadata_database_path=temp_metadata_database_path,
         audio_dir=audio_dir,
         batch_size=batch_size,
     )
@@ -84,10 +91,18 @@ def main(
 
     logger.info("Building the CoRal conversation speech recognition dataset...")
     conversation_dataset = build_conversation_dataset(
-        metadata_database_path=metadata_database_path,
+        metadata_database_path=temp_metadata_database_path,
         audio_dir=audio_dir,
         batch_size=batch_size,
     )
+
+    # Delete the temporary metadata database
+    temp_metadata_database_path.unlink()
+
+    logger.info(
+        "Splitting the CoRal read-aloud dataset into train, validation and test sets..."
+    )
+    read_aloud_dataset = split_dataset(dataset=read_aloud_dataset)
 
     logger.info(
         "Splitting the CoRal conversation dataset into train, validation and test "
