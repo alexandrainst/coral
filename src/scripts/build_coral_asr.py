@@ -88,11 +88,6 @@ def main(
         audio_dir=temp_conversation_dir,
     )
 
-    logger.info("Deleting the temporary raw files in the current working directory...")
-    temp_metadata_database_path.unlink()
-    shutil.rmtree(path=temp_read_aloud_dir)
-    shutil.rmtree(path=temp_conversation_dir)
-
     logger.info("Splitting the datasets into train, validation and test sets...")
     read_aloud_dataset = split_dataset(dataset=read_aloud_dataset)
     conversation_dataset = split_dataset(dataset=conversation_dataset)
