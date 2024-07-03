@@ -114,5 +114,9 @@ models/
 # Weights and Biases experiment tracking
 wandb/
 
+# Data files
 *.xlsx
 *.csv
+recordings/
+conversations/
+CoRal_public.db
