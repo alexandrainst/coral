@@ -432,25 +432,22 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
         parallel(
             delayed(function=shutil.copy)(src=compressed_subdir, dst=new_audio_dir)
             for compressed_subdir in tqdm(
-                iterable=audio_dir.glob("*.tar"), desc="Copying compressed audio files"
+                iterable=list(audio_dir.glob("*.tar")),
+                desc="Copying compressed audio files",
             )
         )
 
     # Uncompress all the compressed audio files in the current working directory
-    compressed_subdirs = list(new_audio_dir.glob("*.tar"))
     with Parallel(n_jobs=-1, backend="threading") as parallel:
         parallel(
             delayed(function=decompress_file)(
                 compressed_file=compressed_subdir, destination_dir=new_audio_dir
             )
             for compressed_subdir in tqdm(
-                iterable=compressed_subdirs, desc="Uncompressing audio files"
+                iterable=list(new_audio_dir.glob("*.tar")),
+                desc="Uncompressing audio files",
             )
         )
-
-    # Remove all the copied compressed audio files
-    for compressed_subdir in compressed_subdirs:
-        compressed_subdir.unlink()
 
     return new_audio_dir
 
@@ -486,6 +483,7 @@ def decompress_file(compressed_file: Path, destination_dir: Path) -> Path:
     if not (destination_dir / compressed_file.stem).exists():
         with tarfile.open(name=compressed_file, mode="r") as tar:
             tar.extractall(path=destination_dir)
+    compressed_file.unlink()
     return destination_dir / compressed_file.stem
 
 
