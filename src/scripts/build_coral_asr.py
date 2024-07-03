@@ -427,27 +427,15 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
             for subdir in tqdm(iterable=audio_subdirs, desc="Compressing audio files")
         )
 
-    # Copy all the compressed audio files to the current working directory
-    with Parallel(n_jobs=-1, backend="threading") as parallel:
-        parallel(
-            delayed(function=copy_tarfile)(
-                tarfile=tarfile, destination_dir=new_audio_dir
-            )
-            for tarfile in tqdm(
-                iterable=list(audio_dir.glob("*.tar")),
-                desc="Copying compressed audio files",
-            )
-        )
-
-    # Uncompress all the compressed audio files in the current working directory
+    # Decompress all the compressed audio files in the current working directory
     with Parallel(n_jobs=-1, backend="threading") as parallel:
         parallel(
             delayed(function=decompress_file)(
-                compressed_file=compressed_subdir, destination_dir=new_audio_dir
+                file=compressed_subdir, destination_dir=new_audio_dir
             )
             for compressed_subdir in tqdm(
-                iterable=list(new_audio_dir.glob("*.tar")),
-                desc="Uncompressing audio files",
+                iterable=list(audio_dir.glob("*.tar.gz")),
+                desc="Decompressing audio files",
             )
         )
 
@@ -464,44 +452,28 @@ def compress_dir(directory: Path) -> Path:
     Returns:
         The path to the compressed file.
     """
-    if not directory.with_suffix(".tar").exists():
-        with tarfile.open(name=f"{str(directory)}.tar", mode="w") as tar:
+    if not directory.with_suffix(".tar.gz").exists():
+        with tarfile.open(name=f"{str(directory)}.tar.gz", mode="w:gz") as tar:
             tar.add(name=directory, arcname=directory.name)
-    return directory.with_suffix(".tar")
+    return directory.with_suffix(".tar.gz")
 
 
-def copy_tarfile(tarfile: Path, destination_dir: Path) -> None:
-    """Copy a tarfile to a destination directory.
+def decompress_file(file: Path, destination_dir: Path) -> None:
+    """Decompress a tarfile into a directory.
 
     Args:
-        tarfile:
-            The tarfile to copy.
+        file:
+            The file to decompress.
         destination_dir:
             The destination directory.
     """
-    destination_path = destination_dir / tarfile.name
-    decompressed_path = destination_dir / tarfile.stem
+    destination_path = destination_dir / file.name
+    decompressed_path = destination_dir / file.stem
     if not destination_path.exists() and not decompressed_path.exists():
-        shutil.copy(src=tarfile, dst=destination_dir)
-
-
-def decompress_file(compressed_file: Path, destination_dir: Path) -> Path:
-    """Decompress a file using tar.
-
-    Args:
-        compressed_file:
-            The file to decompress.
-        destination_dir:
-            The directory to decompress the file into.
-
-    Returns:
-        The path to the decompressed directory.
-    """
-    if not (destination_dir / compressed_file.stem).exists():
-        with tarfile.open(name=compressed_file, mode="r") as tar:
+        shutil.copy(src=file, dst=destination_dir)
+        with tarfile.open(name=destination_path, mode="r:gz") as tar:
             tar.extractall(path=destination_dir)
-    compressed_file.unlink()
-    return destination_dir / compressed_file.stem
+        destination_path.unlink()
 
 
 class no_progress_bar:
