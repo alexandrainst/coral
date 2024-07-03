@@ -43,9 +43,9 @@ TEST_SET_SPEAKER_IDS: list[str] = list()
 @click.option(
     "--audio-dir",
     type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True),
-    default="/Volumes/CoRal/_new_structure/raw/recordings",
+    default="/Volumes/CoRal/_new_structure/raw",
     show_default=True,
-    help="Relative path to the directory containing the audio files.",
+    help="Path to the directory containing the raw audio files.",
 )
 @click.option(
     "--metadata-database-path",
@@ -66,31 +66,31 @@ def main(
 ) -> None:
     """Build and upload the CoRal speech recognition dataset."""
     metadata_database_path = Path(metadata_database_path)
-    audio_dir = Path(audio_dir)
+    read_aloud_dir = Path(audio_dir) / "recordings"
+    conversation_dir = Path(audio_dir) / "conversations"
 
-    logger.info("Building the CoRal speech recognition dataset...")
-
-    # Copy all the audio files to the current working directory
-    audio_dir = copy_audio_directory_to_cwd(audio_dir=audio_dir)
-
-    # Copy the metadata database to the current working directory, since that massively
-    # speeds up the SQL queries
-    logger.info("Copying the metadata database to the current working directory...")
+    logger.info("Copying the raw files to the current working directory...")
+    temp_read_aloud_dir = copy_audio_directory_to_cwd(audio_dir=read_aloud_dir)
+    temp_conversation_dir = copy_audio_directory_to_cwd(audio_dir=conversation_dir)
     temp_metadata_database_path = Path.cwd() / metadata_database_path.name
     shutil.copy(src=metadata_database_path, dst=temp_metadata_database_path)
 
     logger.info("Building the CoRal read-aloud speech recognition dataset...")
     read_aloud_dataset = build_read_aloud_dataset(
-        metadata_database_path=temp_metadata_database_path, audio_dir=audio_dir
+        metadata_database_path=temp_metadata_database_path,
+        audio_dir=temp_read_aloud_dir,
     )
 
     logger.info("Building the CoRal conversation speech recognition dataset...")
     conversation_dataset = build_conversation_dataset(
-        metadata_database_path=temp_metadata_database_path, audio_dir=audio_dir
+        metadata_database_path=temp_metadata_database_path,
+        audio_dir=temp_conversation_dir,
     )
 
-    # Delete the temporary metadata database
+    logger.info("Deleting the temporary raw files in the current working directory...")
     temp_metadata_database_path.unlink()
+    shutil.rmtree(path=temp_read_aloud_dir)
+    shutil.rmtree(path=temp_conversation_dir)
 
     logger.info("Splitting the datasets into train, validation and test sets...")
     read_aloud_dataset = split_dataset(dataset=read_aloud_dataset)
@@ -267,7 +267,7 @@ def build_conversation_dataset(
             Path to the directory containing the audio files.
 
     Returns:
-        The CoRal read-aloud dataset.
+        The CoRal conversation dataset.
     """
     dataset = Dataset.from_dict({})
     return dataset
@@ -415,8 +415,12 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
     new_audio_dir = Path.cwd() / audio_dir.name
     new_audio_dir.mkdir(exist_ok=True)
 
-    # Compress all subdirectories that are not already compressed
+    # Get list of subdirectories of the audio directory, or abort of none exist
     audio_subdirs = [path for path in audio_dir.iterdir() if path.is_dir()]
+    if not audio_subdirs:
+        return new_audio_dir
+
+    # Compress all subdirectories that are not already compressed
     with Parallel(n_jobs=-1, backend="threading") as parallel:
         parallel(
             delayed(function=compress_dir)(directory=subdir)
