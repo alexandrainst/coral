@@ -425,7 +425,10 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
     with Parallel(n_jobs=2 * mp.cpu_count(), backend="threading") as parallel:
         parallel(
             delayed(function=compress_dir)(directory=subdir)
-            for subdir in tqdm(iterable=audio_subdirs, desc="Compressing audio files")
+            for subdir in tqdm(
+                iterable=audio_subdirs,
+                desc="Compressing audio files on the source disk",
+            )
         )
 
     # Decompress all the compressed audio files in the current working directory
@@ -436,7 +439,7 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
             )
             for compressed_subdir in tqdm(
                 iterable=list(audio_dir.glob("*.tar.gz")),
-                desc="Decompressing audio files",
+                desc="Copying the compressed files and decompressing them",
             )
         )
 
