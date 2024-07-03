@@ -433,7 +433,7 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
                 file=compressed_subdir, destination_dir=new_audio_dir
             )
             for compressed_subdir in tqdm(
-                iterable=list(audio_dir.glob("*.tar.gz")),
+                iterable=list(audio_dir.glob("*.tar.xz")),
                 desc="Copying the compressed files and decompressing them",
             )
         )
@@ -451,10 +451,10 @@ def compress_dir(directory: Path) -> Path:
     Returns:
         The path to the compressed file.
     """
-    if not directory.with_suffix(".tar.gz").exists():
-        with tarfile.open(name=f"{str(directory)}.tar.gz", mode="w:gz") as tar:
+    if not directory.with_suffix(".tar.xz").exists():
+        with tarfile.open(name=f"{str(directory)}.tar.xz", mode="w:xz") as tar:
             tar.add(name=directory, arcname=directory.name)
-    return directory.with_suffix(".tar.gz")
+    return directory.with_suffix(".tar.xz")
 
 
 def decompress_file(file: Path, destination_dir: Path) -> None:
@@ -470,7 +470,7 @@ def decompress_file(file: Path, destination_dir: Path) -> None:
     decompressed_path = remove_suffixes(path=destination_path)
     if not destination_path.exists() and not decompressed_path.exists():
         shutil.copy(src=file, dst=destination_dir)
-        with tarfile.open(name=destination_path, mode="r:gz") as tar:
+        with tarfile.open(name=destination_path, mode="r:xz") as tar:
             tar.extractall(path=destination_dir)
         destination_path.unlink()
 
