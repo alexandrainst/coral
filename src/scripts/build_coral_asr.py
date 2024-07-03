@@ -8,6 +8,7 @@ Usage:
 """
 
 import logging
+import multiprocessing as mp
 import shutil
 import sqlite3
 import tarfile
@@ -181,7 +182,7 @@ def build_read_aloud_dataset(metadata_database_path: Path, audio_dir: Path) -> D
     # Get a list of all the audio file paths. We need this since the audio files lie in
     # subdirectories of the main audio directory
     audio_subdirs = list(audio_dir.iterdir())
-    with Parallel(n_jobs=-1, backend="threading") as parallel:
+    with Parallel(n_jobs=2 * mp.cpu_count(), backend="threading") as parallel:
         all_audio_path_lists = parallel(
             delayed(list_audio_files)(subdir)
             for subdir in tqdm(audio_subdirs, desc="Collecting audio file paths")
@@ -421,14 +422,14 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
         return new_audio_dir
 
     # Compress all subdirectories that are not already compressed
-    with Parallel(n_jobs=-1, backend="threading") as parallel:
+    with Parallel(n_jobs=2 * mp.cpu_count(), backend="threading") as parallel:
         parallel(
             delayed(function=compress_dir)(directory=subdir)
             for subdir in tqdm(iterable=audio_subdirs, desc="Compressing audio files")
         )
 
     # Decompress all the compressed audio files in the current working directory
-    with Parallel(n_jobs=-1, backend="threading") as parallel:
+    with Parallel(n_jobs=2 * mp.cpu_count(), backend="threading") as parallel:
         parallel(
             delayed(function=decompress_file)(
                 file=compressed_subdir, destination_dir=new_audio_dir
@@ -468,7 +469,7 @@ def decompress_file(file: Path, destination_dir: Path) -> None:
             The destination directory.
     """
     destination_path = destination_dir / file.name
-    decompressed_path = destination_dir / file.stem
+    decompressed_path = remove_suffixes(path=destination_path)
     if not destination_path.exists() and not decompressed_path.exists():
         shutil.copy(src=file, dst=destination_dir)
         with tarfile.open(name=destination_path, mode="r:gz") as tar:
@@ -486,6 +487,21 @@ class no_progress_bar:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Re-enable the progress bar."""
         enable_progress_bar()
+
+
+def remove_suffixes(path: Path) -> Path:
+    """Remove all suffixes from a path, even if it has multiple.
+
+    Args:
+        path:
+            The path to remove the suffixes from.
+
+    Returns:
+        The path without any suffixes.
+    """
+    while path.suffix:
+        path = path.with_suffix("")
+    return path
 
 
 if __name__ == "__main__":
