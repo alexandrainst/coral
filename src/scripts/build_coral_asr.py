@@ -2,14 +2,15 @@
 
 Usage:
     python src/scripts/build_coral_asr.py \
-        [--audio-dir <audio_dir>] \
-        [--metadata-database-path <metadata_database_path>] \
-        [--hub-id <hub_id>]
+        [--audio-dir directory/containing/the/audio/subdirectories] \
+        [--metadata-database-path path/to/the/sqlite/database] \
+        [--hub-id organisation/dataset-id]
 """
 
 import logging
 import shutil
 import sqlite3
+import tarfile
 from pathlib import Path
 from time import sleep
 
@@ -66,6 +67,11 @@ def main(
     """Build and upload the CoRal speech recognition dataset."""
     metadata_database_path = Path(metadata_database_path)
     audio_dir = Path(audio_dir)
+
+    logger.info("Building the CoRal speech recognition dataset...")
+
+    # Copy all the audio files to the current working directory
+    audio_dir = copy_audio_directory_to_cwd(audio_dir=audio_dir)
 
     # Copy the metadata database to the current working directory, since that massively
     # speeds up the SQL queries
@@ -381,6 +387,89 @@ class no_progress_bar:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Re-enable the progress bar."""
         enable_progress_bar()
+
+
+def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
+    """Copy audio files to the current working directory.
+
+    Args:
+        audio_dir:
+            The directory containing the audio files.
+
+    Returns:
+        The new directory containing the audio files.
+    """
+    new_audio_dir = Path.cwd() / audio_dir.name
+    new_audio_dir.mkdir(exist_ok=True)
+
+    # Compress all subdirectories that are not already compressed
+    audio_subdirs = [path for path in audio_dir.iterdir() if path.is_dir()]
+    with Parallel(n_jobs=-1, backend="threading") as parallel:
+        parallel(
+            delayed(function=compress_dir)(directory=subdir)
+            for subdir in tqdm(iterable=audio_subdirs, desc="Compressing audio files")
+        )
+
+    # Copy all the compressed audio files to the current working directory
+    with Parallel(n_jobs=-1, backend="threading") as parallel:
+        parallel(
+            delayed(function=shutil.copy)(src=compressed_subdir, dst=new_audio_dir)
+            for compressed_subdir in tqdm(
+                iterable=audio_dir.glob("*.tar"), desc="Copying compressed audio files"
+            )
+        )
+
+    # Uncompress all the compressed audio files in the current working directory
+    compressed_subdirs = list(new_audio_dir.glob("*.tar"))
+    with Parallel(n_jobs=-1, backend="threading") as parallel:
+        parallel(
+            delayed(function=decompress_file)(
+                compressed_file=compressed_subdir, destination_dir=new_audio_dir
+            )
+            for compressed_subdir in tqdm(
+                iterable=compressed_subdirs, desc="Uncompressing audio files"
+            )
+        )
+
+    # Remove all the copied compressed audio files
+    for compressed_subdir in compressed_subdirs:
+        compressed_subdir.unlink()
+
+    return new_audio_dir
+
+
+def compress_dir(directory: Path) -> Path:
+    """Compress a directory using tar.
+
+    Args:
+        directory:
+            The directory to compress.
+
+    Returns:
+        The path to the compressed file.
+    """
+    if not directory.with_suffix(".tar").exists():
+        with tarfile.open(name=f"{str(directory)}.tar", mode="w") as tar:
+            tar.add(name=directory, arcname=directory.name)
+    return directory.with_suffix(".tar")
+
+
+def decompress_file(compressed_file: Path, destination_dir: Path) -> Path:
+    """Decompress a file using tar.
+
+    Args:
+        compressed_file:
+            The file to decompress.
+        destination_dir:
+            The directory to decompress the file into.
+
+    Returns:
+        The path to the decompressed directory.
+    """
+    if not (destination_dir / compressed_file.stem).exists():
+        with tarfile.open(name=compressed_file, mode="r") as tar:
+            tar.extractall(path=destination_dir)
+    return destination_dir / compressed_file.stem
 
 
 if __name__ == "__main__":
