@@ -106,6 +106,11 @@ def main(
     logger.info(f"All done! See the datasets at https://hf.co/datasets/{hub_id}.")
 
 
+##########################################
+##### Building the read-aloud subset #####
+##########################################
+
+
 def build_read_aloud_dataset(metadata_database_path: Path, audio_dir: Path) -> Dataset:
     """Build the CoRal read-aloud dataset.
 
@@ -219,6 +224,36 @@ def build_read_aloud_dataset(metadata_database_path: Path, audio_dir: Path) -> D
     return dataset
 
 
+def list_audio_files(audio_dir: Path, max_attempts: int = 10) -> list[Path]:
+    """List all the audio files in the given directory.
+
+    Args:
+        audio_dir:
+            The directory containing the audio files.
+        max_attempts (optional):
+            The maximum number of attempts to list the audio files. Defaults to 10.
+
+    Returns:
+        A list of paths to the audio files.
+
+    Raises:
+        OSError:
+            If the audio files cannot be listed.
+    """
+    for _ in range(max_attempts):
+        try:
+            return list(audio_dir.glob("*.wav"))
+        except OSError:
+            sleep(1)
+    else:
+        raise OSError(f"Failed to list the audio files in {audio_dir!r}.")
+
+
+############################################
+##### Building the conversation subset #####
+############################################
+
+
 # TODO: Implement this function
 def build_conversation_dataset(
     metadata_database_path: Path, audio_dir: Path
@@ -236,6 +271,11 @@ def build_conversation_dataset(
     """
     dataset = Dataset.from_dict({})
     return dataset
+
+
+#####################################
+##### Splitting of the datasets #####
+#####################################
 
 
 def split_dataset(dataset: Dataset) -> DatasetDict | None:
@@ -270,64 +310,6 @@ def split_dataset(dataset: Dataset) -> DatasetDict | None:
         splits["test"] = test_dataset
 
     return DatasetDict(splits)
-
-
-def upload_dataset(
-    read_aloud_dataset: DatasetDict | None,
-    conversation_dataset: DatasetDict | None,
-    hub_id: str,
-) -> None:
-    """Upload the dataset to the Hugging Face Hub.
-
-    Args:
-        read_aloud_dataset:
-            The read-aloud dataset, or None if no such dataset exists.
-        conversation_dataset:
-            The conversation dataset, or None if no such dataset exists.
-        hub_id:
-            Identifier of the Hugging Face Hub repository.
-    """
-    if read_aloud_dataset is not None:
-        read_aloud_dataset.push_to_hub(
-            repo_id=hub_id,
-            config_name="read_aloud",
-            private=True,
-            max_shard_size="500MB",
-            commit_message="Add the CoRal read-aloud dataset",
-        )
-    if conversation_dataset is not None:
-        conversation_dataset.push_to_hub(
-            repo_id=hub_id,
-            config_name="conversation",
-            private=True,
-            max_shard_size="500MB",
-            commit_message="Add the CoRal conversation dataset",
-        )
-
-
-def list_audio_files(audio_dir: Path, max_attempts: int = 10) -> list[Path]:
-    """List all the audio files in the given directory.
-
-    Args:
-        audio_dir:
-            The directory containing the audio files.
-        max_attempts (optional):
-            The maximum number of attempts to list the audio files. Defaults to 10.
-
-    Returns:
-        A list of paths to the audio files.
-
-    Raises:
-        OSError:
-            If the audio files cannot be listed.
-    """
-    for _ in range(max_attempts):
-        try:
-            return list(audio_dir.glob("*.wav"))
-        except OSError:
-            sleep(1)
-    else:
-        raise OSError(f"Failed to list the audio files in {audio_dir!r}.")
 
 
 def examples_belong_to_train(examples: dict[str, list]) -> list[bool]:
@@ -377,16 +359,47 @@ def examples_belong_to_test(examples: dict[str, list]) -> list[bool]:
     return [speaker_id in TEST_SET_SPEAKER_IDS for speaker_id in examples["id_speaker"]]
 
 
-class no_progress_bar:
-    """Context manager that disables the progress bar."""
+#####################################
+##### Uploading of the datasets #####
+#####################################
 
-    def __enter__(self):
-        """Disable the progress bar."""
-        disable_progress_bar()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Re-enable the progress bar."""
-        enable_progress_bar()
+def upload_dataset(
+    read_aloud_dataset: DatasetDict | None,
+    conversation_dataset: DatasetDict | None,
+    hub_id: str,
+) -> None:
+    """Upload the dataset to the Hugging Face Hub.
+
+    Args:
+        read_aloud_dataset:
+            The read-aloud dataset, or None if no such dataset exists.
+        conversation_dataset:
+            The conversation dataset, or None if no such dataset exists.
+        hub_id:
+            Identifier of the Hugging Face Hub repository.
+    """
+    if read_aloud_dataset is not None:
+        read_aloud_dataset.push_to_hub(
+            repo_id=hub_id,
+            config_name="read_aloud",
+            private=True,
+            max_shard_size="500MB",
+            commit_message="Add the CoRal read-aloud dataset",
+        )
+    if conversation_dataset is not None:
+        conversation_dataset.push_to_hub(
+            repo_id=hub_id,
+            config_name="conversation",
+            private=True,
+            max_shard_size="500MB",
+            commit_message="Add the CoRal conversation dataset",
+        )
+
+
+#############################
+##### Utility functions #####
+#############################
 
 
 def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
@@ -470,6 +483,18 @@ def decompress_file(compressed_file: Path, destination_dir: Path) -> Path:
         with tarfile.open(name=compressed_file, mode="r") as tar:
             tar.extractall(path=destination_dir)
     return destination_dir / compressed_file.stem
+
+
+class no_progress_bar:
+    """Context manager that disables the progress bar."""
+
+    def __enter__(self):
+        """Disable the progress bar."""
+        disable_progress_bar()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Re-enable the progress bar."""
+        enable_progress_bar()
 
 
 if __name__ == "__main__":
