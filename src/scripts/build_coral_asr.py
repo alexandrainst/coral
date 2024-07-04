@@ -416,27 +416,37 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
     if not audio_subdirs:
         return new_audio_dir
 
-    # Compress all subdirectories that are not already compressed
-    with Parallel(n_jobs=2 * mp.cpu_count(), backend="threading") as parallel:
-        parallel(
-            delayed(function=compress_dir)(directory=subdir)
-            for subdir in tqdm(
-                iterable=audio_subdirs,
-                desc="Compressing audio files on the source disk",
-            )
-        )
+    while True:
+        try:
+            # Compress all subdirectories that are not already compressed
+            with Parallel(n_jobs=2 * mp.cpu_count(), backend="threading") as parallel:
+                parallel(
+                    delayed(function=compress_dir)(directory=subdir)
+                    for subdir in tqdm(
+                        iterable=audio_subdirs,
+                        desc="Compressing audio files on the source disk",
+                    )
+                )
 
-    # Decompress all the compressed audio files in the current working directory
-    with Parallel(n_jobs=2 * mp.cpu_count(), backend="threading") as parallel:
-        parallel(
-            delayed(function=decompress_file)(
-                file=compressed_subdir, destination_dir=new_audio_dir
-            )
-            for compressed_subdir in tqdm(
-                iterable=list(audio_dir.glob("*.tar.xz")),
-                desc="Copying the compressed files and decompressing them",
-            )
-        )
+            # Decompress all the compressed audio files in the current working directory
+            with Parallel(n_jobs=2 * mp.cpu_count(), backend="threading") as parallel:
+                parallel(
+                    delayed(function=decompress_file)(
+                        file=compressed_subdir, destination_dir=new_audio_dir
+                    )
+                    for compressed_subdir in tqdm(
+                        iterable=list(audio_dir.glob("*.tar.xz")),
+                        desc="Copying the compressed files and decompressing them",
+                    )
+                )
+
+            break
+        except CorruptedCompressedFile as e:
+            corrupted_file = e.file
+            copied_corrupted_file = new_audio_dir / corrupted_file.name
+            corrupted_file.unlink()
+            copied_corrupted_file.unlink()
+            logger.warning(e.message + " Retrying the decompression...")
 
     return new_audio_dir
 
@@ -475,10 +485,7 @@ def decompress_file(file: Path, destination_dir: Path) -> None:
             with tarfile.open(name=destination_path, mode="r:xz") as tar:
                 tar.extractall(path=destination_dir)
         except (EOFError, tarfile.ReadError):
-            raise RuntimeError(
-                "Failed to decompress the file. Please delete the files "
-                f"{destination_path} and {file}, and re-run this script."
-            )
+            raise CorruptedCompressedFile(file=file)
         destination_path.unlink()
 
 
@@ -507,6 +514,23 @@ def remove_suffixes(path: Path) -> Path:
     while path.suffix:
         path = path.with_suffix("")
     return path
+
+
+class CorruptedCompressedFile(Exception):
+    """Exception raised when a compressed file is corrupted."""
+
+    def __init__(self, file: Path) -> None:
+        """Initialise the exception.
+
+        Args:
+            file:
+                The corrupted file.
+        """
+        self.file = file
+        self.message = (
+            f"Failed to decompress the file {self.file}, as it appears to be corrupted."
+        )
+        super().__init__(self.message)
 
 
 if __name__ == "__main__":
