@@ -468,10 +468,17 @@ def decompress_file(file: Path, destination_dir: Path) -> None:
     """
     destination_path = destination_dir / file.name
     decompressed_path = remove_suffixes(path=destination_path)
-    if not destination_path.exists() and not decompressed_path.exists():
-        shutil.copy(src=file, dst=destination_dir)
-        with tarfile.open(name=destination_path, mode="r:xz") as tar:
-            tar.extractall(path=destination_dir)
+    if not decompressed_path.exists():
+        if not destination_path.exists():
+            shutil.copy(src=file, dst=destination_dir)
+        try:
+            with tarfile.open(name=destination_path, mode="r:xz") as tar:
+                tar.extractall(path=destination_dir)
+        except EOFError:
+            raise tarfile.ReadError(
+                f"Failed to decompress {destination_path}. Please delete that file as "
+                f"well as the original compressed file ({file}), and re-run this script."
+            )
         destination_path.unlink()
 
 
