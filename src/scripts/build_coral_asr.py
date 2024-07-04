@@ -474,10 +474,10 @@ def decompress_file(file: Path, destination_dir: Path) -> None:
         try:
             with tarfile.open(name=destination_path, mode="r:xz") as tar:
                 tar.extractall(path=destination_dir)
-        except EOFError:
-            raise tarfile.ReadError(
-                f"Failed to decompress {destination_path}. Please delete that file as "
-                f"well as the original compressed file ({file}), and re-run this script."
+        except (EOFError, tarfile.ReadError):
+            raise RuntimeError(
+                "Failed to decompress the file. Please delete the files "
+                f"{destination_path} and {file}, and re-run this script."
             )
         destination_path.unlink()
 
