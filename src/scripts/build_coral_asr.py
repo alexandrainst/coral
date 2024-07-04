@@ -444,11 +444,13 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
         except CorruptedCompressedFile as e:
             logger.warning(e.message + " Removing the compressed file and retrying...")
             corrupted_file = e.file
-            corrupted_decompressed_dir = remove_suffixes(path=corrupted_file)
             copied_corrupted_file = new_audio_dir / corrupted_file.name
-            corrupted_file.unlink()
-            corrupted_decompressed_dir.unlink()
-            copied_corrupted_file.unlink()
+            copied_corrupted_decompressed_dir = remove_suffixes(
+                path=copied_corrupted_file
+            )
+            corrupted_file.unlink(missing_ok=True)
+            copied_corrupted_file.unlink(missing_ok=True)
+            shutil.rmtree(copied_corrupted_decompressed_dir)
 
     return new_audio_dir
 
@@ -486,8 +488,11 @@ def decompress_file(file: Path, destination_dir: Path) -> None:
         try:
             with tarfile.open(name=destination_path, mode="r:xz") as tar:
                 tar.extractall(path=destination_dir)
-        except (EOFError, tarfile.ReadError):
-            raise CorruptedCompressedFile(file=file)
+        except EOFError:
+            logging.error(
+                "Failed to decompress the file {self.file} - it appears to be corrupted."
+            )
+            shutil.rmtree(decompressed_path)
         destination_path.unlink()
 
 
