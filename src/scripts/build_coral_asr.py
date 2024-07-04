@@ -444,7 +444,7 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
         except CorruptedCompressedFile as e:
             logger.warning(e.message + " Removing the compressed file and retrying...")
             corrupted_file = e.file
-            corrupted_decompressed_dir = corrupted_file.with_suffix("")
+            corrupted_decompressed_dir = remove_suffixes(path=corrupted_file)
             copied_corrupted_file = new_audio_dir / corrupted_file.name
             corrupted_file.unlink()
             corrupted_decompressed_dir.unlink()
