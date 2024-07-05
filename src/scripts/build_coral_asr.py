@@ -488,9 +488,10 @@ def decompress_file(file: Path, destination_dir: Path) -> None:
         try:
             with tarfile.open(name=destination_path, mode="r:xz") as tar:
                 tar.extractall(path=destination_dir)
-        except Exception:
+        except Exception as e:
             logging.error(
-                f"Failed to decompress the file {file} - it appears to be corrupted."
+                f"Failed to decompress the file {file} - it appears to be corrupted. "
+                f"The error message was: {e}"
             )
             shutil.rmtree(decompressed_path, ignore_errors=True)
         destination_path.unlink()
