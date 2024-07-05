@@ -494,6 +494,7 @@ def decompress_file(file: Path, destination_dir: Path) -> None:
                 f"The error message was: {e}"
             )
             shutil.rmtree(decompressed_path, ignore_errors=True)
+            file.unlink()
         destination_path.unlink()
 
 
