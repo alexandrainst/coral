@@ -2,14 +2,16 @@
 
 Usage:
     python src/scripts/build_coral_asr.py \
-        [--audio-dir <audio_dir>] \
-        [--metadata-database-path <metadata_database_path>] \
-        [--hub-id <hub_id>]
+        [--audio-dir directory/containing/the/audio/subdirectories] \
+        [--metadata-database-path path/to/the/sqlite/database] \
+        [--hub-id organisation/dataset-id]
 """
 
 import logging
+import multiprocessing as mp
 import shutil
 import sqlite3
+import tarfile
 from pathlib import Path
 from time import sleep
 
@@ -42,9 +44,9 @@ TEST_SET_SPEAKER_IDS: list[str] = list()
 @click.option(
     "--audio-dir",
     type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True),
-    default="/Volumes/CoRal/_new_structure/raw/recordings",
+    default="/Volumes/CoRal/_new_structure/raw",
     show_default=True,
-    help="Relative path to the directory containing the audio files.",
+    help="Path to the directory containing the raw audio files.",
 )
 @click.option(
     "--metadata-database-path",
@@ -65,7 +67,14 @@ def main(
 ) -> None:
     """Build and upload the CoRal speech recognition dataset."""
     metadata_database_path = Path(metadata_database_path)
-    audio_dir = Path(audio_dir)
+    read_aloud_dir = Path(audio_dir) / "recordings"
+    conversation_dir = Path(audio_dir) / "conversations"
+
+    logger.info("Copying the raw files to the current working directory...")
+    temp_read_aloud_dir = copy_audio_directory_to_cwd(audio_dir=read_aloud_dir)
+    temp_conversation_dir = copy_audio_directory_to_cwd(audio_dir=conversation_dir)
+    temp_metadata_database_path = Path.cwd() / metadata_database_path.name
+    shutil.copy(src=metadata_database_path, dst=temp_metadata_database_path)
 
     # Copy the metadata database to the current working directory, since that massively
     # speeds up the SQL queries
@@ -75,16 +84,15 @@ def main(
 
     logger.info("Building the CoRal read-aloud speech recognition dataset...")
     read_aloud_dataset = build_read_aloud_dataset(
-        metadata_database_path=temp_metadata_database_path, audio_dir=audio_dir
+        metadata_database_path=temp_metadata_database_path,
+        audio_dir=temp_read_aloud_dir,
     )
 
     logger.info("Building the CoRal conversation speech recognition dataset...")
     conversation_dataset = build_conversation_dataset(
-        metadata_database_path=temp_metadata_database_path, audio_dir=audio_dir
+        metadata_database_path=temp_metadata_database_path,
+        audio_dir=temp_conversation_dir,
     )
-
-    # Delete the temporary metadata database
-    temp_metadata_database_path.unlink()
 
     logger.info("Splitting the datasets into train, validation and test sets...")
     read_aloud_dataset = split_dataset(dataset=read_aloud_dataset)
@@ -98,6 +106,11 @@ def main(
     )
 
     logger.info(f"All done! See the datasets at https://hf.co/datasets/{hub_id}.")
+
+
+##########################################
+##### Building the read-aloud subset #####
+##########################################
 
 
 def build_read_aloud_dataset(metadata_database_path: Path, audio_dir: Path) -> Dataset:
@@ -170,7 +183,7 @@ def build_read_aloud_dataset(metadata_database_path: Path, audio_dir: Path) -> D
     # Get a list of all the audio file paths. We need this since the audio files lie in
     # subdirectories of the main audio directory
     audio_subdirs = list(audio_dir.iterdir())
-    with Parallel(n_jobs=-1, backend="threading") as parallel:
+    with Parallel(n_jobs=mp.cpu_count(), backend="threading") as parallel:
         all_audio_path_lists = parallel(
             delayed(list_audio_files)(subdir)
             for subdir in tqdm(audio_subdirs, desc="Collecting audio file paths")
@@ -213,6 +226,36 @@ def build_read_aloud_dataset(metadata_database_path: Path, audio_dir: Path) -> D
     return dataset
 
 
+def list_audio_files(audio_dir: Path, max_attempts: int = 10) -> list[Path]:
+    """List all the audio files in the given directory.
+
+    Args:
+        audio_dir:
+            The directory containing the audio files.
+        max_attempts (optional):
+            The maximum number of attempts to list the audio files. Defaults to 10.
+
+    Returns:
+        A list of paths to the audio files.
+
+    Raises:
+        OSError:
+            If the audio files cannot be listed.
+    """
+    for _ in range(max_attempts):
+        try:
+            return list(audio_dir.glob("*.wav"))
+        except OSError:
+            sleep(1)
+    else:
+        raise OSError(f"Failed to list the audio files in {audio_dir!r}.")
+
+
+############################################
+##### Building the conversation subset #####
+############################################
+
+
 # TODO: Implement this function
 def build_conversation_dataset(
     metadata_database_path: Path, audio_dir: Path
@@ -226,10 +269,15 @@ def build_conversation_dataset(
             Path to the directory containing the audio files.
 
     Returns:
-        The CoRal read-aloud dataset.
+        The CoRal conversation dataset.
     """
     dataset = Dataset.from_dict({})
     return dataset
+
+
+#####################################
+##### Splitting of the datasets #####
+#####################################
 
 
 def split_dataset(dataset: Dataset) -> DatasetDict | None:
@@ -264,64 +312,6 @@ def split_dataset(dataset: Dataset) -> DatasetDict | None:
         splits["test"] = test_dataset
 
     return DatasetDict(splits)
-
-
-def upload_dataset(
-    read_aloud_dataset: DatasetDict | None,
-    conversation_dataset: DatasetDict | None,
-    hub_id: str,
-) -> None:
-    """Upload the dataset to the Hugging Face Hub.
-
-    Args:
-        read_aloud_dataset:
-            The read-aloud dataset, or None if no such dataset exists.
-        conversation_dataset:
-            The conversation dataset, or None if no such dataset exists.
-        hub_id:
-            Identifier of the Hugging Face Hub repository.
-    """
-    if read_aloud_dataset is not None:
-        read_aloud_dataset.push_to_hub(
-            repo_id=hub_id,
-            config_name="read_aloud",
-            private=True,
-            max_shard_size="500MB",
-            commit_message="Add the CoRal read-aloud dataset",
-        )
-    if conversation_dataset is not None:
-        conversation_dataset.push_to_hub(
-            repo_id=hub_id,
-            config_name="conversation",
-            private=True,
-            max_shard_size="500MB",
-            commit_message="Add the CoRal conversation dataset",
-        )
-
-
-def list_audio_files(audio_dir: Path, max_attempts: int = 10) -> list[Path]:
-    """List all the audio files in the given directory.
-
-    Args:
-        audio_dir:
-            The directory containing the audio files.
-        max_attempts (optional):
-            The maximum number of attempts to list the audio files. Defaults to 10.
-
-    Returns:
-        A list of paths to the audio files.
-
-    Raises:
-        OSError:
-            If the audio files cannot be listed.
-    """
-    for _ in range(max_attempts):
-        try:
-            return list(audio_dir.glob("*.wav"))
-        except OSError:
-            sleep(1)
-    else:
-        raise OSError(f"Failed to list the audio files in {audio_dir!r}.")
 
 
 def examples_belong_to_train(examples: dict[str, list]) -> list[bool]:
@@ -371,6 +361,137 @@ def examples_belong_to_test(examples: dict[str, list]) -> list[bool]:
     return [speaker_id in TEST_SET_SPEAKER_IDS for speaker_id in examples["id_speaker"]]
 
 
+#####################################
+##### Uploading of the datasets #####
+#####################################
+
+
+def upload_dataset(
+    read_aloud_dataset: DatasetDict | None,
+    conversation_dataset: DatasetDict | None,
+    hub_id: str,
+) -> None:
+    """Upload the dataset to the Hugging Face Hub.
+
+    Args:
+        read_aloud_dataset:
+            The read-aloud dataset, or None if no such dataset exists.
+        conversation_dataset:
+            The conversation dataset, or None if no such dataset exists.
+        hub_id:
+            Identifier of the Hugging Face Hub repository.
+    """
+    if read_aloud_dataset is not None:
+        read_aloud_dataset.push_to_hub(
+            repo_id=hub_id,
+            config_name="read_aloud",
+            private=True,
+            max_shard_size="500MB",
+            commit_message="Add the CoRal read-aloud dataset",
+        )
+    if conversation_dataset is not None:
+        conversation_dataset.push_to_hub(
+            repo_id=hub_id,
+            config_name="conversation",
+            private=True,
+            max_shard_size="500MB",
+            commit_message="Add the CoRal conversation dataset",
+        )
+
+
+#############################
+##### Utility functions #####
+#############################
+
+
+def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
+    """Copy audio files to the current working directory.
+
+    Args:
+        audio_dir:
+            The directory containing the audio files.
+        max_attempts (optional):
+            The maximum number of attempts to list the audio files. Defaults to 10.
+
+    Returns:
+        The new directory containing the audio files.
+    """
+    new_audio_dir = Path.cwd() / audio_dir.name
+    new_audio_dir.mkdir(exist_ok=True)
+
+    # Get list of subdirectories of the audio directory, or abort of none exist
+    audio_subdirs = [path for path in audio_dir.iterdir() if path.is_dir()]
+    if not audio_subdirs:
+        return new_audio_dir
+
+    # Compress all subdirectories that are not already compressed
+    with Parallel(n_jobs=mp.cpu_count(), backend="threading") as parallel:
+        parallel(
+            delayed(function=compress_dir)(directory=subdir)
+            for subdir in tqdm(
+                iterable=audio_subdirs,
+                desc="Compressing audio files on the source disk",
+            )
+        )
+
+    # Decompress all the compressed audio files in the current working directory
+    with Parallel(n_jobs=mp.cpu_count(), backend="threading") as parallel:
+        parallel(
+            delayed(function=decompress_file)(
+                file=compressed_subdir, destination_dir=new_audio_dir
+            )
+            for compressed_subdir in tqdm(
+                iterable=list(audio_dir.glob("*.tar.xz")),
+                desc="Copying the compressed files and decompressing them",
+            )
+        )
+
+    return new_audio_dir
+
+
+def compress_dir(directory: Path) -> Path:
+    """Compress a directory using tar.
+
+    Args:
+        directory:
+            The directory to compress.
+
+    Returns:
+        The path to the compressed file.
+    """
+    if not directory.with_suffix(".tar.xz").exists():
+        with tarfile.open(name=f"{str(directory)}.tar.xz", mode="w:xz") as tar:
+            tar.add(name=directory, arcname=directory.name)
+    return directory.with_suffix(".tar.xz")
+
+
+def decompress_file(file: Path, destination_dir: Path) -> None:
+    """Decompress a tarfile into a directory.
+
+    Args:
+        file:
+            The file to decompress.
+        destination_dir:
+            The destination directory.
+    """
+    destination_path = destination_dir / file.name
+    decompressed_path = remove_suffixes(path=destination_path)
+    if not decompressed_path.exists():
+        if not destination_path.exists():
+            shutil.copy(src=file, dst=destination_dir)
+        try:
+            with tarfile.open(name=destination_path, mode="r:xz") as tar:
+                tar.extractall(path=destination_dir)
+        except Exception as e:
+            logging.error(
+                f"Failed to decompress the file {file} - it appears to be corrupted. "
+                f"The error message was: {e}"
+            )
+            shutil.rmtree(decompressed_path, ignore_errors=True)
+            file.unlink()
+        destination_path.unlink()
+
+
 class no_progress_bar:
     """Context manager that disables the progress bar."""
 
@@ -381,6 +502,38 @@ class no_progress_bar:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Re-enable the progress bar."""
         enable_progress_bar()
+
+
+def remove_suffixes(path: Path) -> Path:
+    """Remove all suffixes from a path, even if it has multiple.
+
+    Args:
+        path:
+            The path to remove the suffixes from.
+
+    Returns:
+        The path without any suffixes.
+    """
+    while path.suffix:
+        path = path.with_suffix("")
+    return path
+
+
+class CorruptedCompressedFile(Exception):
+    """Exception raised when a compressed file is corrupted."""
+
+    def __init__(self, file: Path) -> None:
+        """Initialise the exception.
+
+        Args:
+            file:
+                The corrupted file.
+        """
+        self.file = file
+        self.message = (
+            f"Failed to decompress the file {self.file}, as it appears to be corrupted."
+        )
+        super().__init__(self.message)
 
 
 if __name__ == "__main__":
