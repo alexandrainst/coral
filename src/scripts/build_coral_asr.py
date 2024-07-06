@@ -76,6 +76,12 @@ def main(
     temp_metadata_database_path = Path.cwd() / metadata_database_path.name
     shutil.copy(src=metadata_database_path, dst=temp_metadata_database_path)
 
+    # Copy the metadata database to the current working directory, since that massively
+    # speeds up the SQL queries
+    logger.info("Copying the metadata database to the current working directory...")
+    temp_metadata_database_path = Path.cwd() / metadata_database_path.name
+    shutil.copy(src=metadata_database_path, dst=temp_metadata_database_path)
+
     logger.info("Building the CoRal read-aloud speech recognition dataset...")
     read_aloud_dataset = build_read_aloud_dataset(
         metadata_database_path=temp_metadata_database_path,
@@ -177,7 +183,7 @@ def build_read_aloud_dataset(metadata_database_path: Path, audio_dir: Path) -> D
     # Get a list of all the audio file paths. We need this since the audio files lie in
     # subdirectories of the main audio directory
     audio_subdirs = list(audio_dir.iterdir())
-    with Parallel(n_jobs=2 * mp.cpu_count(), backend="threading") as parallel:
+    with Parallel(n_jobs=mp.cpu_count(), backend="threading") as parallel:
         all_audio_path_lists = parallel(
             delayed(list_audio_files)(subdir)
             for subdir in tqdm(audio_subdirs, desc="Collecting audio file paths")
@@ -404,6 +410,8 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
     Args:
         audio_dir:
             The directory containing the audio files.
+        max_attempts (optional):
+            The maximum number of attempts to list the audio files. Defaults to 10.
 
     Returns:
         The new directory containing the audio files.
@@ -416,41 +424,27 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
     if not audio_subdirs:
         return new_audio_dir
 
-    while True:
-        try:
-            # Compress all subdirectories that are not already compressed
-            with Parallel(n_jobs=2 * mp.cpu_count(), backend="threading") as parallel:
-                parallel(
-                    delayed(function=compress_dir)(directory=subdir)
-                    for subdir in tqdm(
-                        iterable=audio_subdirs,
-                        desc="Compressing audio files on the source disk",
-                    )
-                )
-
-            # Decompress all the compressed audio files in the current working directory
-            with Parallel(n_jobs=2 * mp.cpu_count(), backend="threading") as parallel:
-                parallel(
-                    delayed(function=decompress_file)(
-                        file=compressed_subdir, destination_dir=new_audio_dir
-                    )
-                    for compressed_subdir in tqdm(
-                        iterable=list(audio_dir.glob("*.tar.xz")),
-                        desc="Copying the compressed files and decompressing them",
-                    )
-                )
-
-            break
-        except CorruptedCompressedFile as e:
-            logger.warning(e.message + " Removing the compressed file and retrying...")
-            corrupted_file = e.file
-            copied_corrupted_file = new_audio_dir / corrupted_file.name
-            copied_corrupted_decompressed_dir = remove_suffixes(
-                path=copied_corrupted_file
+    # Compress all subdirectories that are not already compressed
+    with Parallel(n_jobs=mp.cpu_count(), backend="threading") as parallel:
+        parallel(
+            delayed(function=compress_dir)(directory=subdir)
+            for subdir in tqdm(
+                iterable=audio_subdirs,
+                desc="Compressing audio files on the source disk",
             )
-            corrupted_file.unlink(missing_ok=True)
-            copied_corrupted_file.unlink(missing_ok=True)
-            shutil.rmtree(copied_corrupted_decompressed_dir, ignore_errors=True)
+        )
+
+    # Decompress all the compressed audio files in the current working directory
+    with Parallel(n_jobs=mp.cpu_count(), backend="threading") as parallel:
+        parallel(
+            delayed(function=decompress_file)(
+                file=compressed_subdir, destination_dir=new_audio_dir
+            )
+            for compressed_subdir in tqdm(
+                iterable=list(audio_dir.glob("*.tar.xz")),
+                desc="Copying the compressed files and decompressing them",
+            )
+        )
 
     return new_audio_dir
 
