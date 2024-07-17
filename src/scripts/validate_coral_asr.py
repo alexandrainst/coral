@@ -89,7 +89,7 @@ logger = logging.getLogger("validate_coral_asr")
 )
 @click.option(
     "--output-dataset-subset",
-    default=None,
+    default="default",
     show_default=True,
     help="Name of the subset of the dataset to save the validation results. If None "
     "then we assume no subsets exist.",
