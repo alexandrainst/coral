@@ -177,6 +177,7 @@ def main(
         repo_id=output_dataset_id,
         config_name=output_dataset_subset,
         commit_message="Add ASR validation",
+        private=True,
     )
 
 
