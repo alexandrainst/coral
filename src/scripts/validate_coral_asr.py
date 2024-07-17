@@ -1,4 +1,16 @@
-"""Automatic validation of an ASR dataset."""
+"""Automatic validation of an ASR dataset.
+
+Usage:
+    python src/scripts/validate_coral_asr.py \
+        --model-id <model-id-to-use-for-validation> \
+        --dataset-id <dataset-id-to-validate> \
+        --output-dataset-id <output-dataset-id> \
+        [--dataset-subset <subset-of-dataset>] \
+        [--dataset-split <split-of-dataset>] \
+        [--text-column <name-of-text-column-in-dataset>] \
+        [--audio-column <name-of-audio-column-in-dataset>] \
+        [--output-dataset-subset <output-dataset-subset>]
+"""
 
 import logging
 import re
