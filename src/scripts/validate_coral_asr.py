@@ -121,7 +121,9 @@ def main(
     )
 
     logger.info(f"Loading the {dataset_id!r} dataset...")
-    dataset = load_dataset(path=dataset_id, name=dataset_subset, split=dataset_split)
+    dataset = load_dataset(
+        path=dataset_id, name=dataset_subset, split=dataset_split, token=True
+    )
     if isinstance(dataset, Dataset):
         dataset = DatasetDict({dataset_split: dataset})
     assert isinstance(dataset, DatasetDict)
