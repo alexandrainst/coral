@@ -123,9 +123,6 @@ def main(
     logger.info(f"Loading the {dataset_id!r} dataset...")
     dataset = load_dataset(path=dataset_id, name=dataset_subset, split=dataset_split)
     if isinstance(dataset, Dataset):
-        # TEMP
-        dataset = dataset.select(range(100))
-
         dataset = DatasetDict({dataset_split: dataset})
     assert isinstance(dataset, DatasetDict)
 
