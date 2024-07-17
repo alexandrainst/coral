@@ -168,7 +168,7 @@ def main(
         )
         split = split.add_column(
             name="asr_validation_model",
-            column=[model.model_id] * len(split),
+            column=[model_id] * len(split),
             new_fingerprint=split._fingerprint,
         )
         new_data_dict[split_name] = split
