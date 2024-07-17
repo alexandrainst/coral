@@ -95,6 +95,12 @@ logger = logging.getLogger("validate_coral_asr")
     help="Name of the subset of the dataset to save the validation results. If None "
     "then we assume no subsets exist.",
 )
+@click.option(
+    "--cache-dir",
+    default="~/.cache",
+    show_default=True,
+    help="Directory to cache the dataset and the model in.",
+)
 def main(
     model_id: str,
     dataset_id: str,
@@ -104,6 +110,7 @@ def main(
     audio_column: str,
     output_dataset_id: str,
     output_dataset_subset: str,
+    cache_dir: str,
 ):
     """Validate the samples of the CoRal ASR dataset using an ASR model."""
     if torch.cuda.is_available():
@@ -122,7 +129,11 @@ def main(
 
     logger.info(f"Loading the {dataset_id!r} dataset...")
     dataset = load_dataset(
-        path=dataset_id, name=dataset_subset, split=dataset_split, token=True
+        path=dataset_id,
+        name=dataset_subset,
+        split=dataset_split,
+        token=True,
+        cache_dir=cache_dir,
     )
     if isinstance(dataset, Dataset):
         dataset = DatasetDict({dataset_split: dataset})
