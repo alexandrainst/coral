@@ -17,12 +17,13 @@ import re
 from functools import partial
 
 import click
+import evaluate
 import numpy as np
 import torch
 from coral.data import clean_example
 from coral.data_collators import DataCollatorCTCWithPadding
 from coral.data_models import Processor
-from datasets import Audio, Dataset, DatasetDict, load_dataset, load_metric
+from datasets import Audio, Dataset, DatasetDict, load_dataset
 from numpy.typing import NDArray
 from transformers import (
     AutoModelForCTC,
@@ -311,8 +312,8 @@ def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[f
     labels_str = processor.tokenizer.batch_decode(sequences=labels, group_tokens=False)
 
     # Compute the word error rates
-    wer_metric = load_metric("wer", trust_remote_code=True)
-    assert wer_metric is not None
+    # wer_metric = load_metric("wer", trust_remote_code=True)
+    wer_metric = evaluate.load("wer")
     wers = [
         wer_metric.compute(predictions=[pred], references=[ref])
         for pred, ref in zip(predictions_str, labels_str)
