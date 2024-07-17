@@ -121,8 +121,8 @@ def main(
         device = torch.device("cpu")
 
     logger.info(f"Loading the {model_id!r} ASR model...")
-    processor = AutoProcessor.from_pretrained(model_id)
-    model = AutoModelForCTC.from_pretrained(model_id).to(device)
+    processor = AutoProcessor.from_pretrained(model_id, cache_dir=cache_dir)
+    model = AutoModelForCTC.from_pretrained(model_id, cache_dir=cache_dir).to(device)
     data_collator = DataCollatorCTCWithPadding(
         processor=processor, max_seconds_per_example=10, padding="longest"
     )
