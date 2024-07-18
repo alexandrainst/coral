@@ -9,7 +9,8 @@ Usage:
         [--dataset-split <split-of-dataset>] \
         [--text-column <name-of-text-column-in-dataset>] \
         [--audio-column <name-of-audio-column-in-dataset>] \
-        [--output-dataset-subset <output-dataset-subset>]
+        [--output-dataset-subset <output-dataset-subset>] \
+        [--cache-dir <cache-directory>]
 """
 
 import logging
