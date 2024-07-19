@@ -353,7 +353,7 @@ def preprocess_logits_for_metrics(
             The labels for the logits.
     """
     pred_ids = torch.argmax(logits[0], dim=-1)
-    return torch.Tensor([pred_ids, labels])
+    return torch.stack([pred_ids, labels], dim=0)
 
 
 if __name__ == "__main__":
