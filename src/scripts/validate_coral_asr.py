@@ -177,6 +177,7 @@ def main(
         model=model,
         data_collator=data_collator,
         tokenizer=processor.tokenizer,
+        preprocess_logits_for_metrics=preprocess_logits_for_metrics,
     )
     new_data_dict: dict[str, Dataset] = dict()
     for split_name, split in dataset.items():
@@ -338,6 +339,21 @@ def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[f
     ]
 
     return wers
+
+
+def preprocess_logits_for_metrics(
+    logits: torch.Tensor, labels: torch.Tensor
+) -> torch.Tensor:
+    """Workaround to avoid storing too many tensors that are not needed.
+
+    Args:
+        logits:
+            The logits from the model.
+        labels:
+            The labels for the logits.
+    """
+    pred_ids = torch.argmax(logits[0], dim=-1)
+    return torch.Tensor([pred_ids, labels])
 
 
 if __name__ == "__main__":
