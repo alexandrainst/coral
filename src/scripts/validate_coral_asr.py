@@ -167,7 +167,13 @@ def main(
 
     logger.info("Validating the dataset...")
     trainer = Trainer(
-        args=TrainingArguments(".", remove_unused_columns=False, report_to=[]),
+        args=TrainingArguments(
+            output_dir=".",
+            remove_unused_columns=False,
+            report_to=[],
+            per_device_train_batch_size=1,
+            per_device_eval_batch_size=1,
+        ),
         model=model,
         data_collator=data_collator,
         tokenizer=processor.tokenizer,
