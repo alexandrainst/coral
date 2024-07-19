@@ -343,7 +343,7 @@ def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[f
 
 def preprocess_logits_for_metrics(
     logits: torch.Tensor, labels: torch.Tensor
-) -> torch.Tensor:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """Workaround to avoid storing too many tensors that are not needed.
 
     Args:
@@ -351,9 +351,12 @@ def preprocess_logits_for_metrics(
             The logits from the model.
         labels:
             The labels for the logits.
+
+    Returns:
+        The logits and labels to use for computing the metrics.
     """
     pred_ids = torch.argmax(logits[0], dim=-1)
-    return torch.stack([pred_ids, labels], dim=0)
+    return pred_ids, labels
 
 
 if __name__ == "__main__":
