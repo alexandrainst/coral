@@ -10,7 +10,8 @@ Usage:
         [--text-column <name-of-text-column-in-dataset>] \
         [--audio-column <name-of-audio-column-in-dataset>] \
         [--output-dataset-subset <output-dataset-subset>] \
-        [--cache-dir <cache-directory>]
+        [--cache-dir <cache-directory>] \
+        [--batch-size <batch-size>]
 """
 
 import logging
@@ -102,6 +103,12 @@ logger = logging.getLogger("validate_coral_asr")
     show_default=True,
     help="Directory to cache the dataset and the model in.",
 )
+@click.option(
+    "--batch-size",
+    default=1,
+    show_default=True,
+    help="Batch size to use for validation.",
+)
 def main(
     model_id: str,
     dataset_id: str,
@@ -112,6 +119,7 @@ def main(
     output_dataset_id: str,
     output_dataset_subset: str,
     cache_dir: str,
+    batch_size: int,
 ):
     """Validate the samples of the CoRal ASR dataset using an ASR model."""
     if torch.cuda.is_available():
@@ -171,8 +179,7 @@ def main(
             output_dir=".",
             remove_unused_columns=False,
             report_to=[],
-            per_device_train_batch_size=1,
-            per_device_eval_batch_size=1,
+            per_device_eval_batch_size=batch_size,
         ),
         model=model,
         data_collator=data_collator,
