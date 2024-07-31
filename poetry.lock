@@ -2,18 +2,18 @@
 
 [[package]]
 name = "accelerate"
-version = "0.29.3"
+version = "0.33.0"
 description = "Accelerate"
 optional = false
 python-versions = ">=3.8.0"
 files = [
-    {file = "accelerate-0.29.3-py3-none-any.whl", hash = "sha256:99d633d4b6126817c5e554487406748be95c8d1d1e659dd2fd60657e35f532dd"},
-    {file = "accelerate-0.29.3.tar.gz", hash = "sha256:1a5a845b06b24b41736b219b2b20fd021ca5dff4070a252445fd6de736e347ac"},
+    {file = "accelerate-0.33.0-py3-none-any.whl", hash = "sha256:0a7f33d60ba09afabd028d4f0856dd19c5a734b7a596d637d9dd6e3d0eadbaf3"},
+    {file = "accelerate-0.33.0.tar.gz", hash = "sha256:11ba481ed6ea09191775df55ce464aeeba67a024bd0261a44b77b30fb439e26a"},
 ]
 
 [package.dependencies]
-huggingface-hub = "*"
-numpy = ">=1.17"
+huggingface-hub = ">=0.21.0"
+numpy = ">=1.17,<2.0.0"
 packaging = ">=20.0"
 psutil = "*"
 pyyaml = "*"
@@ -21,14 +21,15 @@ safetensors = ">=0.3.1"
 torch = ">=1.10.0"
 
 [package.extras]
-dev = ["bitsandbytes", "black (>=23.1,<24.0)", "datasets", "deepspeed", "evaluate", "hf-doc-builder (>=0.3.0)", "parameterized", "pytest (>=7.2.0,<=8.0.0)", "pytest-subtests", "pytest-xdist", "rich", "ruff (>=0.2.1,<0.3.0)", "scikit-learn", "scipy", "timm", "torchpippy (>=0.2.0)", "tqdm", "transformers"]
+deepspeed = ["deepspeed (<=0.14.0)"]
+dev = ["bitsandbytes", "black (>=23.1,<24.0)", "datasets", "diffusers", "evaluate", "hf-doc-builder (>=0.3.0)", "parameterized", "pytest (>=7.2.0,<=8.0.0)", "pytest-subtests", "pytest-xdist", "rich", "ruff (>=0.2.1,<0.3.0)", "scikit-learn", "scipy", "timm", "torchpippy (>=0.2.0)", "tqdm", "transformers"]
 quality = ["black (>=23.1,<24.0)", "hf-doc-builder (>=0.3.0)", "ruff (>=0.2.1,<0.3.0)"]
 rich = ["rich"]
 sagemaker = ["sagemaker"]
-test-dev = ["bitsandbytes", "datasets", "deepspeed", "evaluate", "scikit-learn", "scipy", "timm", "torchpippy (>=0.2.0)", "tqdm", "transformers"]
+test-dev = ["bitsandbytes", "datasets", "diffusers", "evaluate", "scikit-learn", "scipy", "timm", "torchpippy (>=0.2.0)", "tqdm", "transformers"]
 test-prod = ["parameterized", "pytest (>=7.2.0,<=8.0.0)", "pytest-subtests", "pytest-xdist"]
 test-trackers = ["comet-ml", "dvclive", "tensorboard", "wandb"]
-testing = ["bitsandbytes", "datasets", "deepspeed", "evaluate", "parameterized", "pytest (>=7.2.0,<=8.0.0)", "pytest-subtests", "pytest-xdist", "scikit-learn", "scipy", "timm", "torchpippy (>=0.2.0)", "tqdm", "transformers"]
+testing = ["bitsandbytes", "datasets", "diffusers", "evaluate", "parameterized", "pytest (>=7.2.0,<=8.0.0)", "pytest-subtests", "pytest-xdist", "scikit-learn", "scipy", "timm", "torchpippy (>=0.2.0)", "tqdm", "transformers"]
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -191,17 +192,6 @@ sniffio = ">=1.1"
 doc = ["Sphinx (>=7)", "packaging", "sphinx-autodoc-typehints (>=1.2.0)", "sphinx-rtd-theme"]
 test = ["anyio[trio]", "coverage[toml] (>=7)", "exceptiongroup (>=1.2.0)", "hypothesis (>=4.0)", "psutil (>=5.9)", "pytest (>=7.0)", "pytest-mock (>=3.6.1)", "trustme", "uvloop (>=0.17)"]
 trio = ["trio (>=0.23)"]
-
-[[package]]
-name = "appdirs"
-version = "1.4.4"
-description = "A small Python module for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
-optional = false
-python-versions = "*"
-files = [
-    {file = "appdirs-1.4.4-py2.py3-none-any.whl", hash = "sha256:a841dacd6b99318a741b166adb07e19ee71a274450e68237b4650ca1055ab128"},
-    {file = "appdirs-1.4.4.tar.gz", hash = "sha256:7d5d0167b2b1ba821647616af46a749d1c653740dd0d2415100fe26e27afdf41"},
-]
 
 [[package]]
 name = "appnope"
@@ -862,38 +852,38 @@ files = [
 
 [[package]]
 name = "deepspeed"
-version = "0.12.6"
+version = "0.14.4"
 description = "DeepSpeed library"
 optional = false
 python-versions = "*"
 files = [
-    {file = "deepspeed-0.12.6.tar.gz", hash = "sha256:69ea07c65ef6414f9cd67746672f1c23b4b629dc14c9177de103ac0c5b2e0ce4"},
+    {file = "deepspeed-0.14.4.tar.gz", hash = "sha256:bb2f404b4a1d06aedd40c64d661f71307c22945d04a42d397ad39bbfeef9c8b8"},
 ]
 
 [package.dependencies]
 hjson = "*"
 ninja = "*"
 numpy = "*"
+nvidia-ml-py = "*"
 packaging = ">=20.0"
 psutil = "*"
 py-cpuinfo = "*"
 pydantic = "*"
-pynvml = "*"
 torch = "*"
 tqdm = "*"
 
 [package.extras]
 1bit-mpi = ["mpi4py"]
-all = ["accelerate", "autodoc_pydantic", "clang-format (==16.0.2)", "coverage", "deepspeed-kernels", "diffusers", "docutils (<0.18)", "future", "google", "hjson", "importlib-metadata (>=4)", "lm-eval (==0.3.0)", "mpi4py", "mup", "neural-compressor (==2.1.0)", "packaging", "pre-commit (>=2.20.0)", "protobuf", "psutil", "py-cpuinfo", "pydantic (<2.0.0)", "pytest", "pytest-forked", "pytest-randomly", "pytest-xdist", "recommonmark", "sphinx", "sphinx-rtd-theme", "sphinx_rtd_theme", "tabulate", "tensorboard", "torch", "torchvision", "tqdm", "transformers (>=4.32.1)", "transformers[sentencepiece]", "triton (==1.0.0)", "triton (>=2.1.0)", "wandb", "xgboost"]
+all = ["accelerate", "autodoc_pydantic", "clang-format (==16.0.2)", "comet_ml (>=3.41.0)", "deepspeed-kernels", "diffusers (>=0.25.0)", "docutils (<0.18)", "future", "google", "hjson", "importlib-metadata (>=4)", "lm-eval (==0.3.0)", "mpi4py", "mup", "neural-compressor (==2.1.0)", "packaging", "pre-commit (>=2.20.0)", "protobuf", "psutil", "py-cpuinfo", "pydantic (<2.0.0)", "pytest (>=7.2.0)", "pytest-forked", "pytest-randomly", "pytest-xdist", "qtorch", "qtorch (==0.3.0)", "recommonmark", "safetensors", "sentencepiece", "sphinx", "sphinx-rtd-theme", "sphinx_rtd_theme", "tabulate", "tensorboard", "torch", "torchvision", "tqdm", "transformers (>=4.32.1)", "transformers (>=4.39.0)", "triton (==1.0.0)", "triton (==2.1.0)", "triton (>=2.1.0)", "wandb", "xgboost"]
 autotuning = ["tabulate"]
 autotuning-ml = ["hjson", "tabulate", "xgboost"]
-dev = ["accelerate", "clang-format (==16.0.2)", "coverage", "deepspeed-kernels", "docutils (<0.18)", "future", "importlib-metadata (>=4)", "mup", "pre-commit (>=2.20.0)", "pytest", "pytest-forked", "pytest-randomly", "pytest-xdist", "recommonmark", "sphinx", "sphinx-rtd-theme", "tensorboard", "torchvision", "transformers (>=4.32.1)", "wandb"]
-inf = ["google", "lm-eval (==0.3.0)", "protobuf", "transformers (>=4.32.1)", "transformers[sentencepiece]"]
+dev = ["accelerate", "clang-format (==16.0.2)", "comet_ml (>=3.41.0)", "deepspeed-kernels", "docutils (<0.18)", "future", "importlib-metadata (>=4)", "mup", "pre-commit (>=2.20.0)", "pytest (>=7.2.0)", "pytest-forked", "pytest-randomly", "pytest-xdist", "qtorch (==0.3.0)", "recommonmark", "sphinx", "sphinx-rtd-theme", "tensorboard", "torchvision", "transformers (>=4.39.0)", "wandb"]
+inf = ["google", "lm-eval (==0.3.0)", "protobuf", "qtorch", "safetensors", "sentencepiece", "transformers (>=4.32.1)"]
 readthedocs = ["autodoc_pydantic", "docutils (<0.18)", "hjson", "packaging", "psutil", "py-cpuinfo", "pydantic (<2.0.0)", "recommonmark", "sphinx_rtd_theme", "torch", "tqdm"]
-sd = ["diffusers", "triton (>=2.1.0)"]
+sd = ["diffusers (>=0.25.0)", "triton (>=2.1.0)"]
 sparse = ["neural-compressor (==2.1.0)"]
 sparse-attn = ["triton (==1.0.0)"]
-triton = ["triton (>=2.1.0)"]
+triton = ["triton (==2.1.0)"]
 
 [[package]]
 name = "defusedxml"
@@ -3070,6 +3060,17 @@ files = [
 nvidia-nvjitlink-cu12 = "*"
 
 [[package]]
+name = "nvidia-ml-py"
+version = "12.555.43"
+description = "Python Bindings for the NVIDIA Management Library"
+optional = false
+python-versions = "*"
+files = [
+    {file = "nvidia-ml-py-12.555.43.tar.gz", hash = "sha256:e9e7f12ef1ec234bb0dc22d2bdc762ffafab394bdc472a07a4377c95bbf93afe"},
+    {file = "nvidia_ml_py-12.555.43-py3-none-any.whl", hash = "sha256:b89ba66e8ba8032fdbbaa907323f248be0ed001e106f814a1e1137e58eba2a80"},
+]
+
+[[package]]
 name = "nvidia-nccl-cu12"
 version = "2.20.5"
 description = "NVIDIA Collective Communication Library (NCCL) Runtime"
@@ -3250,16 +3251,6 @@ files = [
 [package.extras]
 qa = ["flake8 (==5.0.4)", "mypy (==0.971)", "types-setuptools (==67.2.0.1)"]
 testing = ["docopt", "pytest"]
-
-[[package]]
-name = "pathtools"
-version = "0.1.2"
-description = "File system general utilities"
-optional = false
-python-versions = "*"
-files = [
-    {file = "pathtools-0.1.2.tar.gz", hash = "sha256:7c35c5421a39bb82e58018febd90e3b6e5db34c5443aaaf742b3f33d4655f1c0"},
-]
 
 [[package]]
 name = "pdoc"
@@ -3491,22 +3482,22 @@ wcwidth = "*"
 
 [[package]]
 name = "protobuf"
-version = "4.25.4"
+version = "5.27.2"
 description = ""
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "protobuf-4.25.4-cp310-abi3-win32.whl", hash = "sha256:db9fd45183e1a67722cafa5c1da3e85c6492a5383f127c86c4c4aa4845867dc4"},
-    {file = "protobuf-4.25.4-cp310-abi3-win_amd64.whl", hash = "sha256:ba3d8504116a921af46499471c63a85260c1a5fc23333154a427a310e015d26d"},
-    {file = "protobuf-4.25.4-cp37-abi3-macosx_10_9_universal2.whl", hash = "sha256:eecd41bfc0e4b1bd3fa7909ed93dd14dd5567b98c941d6c1ad08fdcab3d6884b"},
-    {file = "protobuf-4.25.4-cp37-abi3-manylinux2014_aarch64.whl", hash = "sha256:4c8a70fdcb995dcf6c8966cfa3a29101916f7225e9afe3ced4395359955d3835"},
-    {file = "protobuf-4.25.4-cp37-abi3-manylinux2014_x86_64.whl", hash = "sha256:3319e073562e2515c6ddc643eb92ce20809f5d8f10fead3332f71c63be6a7040"},
-    {file = "protobuf-4.25.4-cp38-cp38-win32.whl", hash = "sha256:7e372cbbda66a63ebca18f8ffaa6948455dfecc4e9c1029312f6c2edcd86c4e1"},
-    {file = "protobuf-4.25.4-cp38-cp38-win_amd64.whl", hash = "sha256:051e97ce9fa6067a4546e75cb14f90cf0232dcb3e3d508c448b8d0e4265b61c1"},
-    {file = "protobuf-4.25.4-cp39-cp39-win32.whl", hash = "sha256:90bf6fd378494eb698805bbbe7afe6c5d12c8e17fca817a646cd6a1818c696ca"},
-    {file = "protobuf-4.25.4-cp39-cp39-win_amd64.whl", hash = "sha256:ac79a48d6b99dfed2729ccccee547b34a1d3d63289c71cef056653a846a2240f"},
-    {file = "protobuf-4.25.4-py3-none-any.whl", hash = "sha256:bfbebc1c8e4793cfd58589acfb8a1026be0003e852b9da7db5a4285bde996978"},
-    {file = "protobuf-4.25.4.tar.gz", hash = "sha256:0dc4a62cc4052a036ee2204d26fe4d835c62827c855c8a03f29fe6da146b380d"},
+    {file = "protobuf-5.27.2-cp310-abi3-win32.whl", hash = "sha256:354d84fac2b0d76062e9b3221f4abbbacdfd2a4d8af36bab0474f3a0bb30ab38"},
+    {file = "protobuf-5.27.2-cp310-abi3-win_amd64.whl", hash = "sha256:0e341109c609749d501986b835f667c6e1e24531096cff9d34ae411595e26505"},
+    {file = "protobuf-5.27.2-cp38-abi3-macosx_10_9_universal2.whl", hash = "sha256:a109916aaac42bff84702fb5187f3edadbc7c97fc2c99c5ff81dd15dcce0d1e5"},
+    {file = "protobuf-5.27.2-cp38-abi3-manylinux2014_aarch64.whl", hash = "sha256:176c12b1f1c880bf7a76d9f7c75822b6a2bc3db2d28baa4d300e8ce4cde7409b"},
+    {file = "protobuf-5.27.2-cp38-abi3-manylinux2014_x86_64.whl", hash = "sha256:b848dbe1d57ed7c191dfc4ea64b8b004a3f9ece4bf4d0d80a367b76df20bf36e"},
+    {file = "protobuf-5.27.2-cp38-cp38-win32.whl", hash = "sha256:4fadd8d83e1992eed0248bc50a4a6361dc31bcccc84388c54c86e530b7f58863"},
+    {file = "protobuf-5.27.2-cp38-cp38-win_amd64.whl", hash = "sha256:610e700f02469c4a997e58e328cac6f305f649826853813177e6290416e846c6"},
+    {file = "protobuf-5.27.2-cp39-cp39-win32.whl", hash = "sha256:9e8f199bf7f97bd7ecebffcae45ebf9527603549b2b562df0fbc6d4d688f14ca"},
+    {file = "protobuf-5.27.2-cp39-cp39-win_amd64.whl", hash = "sha256:7fc3add9e6003e026da5fc9e59b131b8f22b428b991ccd53e2af8071687b4fce"},
+    {file = "protobuf-5.27.2-py3-none-any.whl", hash = "sha256:54330f07e4949d09614707c48b06d1a22f8ffb5763c159efd5c0928326a91470"},
+    {file = "protobuf-5.27.2.tar.gz", hash = "sha256:f3ecdef226b9af856075f28227ff2c90ce3a594d092c39bee5513573f25e2714"},
 ]
 
 [[package]]
@@ -3625,16 +3616,14 @@ files = [
 
 [[package]]
 name = "pycountry"
-version = "22.3.5"
+version = "24.6.1"
 description = "ISO country, subdivision, language, currency and script definitions and their translations"
 optional = false
-python-versions = ">=3.6, <4"
+python-versions = ">=3.8"
 files = [
-    {file = "pycountry-22.3.5.tar.gz", hash = "sha256:b2163a246c585894d808f18783e19137cb70a0c18fb36748dc01fc6f109c1646"},
+    {file = "pycountry-24.6.1-py3-none-any.whl", hash = "sha256:f1a4fb391cd7214f8eefd39556d740adcc233c778a27f8942c8dca351d6ce06f"},
+    {file = "pycountry-24.6.1.tar.gz", hash = "sha256:b61b3faccea67f87d10c1f2b0fc0be714409e8fcdcc1315613174f6466c10221"},
 ]
-
-[package.dependencies]
-setuptools = "*"
 
 [[package]]
 name = "pycparser"
@@ -3820,17 +3809,6 @@ python-versions = "*"
 files = [
     {file = "pygtrie-2.5.0-py3-none-any.whl", hash = "sha256:8795cda8105493d5ae159a5bef313ff13156c5d4d72feddefacaad59f8c8ce16"},
     {file = "pygtrie-2.5.0.tar.gz", hash = "sha256:203514ad826eb403dab1d2e2ddd034e0d1534bbe4dbe0213bb0593f66beba4e2"},
-]
-
-[[package]]
-name = "pynvml"
-version = "11.5.3"
-description = "Python utilities for the NVIDIA Management Library"
-optional = false
-python-versions = ">=3.6"
-files = [
-    {file = "pynvml-11.5.3-py3-none-any.whl", hash = "sha256:a5fba3ab14febda50d19dbda012ef62ae0aed45b7ccc07af0bc5be79223e450c"},
-    {file = "pynvml-11.5.3.tar.gz", hash = "sha256:183d223ae487e5f00402d8da06c68c978ef8a9295793ee75559839c6ade7b229"},
 ]
 
 [[package]]
@@ -5571,41 +5549,45 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 
 [[package]]
 name = "wandb"
-version = "0.15.12"
+version = "0.17.5"
 description = "A CLI and library for interacting with the Weights & Biases API."
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 files = [
-    {file = "wandb-0.15.12-py3-none-any.whl", hash = "sha256:75c57b5bb8ddae21d45a02f644628585bdd112fea686de3177099a0996f1c41c"},
-    {file = "wandb-0.15.12.tar.gz", hash = "sha256:c344d92fb8044b072a6138afd9adc5d3801ad050cf11378fe2af2fe899dcca84"},
+    {file = "wandb-0.17.5-py3-none-any.whl", hash = "sha256:1c0f60446b51561b67280a060388ffad2a6078fcfdf5024b9998252d237b4639"},
+    {file = "wandb-0.17.5-py3-none-macosx_10_14_x86_64.whl", hash = "sha256:653252c57df550edc70607da827bc68c670932d6775e2f6556909575e17c544b"},
+    {file = "wandb-0.17.5-py3-none-macosx_11_0_arm64.whl", hash = "sha256:233b02d3643142cce8c0ae7986c233fe976b3f7ec0f7aded7478dad0d5a74d43"},
+    {file = "wandb-0.17.5-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ca55edb64f0256a4d4961c3d9dd281a5928037827a21315a8ca67e92ccc60d06"},
+    {file = "wandb-0.17.5-py3-none-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:10e4b954ce7ff8615ee64b2dd5a04e51e8c64568d47ec39f5995dbbc9df172db"},
+    {file = "wandb-0.17.5-py3-none-win32.whl", hash = "sha256:04013a6974dd5ff8d69cff79efdbad625db9873e3049bffe85cf39d81f5207cb"},
+    {file = "wandb-0.17.5-py3-none-win_amd64.whl", hash = "sha256:c90e80df09c47e3e0432b2e4e90a4eff34f15e891467ec2f3c284834a33cd6c4"},
 ]
 
 [package.dependencies]
-appdirs = ">=1.4.3"
-Click = ">=7.1,<8.0.0 || >8.0.0"
+click = ">=7.1,<8.0.0 || >8.0.0"
 docker-pycreds = ">=0.4.0"
-GitPython = ">=1.0.0,<3.1.29 || >3.1.29"
-pathtools = "*"
-protobuf = {version = ">=3.19.0,<4.21.0 || >4.21.0,<5", markers = "python_version > \"3.9\" or sys_platform != \"linux\""}
+gitpython = ">=1.0.0,<3.1.29 || >3.1.29"
+platformdirs = "*"
+protobuf = {version = ">=3.19.0,<4.21.0 || >4.21.0,<6", markers = "python_version > \"3.9\" or sys_platform != \"linux\""}
 psutil = ">=5.0.0"
-PyYAML = "*"
+pyyaml = "*"
 requests = ">=2.0.0,<3"
 sentry-sdk = ">=1.0.0"
 setproctitle = "*"
 setuptools = "*"
 
 [package.extras]
-async = ["httpx (>=0.22.0)"]
 aws = ["boto3"]
 azure = ["azure-identity", "azure-storage-blob"]
 gcp = ["google-cloud-storage"]
+importers = ["filelock", "mlflow", "polars", "rich", "tenacity"]
 kubeflow = ["google-cloud-storage", "kubernetes", "minio", "sh"]
-launch = ["PyYAML (>=6.0.0)", "awscli", "azure-containerregistry", "azure-identity", "azure-storage-blob", "boto3", "botocore", "chardet", "google-auth", "google-cloud-artifact-registry", "google-cloud-compute", "google-cloud-storage", "iso8601", "kubernetes", "nbconvert", "nbformat", "optuna", "typing-extensions"]
-media = ["bokeh", "moviepy", "numpy", "pillow", "plotly", "rdkit-pypi", "soundfile"]
+launch = ["awscli", "azure-containerregistry", "azure-identity", "azure-storage-blob", "boto3", "botocore", "chardet", "google-auth", "google-cloud-aiplatform", "google-cloud-artifact-registry", "google-cloud-compute", "google-cloud-storage", "iso8601", "kubernetes", "kubernetes-asyncio", "nbconvert", "nbformat", "optuna", "pydantic", "pyyaml (>=6.0.0)", "tomli", "typing-extensions"]
+media = ["bokeh", "moviepy", "numpy", "pillow", "plotly (>=5.18.0)", "rdkit-pypi", "soundfile"]
 models = ["cloudpickle"]
-nexus = ["wandb-core (>=0.16.0b1)"]
 perf = ["orjson"]
 sweeps = ["sweeps (>=0.2.0)"]
+workspaces = ["wandb-workspaces"]
 
 [[package]]
 name = "wave"
@@ -5908,4 +5890,4 @@ kenlm = ["kenlm"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.13"
-content-hash = "3ec2df2fc021a146d8c110be14c2b3d8852ee0b08bd8576d9f02c569853f6f5d"
+content-hash = "1b68884361ef9c0b96f53aa35154f2d14829d7002de71ca33d906200ec20b482"
