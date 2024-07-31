@@ -248,6 +248,7 @@ def clean_example(
     example: dict,
     non_standard_characters_regex: re.Pattern[str],
     conversion_dict: dict[str, str],
+    text_column: str = "text",
 ) -> dict:
     """Helper function which cleans a single example.
 
@@ -258,11 +259,13 @@ def clean_example(
             A compiled regex expression that matches all non-standard characters.
         conversion_dict:
             A dictionary of characters to be converted.
+        text_column:
+            The name of the column containing the text.
 
     Returns:
         The cleaned example.
     """
-    doc = example["text"]
+    doc = example[text_column]
 
     # Normalise the transcription, which uniformises the characters. For instance, the
     # "long dash" (－) is converted to the normal dash (-).
@@ -281,6 +284,6 @@ def clean_example(
     doc = "\n".join([line.strip() for line in doc.split("\n")])
 
     # Re-assign the cleaned transcription
-    example["text"] = doc
+    example[text_column] = doc
 
     return example
