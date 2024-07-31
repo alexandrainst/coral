@@ -80,6 +80,9 @@ exclude = [
     ".scandeval_cache",
     ".venv",
 ]
+extend-include = [
+    "*.ipynb",
+]
 
 [tool.ruff.format]
 quote-style = "double"
