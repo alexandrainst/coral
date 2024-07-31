@@ -11,13 +11,13 @@ on:
       - main
 
 jobs:
-
-  lint:
+  code-check:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: jpetrucciani/ruff-check@0.4.8
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+      - uses: pre-commit/action@v3.0.1
 
   pytest:
     if: github.event.pull_request.draft == false

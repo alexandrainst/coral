@@ -40,7 +40,7 @@ def compute_wer_metrics(
     pad_token = tokenizer.pad_token_id
 
     # Shape: [batch_size, seq_len, vocab_size] or [batch_size, seq_len]
-    predictions: NDArray[np.int_] | NDArray[np.float_] = pred.predictions
+    predictions: NDArray[np.number] = pred.predictions
 
     # If all the logits are -100 for a token, then we set the logit for the padding
     # token for that token to 0. This is to ensure that this token gets decoded to a
