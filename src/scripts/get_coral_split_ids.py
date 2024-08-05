@@ -15,6 +15,7 @@ import logging
 from collections import namedtuple
 from pathlib import Path
 
+import click
 import numpy as np
 import pandas as pd
 import torch
@@ -32,9 +33,9 @@ logger = logging.getLogger("get_coral_split_ids")
 # Constants related to minimum requirements
 MEAN_SECONDS_PER_SAMPLE = 5
 MIN_TEST_HOURS = 7.5
-MIN_TEST_SAMPLES = int(MIN_TEST_HOURS * 60 * 60 / MEAN_SECONDS_PER_SAMPLE)
-MIN_VAL_HOURS = 0.5
-MIN_VAL_SAMPLES = int(MIN_VAL_HOURS * 60 * 60 / MEAN_SECONDS_PER_SAMPLE)
+MAX_TEST_HOURS = 20.0
+MIN_VAL_HOURS = 1.0
+MAX_VAL_HOURS = 10.0
 
 GENDERS = ["female", "male"]
 DIALECTS = [
@@ -101,6 +102,10 @@ class Dataset:
     Attributes:
         df (pd.DataFrame):
             Dataframe of the Coral dataset.
+        min_samples (int):
+            The minimum amount of samples in the dataset.
+        max_samples (int):
+            The maximum amount of samples in the dataset.
         indices (list[int]):
             List of indices of the Coral dataset that will be included in the dataset.
         speakers (list[str]):
@@ -119,6 +124,7 @@ class Dataset:
         self,
         df: pd.DataFrame,
         min_samples: int,
+        max_samples: int,
         requirements: dict[str, float],
         seed: int,
     ) -> None:
@@ -129,6 +135,8 @@ class Dataset:
                 Dataframe of the Coral dataset.
             min_samples:
                 The minimum amount of samples in the dataset.
+            max_samples:
+                The maximum amount of samples in the dataset
             requirements:
                 The requirements for the dataset, or None if no requirements are set.
             seed:
@@ -136,6 +144,7 @@ class Dataset:
         """
         self.df = df
         self.min_samples: int = min_samples
+        self.max_samples: int = max_samples
         self.requirements: dict[str, float] = requirements
         self.indices: list[int] = list()
         self.speakers: list[str] = list()
@@ -192,14 +201,18 @@ class Dataset:
             Dataset object with samples of each dialect.
         """
         df_speaker = self.df.drop_duplicates(subset="id_speaker")
-        while len(self) < self.min_samples or any(
-            count < len(self) * requirement
-            for key, requirement in self.requirements.items()
-            for count in self.counts[key].values()
+        while (
+            (
+                len(self) < self.min_samples
+                or any(
+                    count < len(self) * requirement
+                    for key, requirement in self.requirements.items()
+                    for count in self.counts[key].values()
+                )
+            )
+            and set(df_speaker.id_speaker.tolist()) - seen_speakers != set()
+            and len(self) < self.max_samples
         ):
-            # Break if all speakers have been seen
-            if set(df_speaker.id_speaker.tolist()) - seen_speakers == set():
-                break
 
             def _give_score(row: pd.Series) -> float:
                 return sum(weight[row[key]] for key, weight in self.weights.items())
@@ -264,7 +277,7 @@ class Dataset:
         for key, count in self.counts.items():
             msg += f"{key.capitalize()} distribution:\n"
             dist = {
-                feature: f"{feature_count / len(self):.0%}"
+                feature: f"{feature_count / len(self):.0%}" if len(self) > 0 else "0%"
                 for feature, feature_count in count.items()
             }
             for feature, feature_pct in dist.items():
@@ -337,17 +350,25 @@ def load_coral_metadata_df() -> pd.DataFrame:
     return df
 
 
-def main() -> None:
+@click.command()
+@click.option(
+    "--num-attempts",
+    "-n",
+    default=100,
+    help="Number of attempts to find the best test and validation splits.",
+)
+def main(num_attempts: int) -> None:
     """Main function to get the speaker IDs for the CoRal test and validation splits."""
     df = load_coral_metadata_df()
     seen_speakers: set[str] = set()
 
     test_requirements = dict(gender=0.4, age_group=0.2, dialect=0.1, accent=0.05)
     test_datasets: list[Dataset] = list()
-    for seed in tqdm(range(4242, 4242 + 100), desc="Computing test splits"):
+    for seed in tqdm(range(4242, 4242 + num_attempts), desc="Computing test splits"):
         test_dataset = Dataset(
             df=df,
-            min_samples=MIN_TEST_SAMPLES,
+            min_samples=int(MIN_TEST_HOURS * 60 * 60 / MEAN_SECONDS_PER_SAMPLE),
+            max_samples=int(MAX_TEST_HOURS * 60 * 60 / MEAN_SECONDS_PER_SAMPLE),
             requirements=test_requirements,
             seed=seed,
         ).add_dialect_samples(seen_speakers=seen_speakers)
@@ -355,11 +376,15 @@ def main() -> None:
     test_dataset = min(test_datasets, key=lambda x: len(x))
     logger.info(f"Test dataset:\n{test_dataset}")
 
-    val_requirements = dict(gender=0.2, age_group=0.1, dialect=0.0, accent=0.03)
+    val_requirements = dict(gender=0.2, age_group=0.1, dialect=0.01, accent=0.01)
     val_datasets: list[Dataset] = list()
-    for seed in range(4242 + 100, 4242 + 200):
+    for seed in range(4242, 4242 + num_attempts):
         val_dataset = Dataset(
-            df=df, min_samples=MIN_VAL_SAMPLES, requirements=val_requirements, seed=seed
+            df=df,
+            min_samples=int(MIN_VAL_HOURS * 60 * 60 / MEAN_SECONDS_PER_SAMPLE),
+            max_samples=int(MAX_VAL_HOURS * 60 * 60 / MEAN_SECONDS_PER_SAMPLE),
+            requirements=val_requirements,
+            seed=seed,
         ).add_dialect_samples(seen_speakers=seen_speakers)
         val_datasets.append(val_dataset)
     val_dataset = min(val_datasets, key=lambda x: len(x))
