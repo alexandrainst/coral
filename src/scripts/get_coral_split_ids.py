@@ -13,6 +13,9 @@ test set and should have roughly the same distribution.
 Developers:
     - Oliver Kinch (oliver.kinch@alexandra.dk)
     - Dan Saattrup Nielsen (dan.nielsen@alexandra.dk)
+
+Usage:
+    python src/scripts/get_coral_split_ids.py [--num-attempts NUM_ATTEMPTS]
 """
 
 import logging
