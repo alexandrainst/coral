@@ -368,7 +368,7 @@ def load_coral_metadata_df() -> pd.DataFrame:
 @click.option(
     "--num-attempts",
     "-n",
-    default=100,
+    default=1000,
     help="Number of attempts to find the best test and validation splits.",
 )
 def main(num_attempts: int) -> None:
