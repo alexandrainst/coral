@@ -158,6 +158,7 @@ class Dataset:
             key: self._make_weights(count, beta=0) for key, count in self.counts.items()
         }
         self.betas = dict(dialect=100.0, age_group=5.0)
+        self.add_dialect_samples()
 
     def add_speaker_samples(self, speaker: str) -> "Dataset":
         """Add all samples of a speaker to the dataset.
@@ -377,11 +378,11 @@ def main(config: DictConfig) -> None:
     )
 
     # Build test split
-    test_datasets: list[Dataset] = list()
+    test_candidates: list[Dataset] = list()
     min_test_hours = config.dataset_creation.requirements.test.min_hours
     max_test_hours = config.dataset_creation.requirements.test.max_hours
     for seed in tqdm(range(4242, 4242 + num_attempts), desc="Computing test splits"):
-        test_dataset = Dataset(
+        test_candidate = Dataset(
             df=df,
             min_samples=int(min_test_hours * 60 * 60 / mean_seconds_per_sample),
             max_samples=int(max_test_hours * 60 * 60 / mean_seconds_per_sample),
@@ -398,17 +399,17 @@ def main(config: DictConfig) -> None:
             age_groups=config.dataset_creation.age_groups,
             accents=config.dataset_creation.accents,
             mean_seconds_per_sample=mean_seconds_per_sample,
-        ).add_dialect_samples()
-        test_datasets.append(test_dataset)
-    test_dataset = min(test_datasets, key=lambda x: len(x))
+        )
+        test_candidates.append(test_candidate)
+    test_dataset = min(test_candidates, key=lambda x: len(x))
     logger.info(f"Test dataset:\n{test_dataset}")
 
     # Build validation split
-    val_datasets: list[Dataset] = list()
+    val_candidates: list[Dataset] = list()
     min_val_hours = config.dataset_creation.requirements.val.min_hours
     max_val_hours = config.dataset_creation.requirements.val.max_hours
     for seed in tqdm(range(4242, 4242 + num_attempts), desc="Computing val splits"):
-        val_dataset = Dataset(
+        val_candidate = Dataset(
             df=df,
             min_samples=int(min_val_hours * 60 * 60 / mean_seconds_per_sample),
             max_samples=int(max_val_hours * 60 * 60 / mean_seconds_per_sample),
@@ -425,9 +426,9 @@ def main(config: DictConfig) -> None:
             age_groups=config.dataset_creation.age_groups,
             accents=config.dataset_creation.accents,
             mean_seconds_per_sample=mean_seconds_per_sample,
-        ).add_dialect_samples()
-        val_datasets.append(val_dataset)
-    val_dataset = min(val_datasets, key=lambda x: len(x))
+        )
+        val_candidates.append(val_candidate)
+    val_dataset = min(val_candidates, key=lambda x: len(x))
     logger.info(f"Validation dataset:\n{val_dataset}")
 
     assert set(test_dataset.speakers).intersection(val_dataset.speakers) == set()
