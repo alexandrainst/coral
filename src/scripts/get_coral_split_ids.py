@@ -21,7 +21,7 @@ Usage:
 
 import logging
 from pathlib import Path
-from typing import Any, NamedTuple, TypedDict
+from typing import NamedTuple
 
 import hydra
 import numpy as np
@@ -45,23 +45,23 @@ class AgeGroup(NamedTuple):
     min: int
     max: int | None
 
+    def __repr__(self) -> str:
+        """Return the string representation of the AgeGroup class."""
+        if self.max is None:
+            return f"{self.min}-"
+        return f"{self.min}-{self.max - 1}"
 
-class Counts(TypedDict):
-    """Class to keep track of the counts of the features in the dataset."""
+    def __in__(self, age: int) -> bool:
+        """Check if an age is in the age group.
 
-    gender: dict[str, int]
-    dialect: dict[str, int]
-    age_group: dict[AgeGroup, int]
-    accent: dict[str, int]
+        Args:
+            age:
+                The age to check.
 
-
-class Weights(TypedDict):
-    """Class to keep track of the weights of the features in the dataset."""
-
-    gender: dict[str, float]
-    dialect: dict[str, float]
-    age_group: dict[AgeGroup, float]
-    accent: dict[str, float]
+        Returns:
+            Whether the age is in the age group.
+        """
+        return self.min <= age and (self.max is None or age < self.max)
 
 
 class Dataset:
@@ -146,19 +146,15 @@ class Dataset:
         self.age_groups = [
             AgeGroup(min=min_age, max=max_age) for min_age, max_age in age_groups
         ]
-
-        self.counts = Counts(
+        self.counts: dict[str, dict[str, int]] = dict(
             gender={gender: 0 for gender in genders},
             dialect={dialect: 0 for dialect in dialects},
-            age_group={age_group: 0 for age_group in self.age_groups},
+            age_group={str(age_group): 0 for age_group in self.age_groups},
             accent={accent: 0 for accent in accents},
         )
-        self.weights: Weights = Weights(
-            gender=self._make_weights(count=self.counts["gender"], beta=0),
-            dialect=self._make_weights(count=self.counts["dialect"], beta=0),
-            age_group=self._make_weights(count=self.counts["age_group"], beta=0),
-            accent=self._make_weights(count=self.counts["accent"], beta=0),
-        )
+        self.weights: dict[str, dict[str, float]] = {
+            key: self._make_weights(count, beta=0) for key, count in self.counts.items()
+        }
         self.betas = dict(dialect=100.0, age_group=5.0)
 
     def add_speaker_samples(self, speaker: str) -> "Dataset":
@@ -179,7 +175,6 @@ class Dataset:
         # age_group, and native_language
         row = speaker_samples.iloc[0]
         for key, count in self.counts.items():
-            assert isinstance(count, dict)
             if key == "age":
                 row["age"] = age_to_group(age=row["age"], age_groups=self.age_groups)
             count[row[key]] += n_samples
@@ -247,23 +242,13 @@ class Dataset:
 
     def _update_weights(self) -> "Dataset":
         """Update the weights."""
-        self.weights = Weights(
-            gender=self._make_weights(
-                count=self.counts["gender"], beta=self.betas.get("gender", 0)
-            ),
-            dialect=self._make_weights(
-                count=self.counts["dialect"], beta=self.betas.get("dialect", 0)
-            ),
-            age_group=self._make_weights(
-                count=self.counts["age_group"], beta=self.betas.get("age_group", 0)
-            ),
-            accent=self._make_weights(
-                count=self.counts["accent"], beta=self.betas.get("accent", 0)
-            ),
-        )
+        self.weights = {
+            key: self._make_weights(count, beta=self.betas.get(key, 0))
+            for key, count in self.counts.items()
+        }
         return self
 
-    def _make_weights(self, count: dict[Any, int], beta: float) -> dict:
+    def _make_weights(self, count: dict[str, int], beta: float) -> dict:
         """Make a weight mapping for a feature, based on counts.
 
         Args:
@@ -326,11 +311,8 @@ def age_to_group(age: int, age_groups: list[AgeGroup]) -> str:
             If the age is not in any age group.
     """
     for age_group in age_groups:
-        if age_group.min <= age and (age_group.max is None or age < age_group.max):
-            if age_group.max is None:
-                return f"{age_group.min}+"
-            else:
-                return f"{age_group.min}-{age_group.max - 1}"
+        if age in age_group:
+            return str(age_group)
     raise ValueError(f"Age {age} not in any age group.")
 
 

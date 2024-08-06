@@ -84,12 +84,9 @@ dataset_creation:
     - Vestjysk
     - Østjysk
   age_groups:
-    - min: 0
-      max: 25
-    - min: 25
-      max: 50
-    - min: 50
-      max: null
+    - [0, 25]
+    - [25, 50]
+    - [50, null]
   accents:
     - native
     - foreign
@@ -115,7 +112,7 @@ dataset_creation:
     morsingmål: Vestjysk
     sydøstjysk: Østjysk
     østsjællandsk: Sjællandsk
-    syd for rigsgrænsen: mellemslesvisk, angelmål, fjoldemål: Sønderjysk
+    syd for rigsgrænsen: "mellemslesvisk, angelmål, fjoldemål: Sønderjysk"
     vestfynsk (nordvest-, sydvestfynsk): Fynsk
     vestlig sønderjysk (m. mandø og rømø): Sønderjysk
     sydvestjysk (m. fanø): Vestjysk
