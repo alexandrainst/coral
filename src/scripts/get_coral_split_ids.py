@@ -110,9 +110,15 @@ class Dataset:
             The minimum amount of samples in the dataset.
         max_samples (int):
             The maximum amount of samples in the dataset.
+        requirements (dict):
+            The requirements for the dataset.
+        banned_speakers (set[str]):
+            Set of speaker IDs that should not be included in the dataset.
+        seed (int):
+            The seed for the random number generator.
         indices (list[int]):
             List of indices of the Coral dataset that will be included in the dataset.
-        speakers (list[str]):
+        speakers (set[str]):
             List of speaker IDs that will be included in the dataset.
         rng (np.random.Generator):
             Random number generator.
@@ -130,6 +136,7 @@ class Dataset:
         min_samples: int,
         max_samples: int,
         requirements: dict[str, float],
+        banned_speakers: set[str],
         seed: int,
     ) -> None:
         """Initialise the Dataset class.
@@ -142,7 +149,9 @@ class Dataset:
             max_samples:
                 The maximum amount of samples in the dataset
             requirements:
-                The requirements for the dataset, or None if no requirements are set.
+                The requirements for the dataset.
+            banned_speakers:
+                Set of speaker IDs that should not be included in the dataset.
             seed:
                 The seed for the random number generator.
         """
@@ -150,8 +159,10 @@ class Dataset:
         self.min_samples: int = min_samples
         self.max_samples: int = max_samples
         self.requirements: dict[str, float] = requirements
+        self.banned_speakers: set[str] = banned_speakers
+        self.seed: int = seed
         self.indices: list[int] = list()
-        self.speakers: list[str] = list()
+        self.speakers: set[str] = set()
         self.rng = np.random.default_rng(seed=seed)
 
         self.counts = dict(
@@ -175,7 +186,7 @@ class Dataset:
             speaker:
                 The id of the speaker
         """
-        self.speakers.append(speaker)
+        self.speakers.add(speaker)
 
         speaker_samples = self.df.query("id_speaker == @speaker")
         n_samples = len(speaker_samples)
@@ -192,19 +203,19 @@ class Dataset:
 
         self._update_weights()
 
-    def add_dialect_samples(self, seen_speakers: set[str]):
+    def add_dialect_samples(self):
         """Get samples of dialects each dialect.
 
         Args:
             dataset:
                 Dataset object.
-            seen_speakers:
-                Set of speaker IDs that have already been sampled.
 
         Returns:
             Dataset object with samples of each dialect.
         """
-        df_speaker = self.df.drop_duplicates(subset="id_speaker")
+        df_speaker = self.df.drop_duplicates(subset="id_speaker").query(
+            "id_speaker not in @self.banned_speakers"
+        )
         while (
             (
                 len(self) < self.min_samples
@@ -214,7 +225,7 @@ class Dataset:
                     for count in self.counts[key].values()
                 )
             )
-            and set(df_speaker.id_speaker.tolist()) - seen_speakers != set()
+            and set(df_speaker.id_speaker.tolist()) - self.speakers != set()
             and len(self) < self.max_samples
         ):
 
@@ -237,7 +248,6 @@ class Dataset:
 
             speaker = self.rng.choice(speakers, p=probs)
             self.add_speaker_samples(speaker=speaker)
-            seen_speakers.add(speaker)
 
         return self
 
@@ -364,8 +374,8 @@ def load_coral_metadata_df() -> pd.DataFrame:
 def main(num_attempts: int) -> None:
     """Main function to get the speaker IDs for the CoRal test and validation splits."""
     df = load_coral_metadata_df()
-    seen_speakers: set[str] = set()
 
+    # Build test split
     test_requirements = dict(gender=0.4, age_group=0.2, dialect=0.1, accent=0.05)
     test_datasets: list[Dataset] = list()
     for seed in tqdm(range(4242, 4242 + num_attempts), desc="Computing test splits"):
@@ -374,12 +384,14 @@ def main(num_attempts: int) -> None:
             min_samples=int(MIN_TEST_HOURS * 60 * 60 / MEAN_SECONDS_PER_SAMPLE),
             max_samples=int(MAX_TEST_HOURS * 60 * 60 / MEAN_SECONDS_PER_SAMPLE),
             requirements=test_requirements,
+            banned_speakers=set(),
             seed=seed,
-        ).add_dialect_samples(seen_speakers=seen_speakers)
+        ).add_dialect_samples()
         test_datasets.append(test_dataset)
     test_dataset = min(test_datasets, key=lambda x: len(x))
     logger.info(f"Test dataset:\n{test_dataset}")
 
+    # Build validation split
     val_requirements = dict(gender=0.2, age_group=0.1, dialect=0.01, accent=0.01)
     val_datasets: list[Dataset] = list()
     for seed in range(4242, 4242 + num_attempts):
@@ -388,11 +400,14 @@ def main(num_attempts: int) -> None:
             min_samples=int(MIN_VAL_HOURS * 60 * 60 / MEAN_SECONDS_PER_SAMPLE),
             max_samples=int(MAX_VAL_HOURS * 60 * 60 / MEAN_SECONDS_PER_SAMPLE),
             requirements=val_requirements,
+            banned_speakers=test_dataset.speakers,
             seed=seed,
-        ).add_dialect_samples(seen_speakers=seen_speakers)
+        ).add_dialect_samples()
         val_datasets.append(val_dataset)
     val_dataset = min(val_datasets, key=lambda x: len(x))
     logger.info(f"Validation dataset:\n{val_dataset}")
+
+    assert set(test_dataset.speakers).intersection(val_dataset.speakers) == set()
 
 
 if __name__ == "__main__":
