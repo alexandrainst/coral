@@ -9,6 +9,10 @@ The test set is subject to the following constraints:
 
 The validation split has no formal criteria, but must be significantly smaller than the
 test set and should have roughly the same distribution.
+
+Developers:
+    - Oliver Kinch (oliver.kinch@alexandra.dk)
+    - Dan Saattrup Nielsen (dan.nielsen@alexandra.dk)
 """
 
 import logging
