@@ -243,6 +243,12 @@ class Dataset:
                 .tolist()
             )
 
+            # Ensure that the probabilities sum to 1, as this is required by the
+            # `choice` function. We do this by changing the last probability to 1 - the
+            # sum of the other probabilities. Sometimes, for some reason the other
+            # probabilities sum to slightly more than 1, making the new probability
+            # negative. In this case we clamp it to 0, and change the second last
+            # probability to 1 - the sum of the other probabilities, and so on.
             index_to_change_if_sum_not_one = -1
             while sum(probs) != 1:
                 sum_of_others = sum(probs) - probs[index_to_change_if_sum_not_one]
