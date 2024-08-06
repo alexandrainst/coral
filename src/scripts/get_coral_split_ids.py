@@ -182,7 +182,7 @@ class Dataset:
 
         self.betas = dict(dialect=100.0, age_group=5.0)
 
-    def add_speaker_samples(self, speaker: str) -> None:
+    def add_speaker_samples(self, speaker: str) -> "Dataset":
         """Add all samples of a speaker to the dataset.
 
         Args:
@@ -206,7 +206,9 @@ class Dataset:
 
         self._update_weights()
 
-    def add_dialect_samples(self):
+        return self
+
+    def add_dialect_samples(self) -> "Dataset":
         """Get samples of dialects each dialect.
 
         Args:
@@ -260,15 +262,16 @@ class Dataset:
 
         return self
 
-    def _update_weights(self) -> None:
+    def _update_weights(self) -> "Dataset":
         """Update the weights."""
         self.weights = {
             key: self._make_weights(count=count, beta=self.betas.get(key, 0))
             for key, count in self.counts.items()
         }
+        return self
 
     def _make_weights(self, count: dict, beta: float) -> dict:
-        """Make weights based on counts.
+        """Make a weight mapping for a feature, based on counts.
 
         Args:
             count:
@@ -277,7 +280,7 @@ class Dataset:
                 Shift the weights of the least represented feature.
 
         Returns:
-            Weights for the feature.
+            Weight mapping for the feature.
         """
         inv_count = {key: 1 / (1 + value) for key, value in count.items()}
         normalizer = sum(inv_count.values())
