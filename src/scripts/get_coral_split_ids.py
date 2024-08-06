@@ -15,18 +15,20 @@ Developers:
     - Dan Saattrup Nielsen (dan.nielsen@alexandra.dk)
 
 Usage:
-    python src/scripts/get_coral_split_ids.py [--num-attempts NUM_ATTEMPTS]
+    python src/scripts/get_coral_split_ids.py \
+        [dataset_creation.num_split_attempts=NUM_ATTEMPTS]
 """
 
 import logging
-from collections import namedtuple
 from pathlib import Path
+from typing import Any, NamedTuple, TypedDict
 
-import click
+import hydra
 import numpy as np
 import pandas as pd
 import torch
 from datasets import IterableDataset, load_dataset
+from omegaconf import DictConfig
 from tqdm.auto import tqdm
 
 logging.basicConfig(
@@ -37,70 +39,29 @@ logging.basicConfig(
 logger = logging.getLogger("get_coral_split_ids")
 
 
-# Constants related to minimum requirements
-MEAN_SECONDS_PER_SAMPLE = 5
-MIN_TEST_HOURS = 7.5
-MAX_TEST_HOURS = 20.0
-MIN_VAL_HOURS = 1.0
-MAX_VAL_HOURS = 10.0
+class AgeGroup(NamedTuple):
+    """Named tuple to represent an age group."""
 
-GENDERS = ["female", "male"]
-DIALECTS = [
-    "Bornholmsk",
-    "Fynsk",
-    "Københavnsk",
-    "Nordjysk",
-    "Sjællandsk",
-    "Sydømål",
-    "Sønderjysk",
-    "Vestjysk",
-    "Østjysk",
-]
+    min: int
+    max: int | None
 
-age_group = namedtuple("age_group", ["min", "max"])
-AGE_GROUPS = {
-    "0-24": age_group(0, 25),
-    "25-49": age_group(25, 50),
-    "50-": age_group(50, int(1e6)),
-}
-ACCENTS = ["native", "foreign"]
 
-SUB_DIALECT_TO_DIALECT = {
-    "midtøstjysk": "Østjysk",
-    "østjysk": "Østjysk",
-    "amagermål": "Københavnsk",
-    "nørrejysk": "Nordjysk",
-    "vestjysk": "Vestjysk",
-    "nordsjællandsk": "Sjællandsk",
-    "sjællandsk": "Sjællandsk",
-    "fynsk": "Fynsk",
-    "bornholmsk": "Bornholmsk",
-    "sønderjysk": "Sønderjysk",
-    "vendsysselsk (m. hanherred og læsø)": "Nordjysk",
-    "østligt sønderjysk (m. als)": "Sønderjysk",
-    "nordvestsjællandsk": "Sjællandsk",
-    "thybomål": "Vestjysk",
-    "himmerlandsk": "Nordjysk",
-    "djurslandsk (nord-, syddjurs m. nord- og sydsamsø, anholt)": "Østjysk",
-    "sydsjællandsk (sydligt sydsjællandsk)": "Sjællandsk",
-    "sydfynsk": "Fynsk",
-    "morsingmål": "Vestjysk",
-    "sydøstjysk": "Østjysk",
-    "østsjællandsk": "Sjællandsk",
-    "syd for rigsgrænsen: mellemslesvisk, angelmål, fjoldemål": "Sønderjysk",
-    "vestfynsk (nordvest-, sydvestfynsk)": "Fynsk",
-    "vestlig sønderjysk (m. mandø og rømø)": "Sønderjysk",
-    "sydvestjysk (m. fanø)": "Vestjysk",
-    "sallingmål": "Vestjysk",
-    "nordfalstersk": "Sydømål",
-    "langelandsk": "Fynsk",
-    "sydvestsjællandsk": "Sjællandsk",
-    "lollandsk": "Sydømål",
-    "sydømål": "Sydømål",
-    "ommersysselsk": "Østjysk",
-    "sydfalstersk": "Sydømål",
-    "fjandbomål": "Vestjysk",
-}
+class Counts(TypedDict):
+    """Class to keep track of the counts of the features in the dataset."""
+
+    gender: dict[str, int]
+    dialect: dict[str, int]
+    age_group: dict[AgeGroup, int]
+    accent: dict[str, int]
+
+
+class Weights(TypedDict):
+    """Class to keep track of the weights of the features in the dataset."""
+
+    gender: dict[str, float]
+    dialect: dict[str, float]
+    age_group: dict[AgeGroup, float]
+    accent: dict[str, float]
 
 
 class Dataset:
@@ -117,14 +78,14 @@ class Dataset:
             The requirements for the dataset.
         banned_speakers (set[str]):
             Set of speaker IDs that should not be included in the dataset.
-        seed (int):
-            The seed for the random number generator.
         indices (list[int]):
             List of indices of the Coral dataset that will be included in the dataset.
         speakers (set[str]):
             List of speaker IDs that will be included in the dataset.
         rng (np.random.Generator):
             Random number generator.
+        mean_seconds_per_sample (float):
+            The mean duration of a sample in seconds. Only used for logging.
         counts (dict):
             Count of each feature in the dataset.
         weights (dict):
@@ -141,6 +102,11 @@ class Dataset:
         requirements: dict[str, float],
         banned_speakers: set[str],
         seed: int,
+        genders: list[str],
+        dialects: list[str],
+        age_groups: list[tuple[int, int]],
+        accents: list[str],
+        mean_seconds_per_sample: float,
     ) -> None:
         """Initialise the Dataset class.
 
@@ -157,29 +123,42 @@ class Dataset:
                 Set of speaker IDs that should not be included in the dataset.
             seed:
                 The seed for the random number generator.
+            genders:
+                A list of possible gender values.
+            dialects:
+                A list of possible dialect values.
+            age_groups:
+                A list of tuples with the minimum and maximum age of each age group.
+            accents:
+                A list of possible accent values.
+            mean_seconds_per_sample:
+                The mean duration of a sample in seconds. Only used for logging.
         """
         self.df = df
         self.min_samples: int = min_samples
         self.max_samples: int = max_samples
         self.requirements: dict[str, float] = requirements
         self.banned_speakers: set[str] = banned_speakers
-        self.seed: int = seed
         self.indices: list[int] = list()
         self.speakers: set[str] = set()
         self.rng = np.random.default_rng(seed=seed)
+        self.mean_seconds_per_sample = mean_seconds_per_sample
+        self.age_groups = [
+            AgeGroup(min=min_age, max=max_age) for min_age, max_age in age_groups
+        ]
 
-        self.counts = dict(
-            gender={gender: 0 for gender in GENDERS},
-            dialect={dialect: 0 for dialect in DIALECTS},
-            age_group={age_group: 0 for age_group in AGE_GROUPS.keys()},
-            accent={accent: 0 for accent in ACCENTS},
+        self.counts = Counts(
+            gender={gender: 0 for gender in genders},
+            dialect={dialect: 0 for dialect in dialects},
+            age_group={age_group: 0 for age_group in self.age_groups},
+            accent={accent: 0 for accent in accents},
         )
-
-        self.weights = {
-            key: self._make_weights(count=count, beta=0)
-            for key, count in self.counts.items()
-        }
-
+        self.weights: Weights = Weights(
+            gender=self._make_weights(count=self.counts["gender"], beta=0),
+            dialect=self._make_weights(count=self.counts["dialect"], beta=0),
+            age_group=self._make_weights(count=self.counts["age_group"], beta=0),
+            accent=self._make_weights(count=self.counts["accent"], beta=0),
+        )
         self.betas = dict(dialect=100.0, age_group=5.0)
 
     def add_speaker_samples(self, speaker: str) -> "Dataset":
@@ -200,8 +179,9 @@ class Dataset:
         # age_group, and native_language
         row = speaker_samples.iloc[0]
         for key, count in self.counts.items():
+            assert isinstance(count, dict)
             if key == "age":
-                row["age"] = age_to_group(age=row["age"])
+                row["age"] = age_to_group(age=row["age"], age_groups=self.age_groups)
             count[row[key]] += n_samples
 
         self._update_weights()
@@ -227,7 +207,7 @@ class Dataset:
                 or any(
                     count < len(self) * requirement
                     for key, requirement in self.requirements.items()
-                    for count in self.counts[key].values()
+                    for count in self.counts[key].values()  # type: ignore[literal-required]
                 )
             )
             and set(df_speaker.id_speaker.tolist()) - self.speakers != set()
@@ -235,7 +215,10 @@ class Dataset:
         ):
 
             def _give_score(row: pd.Series) -> float:
-                return sum(weight[row[key]] for key, weight in self.weights.items())
+                return sum(
+                    weight[row[key]]  # type: ignore[index]
+                    for key, weight in self.weights.items()
+                )
 
             speakers = df_speaker["id_speaker"].tolist()
             scores = df_speaker.apply(func=_give_score, axis=1).tolist()
@@ -264,13 +247,23 @@ class Dataset:
 
     def _update_weights(self) -> "Dataset":
         """Update the weights."""
-        self.weights = {
-            key: self._make_weights(count=count, beta=self.betas.get(key, 0))
-            for key, count in self.counts.items()
-        }
+        self.weights = Weights(
+            gender=self._make_weights(
+                count=self.counts["gender"], beta=self.betas.get("gender", 0)
+            ),
+            dialect=self._make_weights(
+                count=self.counts["dialect"], beta=self.betas.get("dialect", 0)
+            ),
+            age_group=self._make_weights(
+                count=self.counts["age_group"], beta=self.betas.get("age_group", 0)
+            ),
+            accent=self._make_weights(
+                count=self.counts["accent"], beta=self.betas.get("accent", 0)
+            ),
+        )
         return self
 
-    def _make_weights(self, count: dict, beta: float) -> dict:
+    def _make_weights(self, count: dict[Any, int], beta: float) -> dict:
         """Make a weight mapping for a feature, based on counts.
 
         Args:
@@ -294,7 +287,7 @@ class Dataset:
 
     def __repr__(self) -> str:
         """Return the string representation of the Dataset class."""
-        num_hours = len(self) * MEAN_SECONDS_PER_SAMPLE / 60 / 60
+        num_hours = len(self) * self.mean_seconds_per_sample / 60 / 60
         msg = (
             f"\nEstimated number of hours: {num_hours:.2f}"
             f"\nSpeaker IDs: {self.speakers}\n\n"
@@ -304,7 +297,7 @@ class Dataset:
             msg += f"{key.capitalize()} distribution:\n"
             dist = {
                 feature: f"{feature_count / len(self):.0%}" if len(self) > 0 else "0%"
-                for feature, feature_count in count.items()
+                for feature, feature_count in count.items()  # type: ignore[attr-defined]
             }
             for feature, feature_pct in dist.items():
                 msg += f"- {feature}: {feature_pct}\n"
@@ -316,12 +309,14 @@ class Dataset:
         return len(self.indices)
 
 
-def age_to_group(age: int) -> str:
+def age_to_group(age: int, age_groups: list[AgeGroup]) -> str:
     """Return the age group of a given age.
 
     Args:
         age:
             The age of the speaker.
+        age_groups:
+            A list of the possible age groups.
 
     Returns:
         The age group of the speaker.
@@ -330,16 +325,23 @@ def age_to_group(age: int) -> str:
         ValueError:
             If the age is not in any age group.
     """
-    for group, age_group in AGE_GROUPS.items():
-        if age_group.min <= age < age_group.max:
-            return group
+    for age_group in age_groups:
+        if age_group.min <= age and (age_group.max is None or age < age_group.max):
+            if age_group.max is None:
+                return f"{age_group.min}+"
+            else:
+                return f"{age_group.min}-{age_group.max - 1}"
     raise ValueError(f"Age {age} not in any age group.")
 
 
-def load_coral_metadata_df() -> pd.DataFrame:
+def load_coral_metadata_df(sub_dialect_to_dialect: dict[str, str]) -> pd.DataFrame:
     """Load the metadata of the CoRal dataset.
 
     If the metadata is not found, it will be downloaded.
+
+    Args:
+        sub_dialect_to_dialect:
+            A mapping from sub-dialect to dialect.
 
     Returns:
         The metadata of the CoRal dataset.
@@ -366,7 +368,7 @@ def load_coral_metadata_df() -> pd.DataFrame:
             )
         ]
         df = pd.DataFrame(metadata)
-        df.dialect = df.dialect.map(SUB_DIALECT_TO_DIALECT)
+        df.dialect = df.dialect.map(sub_dialect_to_dialect)
         df["accent"] = df.language_native.apply(
             lambda x: "native" if x == "da" else "foreign"
         )
@@ -376,44 +378,69 @@ def load_coral_metadata_df() -> pd.DataFrame:
     return df
 
 
-@click.command()
-@click.option(
-    "--num-attempts",
-    "-n",
-    default=1000,
-    help="Number of attempts to find the best test and validation splits.",
-)
-def main(num_attempts: int) -> None:
-    """Main function to get the speaker IDs for the CoRal test and validation splits."""
-    df = load_coral_metadata_df()
+@hydra.main(config_path="../../config", config_name="config", version_base=None)
+def main(config: DictConfig) -> None:
+    """Main function to get the speaker IDs for the CoRal test and validation splits.
+
+    Args:
+        config:
+            The Hydra configuration object
+    """
+    mean_seconds_per_sample = config.dataset_creation.mean_seconds_per_sample
+    num_attempts = config.dataset_creation.num_split_attempts
+    df = load_coral_metadata_df(
+        sub_dialect_to_dialect=config.dataset_creation.sub_dialect_to_dialect
+    )
 
     # Build test split
-    test_requirements = dict(gender=0.4, age_group=0.2, dialect=0.1, accent=0.05)
     test_datasets: list[Dataset] = list()
+    min_test_hours = config.dataset_creation.requirements.test.min_hours
+    max_test_hours = config.dataset_creation.requirements.test.max_hours
     for seed in tqdm(range(4242, 4242 + num_attempts), desc="Computing test splits"):
         test_dataset = Dataset(
             df=df,
-            min_samples=int(MIN_TEST_HOURS * 60 * 60 / MEAN_SECONDS_PER_SAMPLE),
-            max_samples=int(MAX_TEST_HOURS * 60 * 60 / MEAN_SECONDS_PER_SAMPLE),
-            requirements=test_requirements,
+            min_samples=int(min_test_hours * 60 * 60 / mean_seconds_per_sample),
+            max_samples=int(max_test_hours * 60 * 60 / mean_seconds_per_sample),
+            requirements=dict(
+                gender=config.dataset_creation.requirements.test.gender_pct,
+                dialect=config.dataset_creation.requirements.test.dialect_pct,
+                age_group=config.dataset_creation.requirements.test.age_group_pct,
+                accent=config.dataset_creation.requirements.test.accent_pct,
+            ),
             banned_speakers=set(),
             seed=seed,
+            genders=config.dataset_creation.genders,
+            dialects=config.dataset_creation.dialects,
+            age_groups=config.dataset_creation.age_groups,
+            accents=config.dataset_creation.accents,
+            mean_seconds_per_sample=mean_seconds_per_sample,
         ).add_dialect_samples()
         test_datasets.append(test_dataset)
     test_dataset = min(test_datasets, key=lambda x: len(x))
     logger.info(f"Test dataset:\n{test_dataset}")
 
     # Build validation split
-    val_requirements = dict(gender=0.2, age_group=0.1, dialect=0.01, accent=0.01)
     val_datasets: list[Dataset] = list()
+    min_val_hours = config.dataset_creation.requirements.val.min_hours
+    max_val_hours = config.dataset_creation.requirements.val.max_hours
     for seed in range(4242, 4242 + num_attempts):
         val_dataset = Dataset(
             df=df,
-            min_samples=int(MIN_VAL_HOURS * 60 * 60 / MEAN_SECONDS_PER_SAMPLE),
-            max_samples=int(MAX_VAL_HOURS * 60 * 60 / MEAN_SECONDS_PER_SAMPLE),
-            requirements=val_requirements,
+            min_samples=int(min_val_hours * 60 * 60 / mean_seconds_per_sample),
+            max_samples=int(max_val_hours * 60 * 60 / mean_seconds_per_sample),
+            requirements=dict(
+                gender=config.dataset_creation.requirements.val.gender_pct,
+                dialect=config.dataset_creation.requirements.val.dialect_pct,
+                age_group=config.dataset_creation.requirements.val.age_group_pct,
+                accent=config.dataset_creation.requirements.val.accent_pct,
+            ),
             banned_speakers=test_dataset.speakers,
             seed=seed,
+            genders=config.dataset_creation.genders,
+            dialects=config.dataset_creation.dialects,
+            age_groups=config.dataset_creation.age_groups,
+            accents=config.dataset_creation.accents,
+            mean_seconds_per_sample=mean_seconds_per_sample,
         ).add_dialect_samples()
         val_datasets.append(val_dataset)
     val_dataset = min(val_datasets, key=lambda x: len(x))
