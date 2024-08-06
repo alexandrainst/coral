@@ -405,7 +405,7 @@ def main(config: DictConfig) -> None:
     val_datasets: list[Dataset] = list()
     min_val_hours = config.dataset_creation.requirements.val.min_hours
     max_val_hours = config.dataset_creation.requirements.val.max_hours
-    for seed in range(4242, 4242 + num_attempts):
+    for seed in tqdm(range(4242, 4242 + num_attempts), desc="Computing val splits"):
         val_dataset = Dataset(
             df=df,
             min_samples=int(min_val_hours * 60 * 60 / mean_seconds_per_sample),
