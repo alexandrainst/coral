@@ -15,8 +15,7 @@ Developers:
     - Dan Saattrup Nielsen (dan.nielsen@alexandra.dk)
 
 Usage:
-    python src/scripts/get_coral_split_ids.py \
-        [dataset_creation.num_split_attempts=NUM_ATTEMPTS]
+    python src/scripts/get_coral_split_ids.py <key>=<value> <key>=<value> ...
 """
 
 import logging
