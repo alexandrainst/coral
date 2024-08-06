@@ -10,6 +10,9 @@ The test set is subject to the following constraints:
 The validation split has no formal criteria, but must be significantly smaller than the
 test set and should have roughly the same distribution.
 
+These constraints, along with all the other hyperparameters related to the creation of
+the splits, are defined in the configuration file under the `dataset_creation` section.
+
 Developers:
     - Oliver Kinch (oliver.kinch@alexandra.dk)
     - Dan Saattrup Nielsen (dan.nielsen@alexandra.dk)
