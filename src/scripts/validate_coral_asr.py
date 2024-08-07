@@ -99,9 +99,9 @@ logger = logging.getLogger("validate_coral_asr")
 )
 @click.option(
     "--cache-dir",
-    default="~/.cache",
-    show_default=True,
-    help="Directory to cache the dataset and the model in.",
+    default=None,
+    help="Directory to cache the dataset and the model in. Defaults to the Hugging Face "
+    "default cache directory.",
 )
 @click.option(
     "--batch-size",
