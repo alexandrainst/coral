@@ -1,8 +1,10 @@
 num_split_attempts: 1000
 mean_seconds_per_sample: 5.0
+
 genders:
   - female
   - male
+
 dialects:
   - Bornholmsk
   - Fynsk
@@ -13,13 +15,16 @@ dialects:
   - Sønderjysk
   - Vestjysk
   - Østjysk
+
 age_groups:
   - [0, 25]
   - [25, 50]
   - [50, null]
+
 accents:
   - native
   - foreign
+
 sub_dialect_to_dialect:
   midtøstjysk: Østjysk
   østjysk: Østjysk
@@ -55,6 +60,7 @@ sub_dialect_to_dialect:
   ommersysselsk: Østjysk
   sydfalstersk: Sydømål
   fjandbomål: Vestjysk
+
 requirements:
   test:
     min_hours: 7.5
