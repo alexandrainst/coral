@@ -96,7 +96,9 @@ def main(config: DictConfig) -> None:
             labels=processor(
                 text=example[config.text_column], truncation=True
             ).input_ids
-        )
+        ),
+        keep_in_memory=True,
+        load_from_cache_file=False,
     )
     assert isinstance(dataset, DatasetDict)
 
@@ -220,7 +222,9 @@ def clean_dataset(
             non_standard_characters_regex=non_standard_characters_regex,
             conversion_dict=conversion_dict,
             text_column=text_column,
-        )
+        ),
+        keep_in_memory=True,
+        load_from_cache_file=False,
     )
 
     return cleaned_dataset
