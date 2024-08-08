@@ -18,8 +18,8 @@ import logging
 import re
 from functools import partial
 
-import click
 import evaluate
+import hydra
 import numpy as np
 import torch
 from coral.data import clean_example
@@ -27,6 +27,7 @@ from coral.data_collators import DataCollatorCTCWithPadding
 from coral.data_models import Processor
 from datasets import Audio, Dataset, DatasetDict, load_dataset
 from numpy.typing import NDArray
+from omegaconf import DictConfig
 from transformers import (
     AutoModelForCTC,
     AutoProcessor,
@@ -43,99 +44,32 @@ logging.basicConfig(
 logger = logging.getLogger("validate_coral_asr")
 
 
-@click.command()
-@click.option(
-    "--model-id",
-    "-m",
-    required=True,
-    help="Hugging Face Hub ID of the ASR model to use for validation.",
+@hydra.main(
+    config_path="../../config", config_name="dataset_validation", version_base=None
 )
-@click.option(
-    "--dataset-id",
-    "-d",
-    required=True,
-    help="Hugging Face Hub ID of the ASR dataset to validate.",
-)
-@click.option(
-    "--dataset-subset",
-    default=None,
-    show_default=True,
-    help="Name of the subset of the dataset to validate. If None then we assume no "
-    "subsets exist.",
-)
-@click.option(
-    "--dataset-split",
-    default=None,
-    show_default=True,
-    help="Name of the split of the dataset to validate. If None then all splits are "
-    "validated.",
-)
-@click.option(
-    "--text-column",
-    "-t",
-    default="text",
-    show_default=True,
-    help="Name of the column in the dataset containing the reference text.",
-)
-@click.option(
-    "--audio-column",
-    "-a",
-    default="audio",
-    show_default=True,
-    help="Name of the column in the dataset containing the audio.",
-)
-@click.option(
-    "--output-dataset-id",
-    required=True,
-    help="Hugging Face Hub ID of the dataset to save the validation results. If it "
-    "already exists then it will be overwritten!",
-)
-@click.option(
-    "--output-dataset-subset",
-    default="default",
-    show_default=True,
-    help="Name of the subset of the dataset to save the validation results. If None "
-    "then we assume no subsets exist.",
-)
-@click.option(
-    "--cache-dir",
-    default=None,
-    help="Directory to cache the dataset and the model in. Defaults to the Hugging Face "
-    "default cache directory.",
-)
-@click.option(
-    "--batch-size",
-    default=1,
-    show_default=True,
-    help="Batch size to use for validation.",
-)
-def main(
-    model_id: str,
-    dataset_id: str,
-    dataset_subset: str | None,
-    dataset_split: str | None,
-    text_column: str,
-    audio_column: str,
-    output_dataset_id: str,
-    output_dataset_subset: str,
-    cache_dir: str,
-    batch_size: int,
-):
-    """Validate the samples of the CoRal ASR dataset using an ASR model."""
-    logger.info(f"Loading the {dataset_id!r} dataset...")
+def main(config: DictConfig) -> None:
+    """Validate the samples of the CoRal ASR dataset using an ASR model.
+
+    Args:
+        config:
+            The Hydra configuration object.
+    """
+    logger.info(f"Loading the {config.dataset_id!r} dataset...")
     dataset = load_dataset(
-        path=dataset_id,
-        name=dataset_subset,
-        split=dataset_split,
+        path=config.dataset_id,
+        name=config.dataset_subset,
+        split=config.dataset_split,
         token=True,
-        cache_dir=cache_dir,
+        cache_dir=config.cache_dir,
     )
     if isinstance(dataset, Dataset):
-        dataset = DatasetDict({dataset_split: dataset})
+        dataset = DatasetDict({config.dataset_split: dataset})
     assert isinstance(dataset, DatasetDict)
 
-    logger.info(f"Loading the {model_id!r} processor...")
-    processor = AutoProcessor.from_pretrained(model_id, cache_dir=cache_dir)
+    logger.info(f"Loading the {config.model_id!r} processor...")
+    processor = AutoProcessor.from_pretrained(
+        config.model_id, cache_dir=config.cache_dir
+    )
 
     logger.info("Cleaning the dataset...")
     characters_to_keep = "".join(
@@ -146,30 +80,36 @@ def main(
         ]
     )
     dataset = clean_dataset(
-        dataset=dataset, characters_to_keep=characters_to_keep, text_column=text_column
+        dataset=dataset,
+        characters_to_keep=characters_to_keep,
+        text_column=config.text_column,
     )
 
     logger.info("Resampling audio to 16kHz...")
     dataset = dataset.cast_column(
-        column=audio_column, feature=Audio(sampling_rate=16_000)
+        column=config.audio_column, feature=Audio(sampling_rate=16_000)
     )
 
     logger.info("Tokenising the dataset...")
     dataset = dataset.map(
         function=lambda example: dict(
-            labels=processor(text=example[text_column], truncation=True).input_ids
+            labels=processor(
+                text=example[config.text_column], truncation=True
+            ).input_ids
         )
     )
     assert isinstance(dataset, DatasetDict)
 
-    logger.info(f"Loading the {model_id!r} ASR model...")
+    logger.info(f"Loading the {config.model_id!r} ASR model...")
     if torch.cuda.is_available():
         device = torch.device("cuda")
     elif torch.backends.mps.is_available():
         device = torch.device("mps")
     else:
         device = torch.device("cpu")
-    model = AutoModelForCTC.from_pretrained(model_id, cache_dir=cache_dir).to(device)
+    model = AutoModelForCTC.from_pretrained(
+        config.model_id, cache_dir=config.cache_dir
+    ).to(device)
     data_collator = DataCollatorCTCWithPadding(
         processor=processor, max_seconds_per_example=10, padding="longest"
     )
@@ -180,12 +120,12 @@ def main(
             output_dir=".",
             remove_unused_columns=False,
             report_to=[],
-            per_device_eval_batch_size=batch_size,
+            per_device_eval_batch_size=config.batch_size,
         ),
         model=model,
         data_collator=data_collator,
         tokenizer=processor.tokenizer,
-        preprocess_logits_for_metrics=preprocess_logits_for_metrics,
+        preprocess_logits_for_metrics=config.preprocess_logits_for_metrics,
     )
     new_data_dict: dict[str, Dataset] = dict()
     for split_name, split in dataset.items():
@@ -195,16 +135,16 @@ def main(
         )
         split = split.add_column(
             name="asr_validation_model",
-            column=[model_id] * len(split),
+            column=[config.model_id] * len(split),
             new_fingerprint=split._fingerprint,
         )
         new_data_dict[split_name] = split
 
-    logger.info(f"Uploading the validated dataset to {output_dataset_id!r}...")
+    logger.info(f"Uploading the validated dataset to {config.output_dataset_id!r}...")
     new_dataset = DatasetDict(new_data_dict)
     new_dataset.push_to_hub(
-        repo_id=output_dataset_id,
-        config_name=output_dataset_subset,
+        repo_id=config.output_dataset_id,
+        config_name=config.output_dataset_subset,
         commit_message="Add ASR validation",
         private=True,
     )

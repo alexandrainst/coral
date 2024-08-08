@@ -1,0 +1,11 @@
+model_id: chcaa/xls-r-300m-danish-nst-cv9
+dataset_id: alexandrainst/coral
+dataset_subset: read_aloud
+dataset_split: null
+text_column: text
+audio_column: audio
+output_dataset_id: alexandrainst/coral
+output_dataset_subset: read_aloud
+output_dataset_split: null
+batch_size: 1
+cache_dir: null
