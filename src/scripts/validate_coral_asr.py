@@ -122,20 +122,6 @@ def main(
     batch_size: int,
 ):
     """Validate the samples of the CoRal ASR dataset using an ASR model."""
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-    elif torch.backends.mps.is_available():
-        device = torch.device("mps")
-    else:
-        device = torch.device("cpu")
-
-    logger.info(f"Loading the {model_id!r} ASR model...")
-    processor = AutoProcessor.from_pretrained(model_id, cache_dir=cache_dir)
-    model = AutoModelForCTC.from_pretrained(model_id, cache_dir=cache_dir).to(device)
-    data_collator = DataCollatorCTCWithPadding(
-        processor=processor, max_seconds_per_example=10, padding="longest"
-    )
-
     logger.info(f"Loading the {dataset_id!r} dataset...")
     dataset = load_dataset(
         path=dataset_id,
@@ -147,6 +133,9 @@ def main(
     if isinstance(dataset, Dataset):
         dataset = DatasetDict({dataset_split: dataset})
     assert isinstance(dataset, DatasetDict)
+
+    logger.info(f"Loading the {model_id!r} processor...")
+    processor = AutoProcessor.from_pretrained(model_id, cache_dir=cache_dir)
 
     logger.info("Cleaning the dataset...")
     characters_to_keep = "".join(
@@ -172,6 +161,18 @@ def main(
         )
     )
     assert isinstance(dataset, DatasetDict)
+
+    logger.info(f"Loading the {model_id!r} ASR model...")
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
+    model = AutoModelForCTC.from_pretrained(model_id, cache_dir=cache_dir).to(device)
+    data_collator = DataCollatorCTCWithPadding(
+        processor=processor, max_seconds_per_example=10, padding="longest"
+    )
 
     logger.info("Validating the dataset...")
     trainer = Trainer(
