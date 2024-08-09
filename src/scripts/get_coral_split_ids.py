@@ -186,6 +186,13 @@ class Dataset:
 
         return self
 
+    def _give_score(self, row: pd.Series) -> float:
+        """Return a score of a speaker in a row."""
+        return sum(
+            weight[row[key]]  # type: ignore[index]
+            for key, weight in self.weights.items()
+        )
+
     def add_dialect_samples(self) -> "Dataset":
         """Get samples of dialects each dialect.
 
@@ -211,15 +218,8 @@ class Dataset:
             and set(df_speaker.id_speaker.tolist()) - self.speakers != set()
             and len(self) < self.max_samples
         ):
-
-            def _give_score(row: pd.Series) -> float:
-                return sum(
-                    weight[row[key]]  # type: ignore[index]
-                    for key, weight in self.weights.items()
-                )
-
             speakers = df_speaker["id_speaker"].tolist()
-            scores = df_speaker.apply(func=_give_score, axis=1).tolist()
+            scores = df_speaker.apply(func=self._give_score, axis=1).tolist()
             probs = (
                 torch.softmax(torch.tensor(scores), dim=0)
                 .clamp(min=torch.tensor(0), max=torch.tensor(1))
