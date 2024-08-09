@@ -83,7 +83,6 @@ def main(config: DictConfig) -> None:
         dataset=dataset,
         characters_to_keep=characters_to_keep,
         text_column=config.text_column,
-        cache_processed_datasets=config.cache_processed_datasets,
     )
 
     logger.info("Resampling audio to 16kHz...")
@@ -97,9 +96,7 @@ def main(config: DictConfig) -> None:
             labels=processor(
                 text=example[config.text_column], truncation=True
             ).input_ids
-        ),
-        keep_in_memory=not config.cache_processed_datasets,
-        load_from_cache_file=config.cache_processed_datasets,
+        )
     )
     assert isinstance(dataset, DatasetDict)
 
@@ -154,10 +151,7 @@ def main(config: DictConfig) -> None:
 
 
 def clean_dataset(
-    dataset: DatasetDict,
-    characters_to_keep: str,
-    text_column: str,
-    cache_processed_datasets: bool,
+    dataset: DatasetDict, characters_to_keep: str, text_column: str
 ) -> DatasetDict:
     """Clean a dataset for ASR.
 
@@ -168,8 +162,6 @@ def clean_dataset(
             The characters to keep in the transcriptions.
         text_column:
             The name of the column containing the transcriptions.
-        cache_processed_datasets:
-            Whether to cache the processed datasets.
 
     Returns:
         The cleaned dataset.
@@ -228,9 +220,7 @@ def clean_dataset(
             non_standard_characters_regex=non_standard_characters_regex,
             conversion_dict=conversion_dict,
             text_column=text_column,
-        ),
-        keep_in_memory=not cache_processed_datasets,
-        load_from_cache_file=cache_processed_datasets,
+        )
     )
 
     return cleaned_dataset
