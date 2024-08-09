@@ -8,4 +8,5 @@ output_dataset_id: alexandrainst/coral
 output_dataset_subset: read_aloud
 output_dataset_split: null
 batch_size: 1
+cache_processed_datasets: false
 cache_dir: null
