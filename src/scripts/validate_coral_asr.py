@@ -116,7 +116,7 @@ def main(config: DictConfig) -> None:
         model=model,
         data_collator=data_collator,
         tokenizer=processor.tokenizer,
-        preprocess_logits_for_metrics=config.preprocess_logits_for_metrics,
+        preprocess_logits_for_metrics=preprocess_logits_for_metrics,
     )
     new_data_dict: dict[str, Dataset] = dict()
     for split_name, split in dataset.items():
