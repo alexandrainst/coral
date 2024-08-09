@@ -16,7 +16,6 @@ Usage:
 
 import logging
 import re
-from functools import partial
 
 import evaluate
 import hydra
@@ -71,7 +70,12 @@ def main(config: DictConfig) -> None:
         config.model_id, cache_dir=config.cache_dir
     )
 
-    logger.info("Cleaning the dataset...")
+    logger.info("Resampling audio to 16kHz...")
+    dataset = dataset.cast_column(
+        column=config.audio_column, feature=Audio(sampling_rate=16_000)
+    )
+
+    logger.info("Processing the dataset...")
     characters_to_keep = "".join(
         [
             tok
@@ -79,24 +83,11 @@ def main(config: DictConfig) -> None:
             if tok not in processor.tokenizer.all_special_tokens
         ]
     )
-    dataset = clean_dataset(
+    dataset = process_dataset(
         dataset=dataset,
         characters_to_keep=characters_to_keep,
         text_column=config.text_column,
-    )
-
-    logger.info("Resampling audio to 16kHz...")
-    dataset = dataset.cast_column(
-        column=config.audio_column, feature=Audio(sampling_rate=16_000)
-    )
-
-    logger.info("Tokenising the dataset...")
-    dataset = dataset.map(
-        function=lambda example: dict(
-            labels=processor(
-                text=example[config.text_column], truncation=True
-            ).input_ids
-        )
+        processor=processor,
     )
     assert isinstance(dataset, DatasetDict)
 
@@ -150,10 +141,13 @@ def main(config: DictConfig) -> None:
     )
 
 
-def clean_dataset(
-    dataset: DatasetDict, characters_to_keep: str, text_column: str
+def process_dataset(
+    dataset: DatasetDict,
+    characters_to_keep: str,
+    text_column: str,
+    processor: Processor,
 ) -> DatasetDict:
-    """Clean a dataset for ASR.
+    """Process a dataset for ASR.
 
     Args:
         dataset:
@@ -162,9 +156,11 @@ def clean_dataset(
             The characters to keep in the transcriptions.
         text_column:
             The name of the column containing the transcriptions.
+        processor:
+            The processor used for processing the data.
 
     Returns:
-        The cleaned dataset.
+        The processed dataset.
     """
     # Dictionary that contains characters to be converted (from the key to the value).
     # Some values contain spaces to ensure that they're separated from other
@@ -214,16 +210,33 @@ def clean_dataset(
         f"[^{re.escape(characters_to_keep + ' |')}]"
     )
 
-    cleaned_dataset = dataset.map(
-        partial(
-            clean_example,
-            non_standard_characters_regex=non_standard_characters_regex,
-            conversion_dict=conversion_dict,
-            text_column=text_column,
-        )
-    )
+    def process_examples(examples: dict[str, list]) -> dict:
+        """Clean the transcriptions in the examples.
 
-    return cleaned_dataset
+        Args:
+            examples:
+                The examples to clean.
+
+        Returns:
+            The cleaned examples.
+        """
+        examples[text_column] = [
+            clean_example(
+                example={text_column: sample_text},
+                non_standard_characters_regex=non_standard_characters_regex,
+                conversion_dict=conversion_dict,
+                text_column=text_column,
+            )[text_column]
+            for sample_text in examples[text_column]
+        ]
+        examples["labels"] = processor(
+            text=examples[text_column], truncation=True
+        ).input_ids
+        return examples
+
+    processed_dataset = dataset.map(process_examples, batched=True)
+
+    return processed_dataset
 
 
 def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[float]:
