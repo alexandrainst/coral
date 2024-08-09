@@ -2,10 +2,10 @@
 
 The test set is subject to the following constraints:
     - At least 7.5 hours
-    - At least 40% of each gender
-    - At least 20% of each age group (0-24, 25-49, 50+)
-    - At least 10% of each dialect group
-    - At least 5% of speakers with a foreign accent
+    - At least 40% of the test set must be of each gender
+    - At least 20% of the test set must be of each age group (0-24, 25-49, 50+)
+    - At least 10% of the test set must be of each dialect group
+    - At least 5% of the test set must be of speakers with a foreign accent
 
 The validation split has no formal criteria, but must be significantly smaller than the
 test set and should have roughly the same distribution.
