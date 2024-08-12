@@ -262,6 +262,11 @@ def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[f
     assert isinstance(predictions, np.ndarray)
     assert isinstance(labels, np.ndarray)
 
+    # TEMP: Store the logits for debugging purposes
+    np.save("predictions.npy", predictions)
+    np.save("labels.npy", labels)
+    breakpoint()
+
     # If all the logits are -100 for a token, then we set the logit for the padding
     # token for that token to 0. This is to ensure that this token gets decoded to a
     # padding token, and are therefore ignored
