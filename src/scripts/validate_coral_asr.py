@@ -25,7 +25,6 @@ from coral.data import clean_example
 from coral.data_collators import DataCollatorCTCWithPadding
 from coral.data_models import Processor
 from datasets import Audio, Dataset, DatasetDict, load_dataset
-from numpy.typing import NDArray
 from omegaconf import DictConfig
 from transformers import (
     AutoModelForCTC,
@@ -265,11 +264,6 @@ def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[f
     assert isinstance(predictions, np.ndarray)
     assert isinstance(labels, np.ndarray)
 
-    # TEMP: Store the logits for debugging purposes
-    np.save("predictions.npy", predictions)
-    np.save("labels.npy", labels)
-    breakpoint()
-
     # If all the logits are -100 for a token, then we set the logit for the padding
     # token for that token to 0. This is to ensure that this token gets decoded to a
     # padding token, and are therefore ignored
@@ -294,8 +288,9 @@ def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[f
     # Otherwise, if we are not using a language model, we need to convert the logits to
     # token IDs and then decode the token IDs to get the predicted string
     else:
-        pred_ids: NDArray[np.int_] = np.argmax(predictions, axis=-1)
-        predictions_str = processor.batch_decode(pred_ids)
+        if predictions.ndim == 2 and isinstance(predictions[0, 0], float):
+            predictions = np.argmax(predictions, axis=-1)
+        predictions_str = processor.batch_decode(predictions)
 
     # Decode the ground truth labels
     labels[labels == -100] = pad_token
@@ -308,6 +303,7 @@ def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[f
         wer_metric.compute(predictions=[pred], references=[ref])
         for pred, ref in zip(predictions_str, labels_str)
     ]
+    breakpoint()
 
     return wers
 
