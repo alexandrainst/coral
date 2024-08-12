@@ -138,6 +138,7 @@ def main(config: DictConfig) -> None:
         commit_message="Add ASR validation",
         private=True,
     )
+    logger.info("All done!")
 
 
 def process_dataset(
