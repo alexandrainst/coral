@@ -19,7 +19,7 @@ evaluation_dataset:
   id: alexandrainst/coral
   subset: read_aloud
   split: test
-  val_name: validation
+  val_name: val
   test_name: test
   text_column: text
   audio_column: audio
