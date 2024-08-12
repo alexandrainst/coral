@@ -1,6 +1,6 @@
 coral:
-  id: CoRal-dataset/coral_v1.0
-  subset: null
-  train_name: train_read_aloud
+  id: alexandrainst/coral
+  subset: read_aloud
+  train_name: train
   text_column: text
-  audio_column: filename
+  audio_column: audio
