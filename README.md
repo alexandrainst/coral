@@ -1,6 +1,8 @@
-# CoRal Models
+# CoRal
 
-Danish ASR and TTS models associated with the CoRal project.
+Danish ASR and TTS datasets and models, as part of the [CoRal
+project](https://alexandra.dk/coral/), funded by the [Innovation
+Fund](https://innovationsfonden.dk/).
 
 ______________________________________________________________________
 [![Documentation](https://img.shields.io/badge/docs-passing-green)](https://alexandrainst.github.io/coral/coral.html)
