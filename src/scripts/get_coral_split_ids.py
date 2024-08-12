@@ -11,7 +11,7 @@ The validation split has no formal criteria, but must be significantly smaller t
 test set and should have roughly the same distribution.
 
 These constraints, along with all the other hyperparameters related to the creation of
-the splits, are defined in the configuration file under the `dataset_creation` section.
+the splits, are defined in the `dataset_creation` configuration file.
 
 Developers:
     - Oliver Kinch (oliver.kinch@alexandra.dk)
@@ -344,6 +344,8 @@ def load_coral_metadata_df(sub_dialect_to_dialect: dict[str, str]) -> pd.DataFra
         coral_splits: dict | None = coral.info.splits
         assert coral_splits is not None, "No splits found in CoRal dataset."
 
+        # This will download the dataset with a progress bar, and remove the audio
+        # column along the way, to save memory.
         metadata = [
             sample
             for sample in tqdm(
@@ -353,17 +355,33 @@ def load_coral_metadata_df(sub_dialect_to_dialect: dict[str, str]) -> pd.DataFra
             )
         ]
         df = pd.DataFrame(metadata)
+
+        # Map the dialects to the dialect categories that we use for splitting
         df.dialect = df.dialect.map(sub_dialect_to_dialect)
+
+        # Aggregate accents into binary "native" and "foreign" categories, as there are
+        # too few non-native speakers to have a separate category for each accent.
         df["accent"] = df.language_native.apply(
             lambda x: "native" if x == "da" else "foreign"
         )
+
+        # We remove the nonbinary speakers from being in the validation and test sets,
+        # since there are only 3 such speakers in the dataset - they will be part of the
+        # training split instead.
         df = df.query("gender != 'nonbinary'")
+
+        # TODO: Filter the dataframe by auto-validation WER, to ensure that only the
+        # high-quality samples are included in the validation and test sets.
+
+        # Store the metadata for future use
         df.to_csv("coral-metadata.csv", index=False)
 
     return df
 
 
-@hydra.main(config_path="../../config", config_name="config", version_base=None)
+@hydra.main(
+    config_path="../../config", config_name="dataset_creation", version_base=None
+)
 def main(config: DictConfig) -> None:
     """Main function to get the speaker IDs for the CoRal test and validation splits.
 
@@ -371,33 +389,31 @@ def main(config: DictConfig) -> None:
         config:
             The Hydra configuration object
     """
-    mean_seconds_per_sample = config.dataset_creation.mean_seconds_per_sample
-    num_attempts = config.dataset_creation.num_split_attempts
-    df = load_coral_metadata_df(
-        sub_dialect_to_dialect=config.dataset_creation.sub_dialect_to_dialect
-    )
+    mean_seconds_per_sample = config.mean_seconds_per_sample
+    num_attempts = config.num_split_attempts
+    df = load_coral_metadata_df(sub_dialect_to_dialect=config.sub_dialect_to_dialect)
 
     # Build test split
     test_candidates: list[Dataset] = list()
-    min_test_hours = config.dataset_creation.requirements.test.min_hours
-    max_test_hours = config.dataset_creation.requirements.test.max_hours
+    min_test_hours = config.requirements.test.min_hours
+    max_test_hours = config.requirements.test.max_hours
     for seed in tqdm(range(4242, 4242 + num_attempts), desc="Computing test splits"):
         test_candidate = Dataset(
             df=df,
             min_samples=int(min_test_hours * 60 * 60 / mean_seconds_per_sample),
             max_samples=int(max_test_hours * 60 * 60 / mean_seconds_per_sample),
             requirements=dict(
-                gender=config.dataset_creation.requirements.test.gender_pct,
-                dialect=config.dataset_creation.requirements.test.dialect_pct,
-                age_group=config.dataset_creation.requirements.test.age_group_pct,
-                accent=config.dataset_creation.requirements.test.accent_pct,
+                gender=config.requirements.test.gender_pct,
+                dialect=config.requirements.test.dialect_pct,
+                age_group=config.requirements.test.age_group_pct,
+                accent=config.requirements.test.accent_pct,
             ),
             banned_speakers=set(),
             seed=seed,
-            genders=config.dataset_creation.genders,
-            dialects=config.dataset_creation.dialects,
-            age_groups=config.dataset_creation.age_groups,
-            accents=config.dataset_creation.accents,
+            genders=config.genders,
+            dialects=config.dialects,
+            age_groups=config.age_groups,
+            accents=config.accents,
             mean_seconds_per_sample=mean_seconds_per_sample,
         )
         test_candidates.append(test_candidate)
@@ -406,25 +422,25 @@ def main(config: DictConfig) -> None:
 
     # Build validation split
     val_candidates: list[Dataset] = list()
-    min_val_hours = config.dataset_creation.requirements.val.min_hours
-    max_val_hours = config.dataset_creation.requirements.val.max_hours
+    min_val_hours = config.requirements.val.min_hours
+    max_val_hours = config.requirements.val.max_hours
     for seed in tqdm(range(4242, 4242 + num_attempts), desc="Computing val splits"):
         val_candidate = Dataset(
             df=df,
             min_samples=int(min_val_hours * 60 * 60 / mean_seconds_per_sample),
             max_samples=int(max_val_hours * 60 * 60 / mean_seconds_per_sample),
             requirements=dict(
-                gender=config.dataset_creation.requirements.val.gender_pct,
-                dialect=config.dataset_creation.requirements.val.dialect_pct,
-                age_group=config.dataset_creation.requirements.val.age_group_pct,
-                accent=config.dataset_creation.requirements.val.accent_pct,
+                gender=config.requirements.val.gender_pct,
+                dialect=config.requirements.val.dialect_pct,
+                age_group=config.requirements.val.age_group_pct,
+                accent=config.requirements.val.accent_pct,
             ),
             banned_speakers=test_dataset.speakers,
             seed=seed,
-            genders=config.dataset_creation.genders,
-            dialects=config.dataset_creation.dialects,
-            age_groups=config.dataset_creation.age_groups,
-            accents=config.dataset_creation.accents,
+            genders=config.genders,
+            dialects=config.dialects,
+            age_groups=config.age_groups,
+            accents=config.accents,
             mean_seconds_per_sample=mean_seconds_per_sample,
         )
         val_candidates.append(val_candidate)
