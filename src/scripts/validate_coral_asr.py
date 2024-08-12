@@ -303,7 +303,6 @@ def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[f
         wer_metric.compute(predictions=[pred], references=[ref])
         for pred, ref in zip(predictions_str, labels_str)
     ]
-    breakpoint()
 
     return wers
 
