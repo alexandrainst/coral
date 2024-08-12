@@ -120,3 +120,6 @@ wandb/
 recordings/
 conversations/
 CoRal_public.db
+
+# Todo document
+todo.md
