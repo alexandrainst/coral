@@ -344,6 +344,8 @@ def load_coral_metadata_df(sub_dialect_to_dialect: dict[str, str]) -> pd.DataFra
         coral_splits: dict | None = coral.info.splits
         assert coral_splits is not None, "No splits found in CoRal dataset."
 
+        # This will download the dataset with a progress bar, and remove the audio
+        # column along the way, to save memory.
         metadata = [
             sample
             for sample in tqdm(
@@ -353,11 +355,25 @@ def load_coral_metadata_df(sub_dialect_to_dialect: dict[str, str]) -> pd.DataFra
             )
         ]
         df = pd.DataFrame(metadata)
+
+        # Map the dialects to the dialect categories that we use for splitting
         df.dialect = df.dialect.map(sub_dialect_to_dialect)
+
+        # Aggregate accents into binary "native" and "foreign" categories, as there are
+        # too few non-native speakers to have a separate category for each accent.
         df["accent"] = df.language_native.apply(
             lambda x: "native" if x == "da" else "foreign"
         )
+
+        # We remove the nonbinary speakers from being in the validation and test sets,
+        # since there are only 3 such speakers in the dataset - they will be part of the
+        # training split instead.
         df = df.query("gender != 'nonbinary'")
+
+        # TODO: Filter the dataframe by auto-validation WER, to ensure that only the
+        # high-quality samples are included in the validation and test sets.
+
+        # Store the metadata for future use
         df.to_csv("coral-metadata.csv", index=False)
 
     return df
