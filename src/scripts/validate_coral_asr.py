@@ -16,6 +16,7 @@ Usage:
 
 import logging
 import re
+from time import sleep
 
 import evaluate
 import hydra
@@ -26,6 +27,7 @@ from coral.data_collators import DataCollatorCTCWithPadding
 from coral.data_models import Processor
 from datasets import Audio, Dataset, DatasetDict, load_dataset
 from omegaconf import DictConfig
+from requests import HTTPError
 from transformers import (
     AutoModelForCTC,
     AutoProcessor,
@@ -132,13 +134,24 @@ def main(config: DictConfig) -> None:
 
     logger.info(f"Uploading the validated dataset to {config.output_dataset_id!r}...")
     new_dataset = DatasetDict(new_data_dict)
-    new_dataset.push_to_hub(
-        repo_id=config.output_dataset_id,
-        config_name=config.output_dataset_subset,
-        commit_message="Add ASR validation",
-        private=True,
-    )
-    logger.info("All done!")
+    for _ in range(60):
+        try:
+            new_dataset.push_to_hub(
+                repo_id=config.output_dataset_id,
+                config_name=config.output_dataset_subset,
+                max_shard_size="500MB",
+                commit_message="Add ASR validation",
+                private=True,
+            )
+            logger.info("All done!")
+            break
+        except (RuntimeError, HTTPError) as e:
+            logger.info(f"Error while pushing to hub: {e}")
+            logger.info("Waiting a minute before trying again...")
+            sleep(60)
+            logger.info("Retrying...")
+    else:
+        logger.error("Failed to upload the dataset to the Hugging Face Hub.")
 
 
 def process_dataset(

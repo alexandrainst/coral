@@ -24,6 +24,7 @@ from datasets import (
     enable_progress_bar,
 )
 from joblib import Parallel, delayed
+from requests import HTTPError
 from tqdm.auto import tqdm
 
 logging.basicConfig(
@@ -382,21 +383,42 @@ def upload_dataset(
             Identifier of the Hugging Face Hub repository.
     """
     if read_aloud_dataset is not None:
-        read_aloud_dataset.push_to_hub(
-            repo_id=hub_id,
-            config_name="read_aloud",
-            private=True,
-            max_shard_size="500MB",
-            commit_message="Add the CoRal read-aloud dataset",
-        )
+        for _ in range(60):
+            try:
+                read_aloud_dataset.push_to_hub(
+                    repo_id=hub_id,
+                    config_name="read_aloud",
+                    private=True,
+                    max_shard_size="500MB",
+                    commit_message="Add the CoRal read-aloud dataset",
+                )
+                break
+            except (RuntimeError, HTTPError) as e:
+                logger.info(f"Error while pushing to hub: {e}")
+                logger.info("Waiting a minute before trying again...")
+                sleep(60)
+                logger.info("Retrying...")
+        else:
+            logger.error("Failed to upload the read-aloud dataset.")
+
     if conversation_dataset is not None:
-        conversation_dataset.push_to_hub(
-            repo_id=hub_id,
-            config_name="conversation",
-            private=True,
-            max_shard_size="500MB",
-            commit_message="Add the CoRal conversation dataset",
-        )
+        for _ in range(60):
+            try:
+                conversation_dataset.push_to_hub(
+                    repo_id=hub_id,
+                    config_name="conversation",
+                    private=True,
+                    max_shard_size="500MB",
+                    commit_message="Add the CoRal conversation dataset",
+                )
+                break
+            except (RuntimeError, HTTPError) as e:
+                logger.info(f"Error while pushing to hub: {e}")
+                logger.info("Waiting a minute before trying again...")
+                sleep(60)
+                logger.info("Retrying...")
+    else:
+        logger.error("Failed to upload the conversation dataset.")
 
 
 #############################
