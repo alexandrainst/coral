@@ -85,13 +85,13 @@ def main(config: DictConfig) -> None:
             if tok not in processor.tokenizer.all_special_tokens
         ]
     )
-    dataset = process_dataset(
+    processed_dataset = process_dataset(
         dataset=dataset,
         characters_to_keep=characters_to_keep,
         text_column=config.text_column,
         processor=processor,
     )
-    assert isinstance(dataset, DatasetDict)
+    assert isinstance(processed_dataset, DatasetDict)
 
     logger.info(f"Loading the {config.model_id!r} ASR model...")
     if torch.cuda.is_available():
@@ -121,17 +121,17 @@ def main(config: DictConfig) -> None:
         preprocess_logits_for_metrics=preprocess_logits_for_metrics,
     )
     new_data_dict: dict[str, Dataset] = dict()
-    for split_name, split in dataset.items():
+    for split_name, split in processed_dataset.items():
         wers = get_wers(dataset=split, trainer=trainer, processor=processor)
-        split = split.add_column(
-            name="asr_wer", column=wers, new_fingerprint=split._fingerprint
+        new_data_dict[split_name] = (
+            dataset[split_name]
+            .add_column(name="asr_wer", column=wers, new_fingerprint=split._fingerprint)
+            .add_column(
+                name="asr_validation_model",
+                column=[config.model_id] * len(split),
+                new_fingerprint=split._fingerprint,
+            )
         )
-        split = split.add_column(
-            name="asr_validation_model",
-            column=[config.model_id] * len(split),
-            new_fingerprint=split._fingerprint,
-        )
-        new_data_dict[split_name] = split
 
     logger.info(f"Uploading the validated dataset to {config.output_dataset_id!r}...")
     new_dataset = DatasetDict(new_data_dict)
