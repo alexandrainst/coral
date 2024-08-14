@@ -57,6 +57,7 @@ def main(config: DictConfig) -> None:
         sub_dialect_to_dialect=config.sub_dialect_to_dialect,
         max_wer=config.requirements.max_wer,
     )
+    logger.info(f"Loaded processed CoRal metadata with {len(df):,} samples.")
 
     # Build test split
     test_candidates: list[Dataset] = list()
@@ -433,6 +434,7 @@ def load_coral_metadata_df(
             )
         ]
         df = pd.DataFrame(metadata)
+        logger.info(f"Downloaded CoRal metadata with {len(df):,} raw samples.")
 
         # Map the dialects to the dialect categories that we use for splitting
         df.dialect = df.dialect.map(sub_dialect_to_dialect)
@@ -446,12 +448,20 @@ def load_coral_metadata_df(
         # We remove the nonbinary speakers from being in the validation and test sets,
         # since there are only 3 such speakers in the dataset - they will be part of the
         # training split instead.
+        samples_before = len(df)
         df = df.query("gender != 'nonbinary'")
+        samples_removed = samples_before - len(df)
+        logger.info(f"Removed {samples_removed:,} nonbinary samples.")
 
         # Filter the dataframe by auto-validation WER, to ensure that only the
         # high-quality samples are included in the validation and test sets.
         if "asr_wer" in df.columns:
+            samples_before = len(df)
             df = df.query("asr_wer <= @max_wer")
+            samples_removed = samples_before - len(df)
+            logger.info(
+                f"Removed {samples_removed:,} samples with WER > {max_wer:.2f}."
+            )
         else:
             logger.warning(
                 "No ASR WER column found in CoRal metadata. All samples will be "
