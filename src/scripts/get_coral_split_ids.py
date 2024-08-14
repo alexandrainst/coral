@@ -41,6 +41,80 @@ logging.basicConfig(
 logger = logging.getLogger("get_coral_split_ids")
 
 
+@hydra.main(
+    config_path="../../config", config_name="dataset_creation", version_base=None
+)
+def main(config: DictConfig) -> None:
+    """Main function to get the speaker IDs for the CoRal test and validation splits.
+
+    Args:
+        config:
+            The Hydra configuration object
+    """
+    mean_seconds_per_sample = config.mean_seconds_per_sample
+    num_attempts = config.num_split_attempts
+    df = load_coral_metadata_df(
+        sub_dialect_to_dialect=config.sub_dialect_to_dialect,
+        max_wer=config.requirements.max_wer,
+    )
+
+    # Build test split
+    test_candidates: list[Dataset] = list()
+    min_test_hours = config.requirements.test.min_hours
+    max_test_hours = config.requirements.test.max_hours
+    for seed in tqdm(range(4242, 4242 + num_attempts), desc="Computing test splits"):
+        test_candidate = Dataset(
+            df=df,
+            min_samples=int(min_test_hours * 60 * 60 / mean_seconds_per_sample),
+            max_samples=int(max_test_hours * 60 * 60 / mean_seconds_per_sample),
+            requirements=dict(
+                gender=config.requirements.test.gender_pct,
+                dialect=config.requirements.test.dialect_pct,
+                age_group=config.requirements.test.age_group_pct,
+                accent=config.requirements.test.accent_pct,
+            ),
+            banned_speakers=set(),
+            seed=seed,
+            genders=config.genders,
+            dialects=config.dialects,
+            age_groups=config.age_groups,
+            accents=config.accents,
+            mean_seconds_per_sample=mean_seconds_per_sample,
+        )
+        test_candidates.append(test_candidate)
+    test_dataset = min(test_candidates, key=lambda x: len(x))
+    logger.info(f"Test dataset:\n{test_dataset}")
+
+    # Build validation split
+    val_candidates: list[Dataset] = list()
+    min_val_hours = config.requirements.val.min_hours
+    max_val_hours = config.requirements.val.max_hours
+    for seed in tqdm(range(4242, 4242 + num_attempts), desc="Computing val splits"):
+        val_candidate = Dataset(
+            df=df,
+            min_samples=int(min_val_hours * 60 * 60 / mean_seconds_per_sample),
+            max_samples=int(max_val_hours * 60 * 60 / mean_seconds_per_sample),
+            requirements=dict(
+                gender=config.requirements.val.gender_pct,
+                dialect=config.requirements.val.dialect_pct,
+                age_group=config.requirements.val.age_group_pct,
+                accent=config.requirements.val.accent_pct,
+            ),
+            banned_speakers=test_dataset.speakers,
+            seed=seed,
+            genders=config.genders,
+            dialects=config.dialects,
+            age_groups=config.age_groups,
+            accents=config.accents,
+            mean_seconds_per_sample=mean_seconds_per_sample,
+        )
+        val_candidates.append(val_candidate)
+    val_dataset = min(val_candidates, key=lambda x: len(x))
+    logger.info(f"Validation dataset:\n{val_dataset}")
+
+    assert set(test_dataset.speakers).intersection(val_dataset.speakers) == set()
+
+
 class AgeGroup(NamedTuple):
     """Named tuple to represent an age group."""
 
@@ -319,7 +393,9 @@ def age_to_group(age: int, age_groups: list[AgeGroup]) -> str:
     raise ValueError(f"Age {age} not in any age group.")
 
 
-def load_coral_metadata_df(sub_dialect_to_dialect: dict[str, str]) -> pd.DataFrame:
+def load_coral_metadata_df(
+    sub_dialect_to_dialect: dict[str, str], max_wer: float
+) -> pd.DataFrame:
     """Load the metadata of the CoRal dataset.
 
     If the metadata is not found, it will be downloaded.
@@ -327,6 +403,8 @@ def load_coral_metadata_df(sub_dialect_to_dialect: dict[str, str]) -> pd.DataFra
     Args:
         sub_dialect_to_dialect:
             A mapping from sub-dialect to dialect.
+        max_wer:
+            The maximum WER for a sample to be included in the validation and test sets.
 
     Returns:
         The metadata of the CoRal dataset.
@@ -370,84 +448,20 @@ def load_coral_metadata_df(sub_dialect_to_dialect: dict[str, str]) -> pd.DataFra
         # training split instead.
         df = df.query("gender != 'nonbinary'")
 
-        # TODO: Filter the dataframe by auto-validation WER, to ensure that only the
+        # Filter the dataframe by auto-validation WER, to ensure that only the
         # high-quality samples are included in the validation and test sets.
+        if "asr_wer" in df.columns:
+            df = df.query("asr_wer <= @max_wer")
+        else:
+            logger.warning(
+                "No ASR WER column found in CoRal metadata. All samples will be "
+                "included in the validation and test sets."
+            )
 
         # Store the metadata for future use
         df.to_csv("coral-metadata.csv", index=False)
 
     return df
-
-
-@hydra.main(
-    config_path="../../config", config_name="dataset_creation", version_base=None
-)
-def main(config: DictConfig) -> None:
-    """Main function to get the speaker IDs for the CoRal test and validation splits.
-
-    Args:
-        config:
-            The Hydra configuration object
-    """
-    mean_seconds_per_sample = config.mean_seconds_per_sample
-    num_attempts = config.num_split_attempts
-    df = load_coral_metadata_df(sub_dialect_to_dialect=config.sub_dialect_to_dialect)
-
-    # Build test split
-    test_candidates: list[Dataset] = list()
-    min_test_hours = config.requirements.test.min_hours
-    max_test_hours = config.requirements.test.max_hours
-    for seed in tqdm(range(4242, 4242 + num_attempts), desc="Computing test splits"):
-        test_candidate = Dataset(
-            df=df,
-            min_samples=int(min_test_hours * 60 * 60 / mean_seconds_per_sample),
-            max_samples=int(max_test_hours * 60 * 60 / mean_seconds_per_sample),
-            requirements=dict(
-                gender=config.requirements.test.gender_pct,
-                dialect=config.requirements.test.dialect_pct,
-                age_group=config.requirements.test.age_group_pct,
-                accent=config.requirements.test.accent_pct,
-            ),
-            banned_speakers=set(),
-            seed=seed,
-            genders=config.genders,
-            dialects=config.dialects,
-            age_groups=config.age_groups,
-            accents=config.accents,
-            mean_seconds_per_sample=mean_seconds_per_sample,
-        )
-        test_candidates.append(test_candidate)
-    test_dataset = min(test_candidates, key=lambda x: len(x))
-    logger.info(f"Test dataset:\n{test_dataset}")
-
-    # Build validation split
-    val_candidates: list[Dataset] = list()
-    min_val_hours = config.requirements.val.min_hours
-    max_val_hours = config.requirements.val.max_hours
-    for seed in tqdm(range(4242, 4242 + num_attempts), desc="Computing val splits"):
-        val_candidate = Dataset(
-            df=df,
-            min_samples=int(min_val_hours * 60 * 60 / mean_seconds_per_sample),
-            max_samples=int(max_val_hours * 60 * 60 / mean_seconds_per_sample),
-            requirements=dict(
-                gender=config.requirements.val.gender_pct,
-                dialect=config.requirements.val.dialect_pct,
-                age_group=config.requirements.val.age_group_pct,
-                accent=config.requirements.val.accent_pct,
-            ),
-            banned_speakers=test_dataset.speakers,
-            seed=seed,
-            genders=config.genders,
-            dialects=config.dialects,
-            age_groups=config.age_groups,
-            accents=config.accents,
-            mean_seconds_per_sample=mean_seconds_per_sample,
-        )
-        val_candidates.append(val_candidate)
-    val_dataset = min(val_candidates, key=lambda x: len(x))
-    logger.info(f"Validation dataset:\n{val_dataset}")
-
-    assert set(test_dataset.speakers).intersection(val_dataset.speakers) == set()
 
 
 if __name__ == "__main__":
