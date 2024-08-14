@@ -1,4 +1,4 @@
-model_id: chcaa/xls-r-300m-danish-nst-cv9
+model_id: alexandrainst/coral-asr-bootstrap
 dataset_id: alexandrainst/coral
 dataset_subset: read_aloud
 dataset_split: null
