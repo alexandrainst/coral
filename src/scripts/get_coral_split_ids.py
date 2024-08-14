@@ -55,7 +55,7 @@ def main(config: DictConfig) -> None:
     num_attempts = config.num_split_attempts
     df = load_coral_metadata_df(
         sub_dialect_to_dialect=config.sub_dialect_to_dialect,
-        max_wer=config.requirements.max_wer,
+        max_val_test_wer=config.requirements.max_val_test_wer,
     )
     logger.info(f"Loaded processed CoRal metadata with {len(df):,} samples.")
 
@@ -395,7 +395,7 @@ def age_to_group(age: int, age_groups: list[AgeGroup]) -> str:
 
 
 def load_coral_metadata_df(
-    sub_dialect_to_dialect: dict[str, str], max_wer: float
+    sub_dialect_to_dialect: dict[str, str], max_val_test_wer: float
 ) -> pd.DataFrame:
     """Load the metadata of the CoRal dataset.
 
@@ -404,7 +404,7 @@ def load_coral_metadata_df(
     Args:
         sub_dialect_to_dialect:
             A mapping from sub-dialect to dialect.
-        max_wer:
+        max_val_test_wer:
             The maximum WER for a sample to be included in the validation and test sets.
 
     Returns:
@@ -457,10 +457,11 @@ def load_coral_metadata_df(
         # high-quality samples are included in the validation and test sets.
         if "asr_wer" in df.columns:
             samples_before = len(df)
-            df = df.query("asr_wer <= @max_wer")
+            df = df.query("asr_wer <= @max_val_test_wer")
             samples_removed = samples_before - len(df)
             logger.info(
-                f"Removed {samples_removed:,} samples with WER > {max_wer:.2f}."
+                f"Removed {samples_removed:,} samples with WER > "
+                f"{max_val_test_wer:.2f}."
             )
         else:
             logger.warning(
