@@ -59,6 +59,7 @@ def main(config: DictConfig) -> None:
         path=config.dataset_id,
         name=config.dataset_subset,
         split=config.dataset_split,
+        revision=config.dataset_revision,
         token=True,
         cache_dir=config.cache_dir,
     )
