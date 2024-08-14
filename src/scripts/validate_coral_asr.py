@@ -73,7 +73,7 @@ def main(config: DictConfig) -> None:
     )
 
     logger.info("Resampling audio to 16kHz...")
-    dataset = dataset.cast_column(
+    processed_dataset = dataset.cast_column(
         column=config.audio_column, feature=Audio(sampling_rate=16_000)
     )
 
@@ -86,7 +86,7 @@ def main(config: DictConfig) -> None:
         ]
     )
     processed_dataset = process_dataset(
-        dataset=dataset,
+        dataset=processed_dataset,
         characters_to_keep=characters_to_keep,
         text_column=config.text_column,
         processor=processor,
