@@ -268,6 +268,7 @@ def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[f
     Returns:
         The word error rates for each sample in the dataset.
     """
+    breakpoint()
     prediction_object = trainer.predict(test_dataset=dataset)
     predictions = prediction_object.predictions
     labels = prediction_object.label_ids
