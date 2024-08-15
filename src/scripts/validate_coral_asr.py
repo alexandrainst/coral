@@ -28,13 +28,7 @@ from coral.data_models import Processor
 from datasets import Audio, Dataset, DatasetDict, load_dataset
 from omegaconf import DictConfig
 from requests import HTTPError
-from transformers import (
-    AutoModelForCTC,
-    AutoProcessor,
-    Trainer,
-    TrainingArguments,
-    Wav2Vec2ProcessorWithLM,
-)
+from transformers import AutoModelForCTC, Trainer, TrainingArguments, Wav2Vec2Processor
 
 logging.basicConfig(
     level=logging.INFO,
@@ -68,7 +62,7 @@ def main(config: DictConfig) -> None:
     assert isinstance(dataset, DatasetDict)
 
     logger.info(f"Loading the {config.model_id!r} processor...")
-    processor = AutoProcessor.from_pretrained(
+    processor = Wav2Vec2Processor.from_pretrained(
         config.model_id, cache_dir=config.cache_dir
     )
 
@@ -276,40 +270,21 @@ def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[f
     assert isinstance(predictions, np.ndarray)
     assert isinstance(labels, np.ndarray)
 
-    # If all the logits are -100 for a token, then we set the logit for the padding
-    # token for that token to 0. This is to ensure that this token gets decoded to a
-    # padding token, and are therefore ignored
+    # Replace the -100 tokens with the pad token
     pad_token = processor.tokenizer.pad_token_id
-    predictions[np.all(predictions == -100, axis=-1), pad_token] = 0
-
-    # Decode the predictions to get the transcriptions. When a language model is
-    # attached to the processor then we get the predicted string directly from the
-    # logits. If the vocabulary dimension of the predictions is too small then we pad
-    # with zeros to match the size of the vocabulary
-    if isinstance(processor, Wav2Vec2ProcessorWithLM):
-        vocab_size = processor.tokenizer.get_vocab()
-        mismatch_dim = len(vocab_size) - predictions.shape[-1]
-        predictions = np.pad(
-            array=predictions,
-            pad_width=((0, 0), (0, 0), (0, mismatch_dim)),
-            mode="constant",
-            constant_values=pad_token,
-        )
-        predictions_str = processor.batch_decode(predictions).text
-
-    # Otherwise, if we are not using a language model, we need to convert the logits to
-    # token IDs and then decode the token IDs to get the predicted string
-    else:
-        if predictions.ndim == 2 and isinstance(predictions[0, 0], float):
-            predictions = np.argmax(predictions, axis=-1)
-        predictions_str = processor.batch_decode(predictions)
-
-    # Decode the ground truth labels
+    predictions[predictions == -100] = pad_token
     labels[labels == -100] = pad_token
-    labels_str = processor.tokenizer.batch_decode(sequences=labels, group_tokens=False)
+
+    # Decode the predictions to get the transcriptions
+    predictions_str = processor.batch_decode(predictions)
+
+    # Decode the ground truth labels. We set `group_tokens=False` to avoid grouping
+    # identical neighboring tokens together (i.e., "menneske" shouldn't be "meneske").
+    # We need this when decoding the predictions, as in this case there is a special
+    # token to separate the characters.
+    labels_str = processor.batch_decode(labels, group_tokens=False)
 
     # Compute the word error rates
-    # wer_metric = load_metric("wer", trust_remote_code=True)
     wer_metric = evaluate.load("wer")
     wers = [
         wer_metric.compute(predictions=[pred], references=[ref])
