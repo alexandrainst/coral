@@ -60,7 +60,6 @@ def main(config: DictConfig) -> None:
     if isinstance(dataset, Dataset):
         dataset = DatasetDict({config.dataset_split: dataset})
     assert isinstance(dataset, DatasetDict)
-    breakpoint()
 
     logger.info(f"Loading the {config.model_id!r} processor...")
     processor = Wav2Vec2Processor.from_pretrained(
@@ -263,7 +262,6 @@ def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[f
     Returns:
         The word error rates for each sample in the dataset.
     """
-    breakpoint()
     prediction_object = trainer.predict(test_dataset=dataset)
     predictions = prediction_object.predictions
     labels = prediction_object.label_ids
@@ -272,21 +270,21 @@ def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[f
     assert isinstance(predictions, np.ndarray)
     assert isinstance(labels, np.ndarray)
 
-    # If all the logits are -100 for a token, then we set the logit for the padding
-    # token for that token to 0. This is to ensure that this token gets decoded to a
-    # padding token, and are therefore ignored
+    # Replace the -100 tokens with the pad token
     pad_token = processor.tokenizer.pad_token_id
-    predictions[np.all(predictions == -100, axis=-1), pad_token] = 0
+    predictions[predictions == -100] = pad_token
+    labels[labels == -100] = pad_token
 
     # Decode the predictions to get the transcriptions
     predictions_str = processor.batch_decode(predictions)
 
-    # Decode the ground truth labels
-    labels[labels == -100] = pad_token
-    labels_str = processor.tokenizer.batch_decode(sequences=labels, group_tokens=False)
+    # Decode the ground truth labels. We set `group_tokens=False` to avoid grouping
+    # identical neighboring tokens together (i.e., "menneske" shouldn't be "meneske").
+    # We need this when decoding the predictions, as in this case there is a special
+    # token to separate the characters.
+    labels_str = processor.batch_decode(labels, group_tokens=False)
 
     # Compute the word error rates
-    # wer_metric = load_metric("wer", trust_remote_code=True)
     wer_metric = evaluate.load("wer")
     wers = [
         wer_metric.compute(predictions=[pred], references=[ref])
