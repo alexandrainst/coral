@@ -66,6 +66,7 @@ def main(config: DictConfig) -> None:
     if isinstance(dataset, Dataset):
         dataset = DatasetDict({config.dataset_split: dataset})
     assert isinstance(dataset, DatasetDict)
+    breakpoint()
 
     logger.info(f"Loading the {config.model_id!r} processor...")
     processor = AutoProcessor.from_pretrained(
