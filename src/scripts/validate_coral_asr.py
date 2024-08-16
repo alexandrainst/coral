@@ -61,6 +61,9 @@ def main(config: DictConfig) -> None:
         dataset = DatasetDict({config.dataset_split: dataset})
     assert isinstance(dataset, DatasetDict)
 
+    # TEMP
+    dataset["train"] = dataset["train"].select(range(1000))
+
     logger.info(f"Loading the {config.model_id!r} processor...")
     processor = Wav2Vec2Processor.from_pretrained(
         config.model_id, cache_dir=config.cache_dir
@@ -136,6 +139,8 @@ def main(config: DictConfig) -> None:
                 new_fingerprint=split._fingerprint,
             )
         )
+
+    breakpoint()
 
     logger.info(f"Uploading the validated dataset to {config.output_dataset_id!r}...")
     new_dataset = DatasetDict(new_data_dict)
