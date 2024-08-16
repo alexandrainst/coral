@@ -285,6 +285,7 @@ def get_wers(
                 The word error rates for each sample.
     """
     prediction_object = trainer.predict(test_dataset=dataset)
+    breakpoint()
     predictions = prediction_object.predictions
     labels = prediction_object.label_ids
     if isinstance(predictions, tuple) and len(predictions) > 1:
