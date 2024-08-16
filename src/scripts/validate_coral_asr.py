@@ -63,7 +63,7 @@ def main(config: DictConfig) -> None:
     assert isinstance(dataset, DatasetDict)
 
     # TEMP
-    dataset["train"] = dataset["train"].select(range(10_000))
+    dataset["train"] = dataset["train"].shuffle(seed=4242).select(range(1_000))
 
     logger.info(f"Loading the {config.model_id!r} processor...")
     processor = Wav2Vec2Processor.from_pretrained(
