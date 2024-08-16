@@ -317,22 +317,23 @@ def get_wers(
 
 
 def preprocess_logits_for_metrics(
-    logits: torch.Tensor, labels: torch.Tensor
-) -> tuple[torch.Tensor, torch.Tensor]:
+    logits: torch.Tensor, _: torch.Tensor
+) -> torch.Tensor:
     """Workaround to avoid storing too many tensors that are not needed.
 
     Args:
         logits:
-            The logits from the model.
+            The logits from the model, of shape (batch_size, seq_len, num_labels).
         labels:
-            The labels for the logits.
+            The labels for the logits - not used here.
 
     Returns:
-        The logits and labels to use for computing the metrics.
+        The prediction token IDs to use for computing the metrics.
     """
-    breakpoint()
-    pred_ids = torch.argmax(logits[0], dim=-1)
-    return pred_ids, labels
+    assert isinstance(logits, torch.Tensor)
+    assert logits.ndim == 3
+    pred_ids = torch.argmax(logits, dim=-1)
+    return pred_ids
 
 
 if __name__ == "__main__":
