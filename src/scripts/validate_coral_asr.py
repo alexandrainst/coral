@@ -286,7 +286,6 @@ def get_wers(
                 The word error rates for each sample.
     """
     prediction_object = trainer.predict(test_dataset=dataset)
-    breakpoint()
     predictions = prediction_object.predictions
     labels = prediction_object.label_ids
     if isinstance(predictions, tuple) and len(predictions) > 1:
@@ -320,7 +319,6 @@ def get_wers(
         "The number of WERs should be equal to the number of predictions - found "
         f"{len(wers):,} WERs and {len(predictions_str):,} predictions."
     )
-    breakpoint()
 
     return predictions_str, labels_str, wers
 
