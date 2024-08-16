@@ -69,6 +69,7 @@ def main(config: DictConfig) -> None:
     processor = Wav2Vec2Processor.from_pretrained(
         config.model_id, cache_dir=config.cache_dir
     )
+    assert isinstance(processor, Wav2Vec2Processor)
 
     logger.info("Resampling audio to 16kHz...")
     processed_dataset = dataset.cast_column(
@@ -329,6 +330,7 @@ def preprocess_logits_for_metrics(
     Returns:
         The logits and labels to use for computing the metrics.
     """
+    breakpoint()
     pred_ids = torch.argmax(logits[0], dim=-1)
     return pred_ids, labels
 
