@@ -28,6 +28,7 @@ from coral.data_models import Processor
 from datasets import Audio, Dataset, DatasetDict, load_dataset
 from omegaconf import DictConfig
 from requests import HTTPError
+from tqdm.auto import tqdm
 from transformers import AutoModelForCTC, Trainer, TrainingArguments, Wav2Vec2Processor
 
 logging.basicConfig(
@@ -139,8 +140,6 @@ def main(config: DictConfig) -> None:
                 new_fingerprint=split._fingerprint,
             )
         )
-
-    breakpoint()
 
     logger.info(f"Uploading the validated dataset to {config.output_dataset_id!r}...")
     new_dataset = DatasetDict(new_data_dict)
@@ -297,10 +296,9 @@ def get_wers(
     pad_token = processor.tokenizer.pad_token_id
     predictions[predictions == -100] = pad_token
     labels[labels == -100] = pad_token
-    breakpoint()
 
     # Decode the predictions to get the transcriptions
-    predictions_str = processor.batch_decode(predictions)
+    predictions_str = processor.batch_decode(predictions, group_tokens=False)
 
     # Decode the ground truth labels. We set `group_tokens=False` to avoid grouping
     # identical neighboring tokens together (i.e., "menneske" shouldn't be "meneske").
@@ -312,8 +310,9 @@ def get_wers(
     wer_metric = evaluate.load("wer")
     wers = [
         wer_metric.compute(predictions=[pred], references=[ref])
-        for pred, ref in zip(predictions_str, labels_str)
+        for pred, ref in zip(tqdm(predictions_str, desc="Computing WERs"), labels_str)
     ]
+    breakpoint()
 
     return predictions_str, labels_str, wers
 
