@@ -62,6 +62,9 @@ def main(config: DictConfig) -> None:
         dataset = DatasetDict({config.dataset_split: dataset})
     assert isinstance(dataset, DatasetDict)
 
+    # TEMP
+    dataset["train"] = dataset["train"].shuffle(seed=4243).select(range(1_000))
+
     logger.info(f"Loading the {config.model_id!r} processor...")
     processor = Wav2Vec2Processor.from_pretrained(
         config.model_id, cache_dir=config.cache_dir
