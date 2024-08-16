@@ -264,7 +264,7 @@ def process_dataset(
 
 def get_wers(
     dataset: Dataset, trainer: Trainer, processor: Processor
-) -> tuple[list[str], list[str], list[float]]:
+) -> tuple[list[str], list[float], list[float]]:
     """Get the word error rates for each sample in the dataset.
 
     Args:
@@ -281,7 +281,7 @@ def get_wers(
             predictions:
                 The transcriptions predicted by the model.
             labels:
-                The ground truth transcriptions.
+                The ASR-processed ground-truth labels for each sample.
             wers:
                 The word error rates for each sample.
     """
@@ -299,10 +299,14 @@ def get_wers(
     predictions[predictions == -100] = pad_token
     labels[labels == -100] = pad_token
 
-    # Decode the predictions and ground truth labels. We set `group_tokens=False` to
-    # avoid grouping identical neighboring tokens together (i.e., "menneske" shouldn't
-    # be "meneske").
-    predictions_str = processor.batch_decode(predictions, group_tokens=False)
+    # Decode the predictions to get the transcriptions
+    predictions_str = processor.batch_decode(predictions)
+    assert isinstance(predictions_str, list)
+
+    # Decode the ground truth labels. We set `group_tokens=False` to avoid grouping
+    # identical neighboring tokens together (i.e., "menneske" shouldn't be "meneske").
+    # We need this when decoding the predictions, as in this case there is a special
+    # token to separate the characters.
     labels_str = processor.batch_decode(labels, group_tokens=False)
 
     # Compute the word error rates
@@ -311,6 +315,11 @@ def get_wers(
         wer_metric.compute(predictions=[pred], references=[ref])
         for pred, ref in zip(tqdm(predictions_str, desc="Computing WERs"), labels_str)
     ]
+    wers = [wer if isinstance(wer, float) else -100.0 for wer in wers]
+    assert all(wer >= 0 for wer in wers), (
+        "The number of WERs should be equal to the number of predictions - found "
+        f"{len(wers):,} WERs and {len(predictions_str):,} predictions."
+    )
     breakpoint()
 
     return predictions_str, labels_str, wers
