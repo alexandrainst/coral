@@ -116,9 +116,19 @@ def main(config: DictConfig) -> None:
     )
     new_data_dict: dict[str, Dataset] = dict()
     for split_name, split in processed_dataset.items():
-        wers = get_wers(dataset=split, trainer=trainer, processor=processor)
+        predictions, labels, wers = get_wers(
+            dataset=split, trainer=trainer, processor=processor
+        )
         new_data_dict[split_name] = (
             dataset[split_name]
+            .add_column(
+                name="asr_prediction",
+                column=predictions,
+                new_fingerprint=split._fingerprint,
+            )
+            .add_column(
+                name="asr_label", column=labels, new_fingerprint=split._fingerprint
+            )
             .add_column(name="asr_wer", column=wers, new_fingerprint=split._fingerprint)
             .add_column(
                 name="asr_validation_model",
@@ -247,7 +257,9 @@ def process_dataset(
     return processed_dataset
 
 
-def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[float]:
+def get_wers(
+    dataset: Dataset, trainer: Trainer, processor: Processor
+) -> tuple[list[str], list[str], list[float]]:
     """Get the word error rates for each sample in the dataset.
 
     Args:
@@ -260,7 +272,13 @@ def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[f
             The processor used for processing the data.
 
     Returns:
-        The word error rates for each sample in the dataset.
+        A triple (predictions, labels, wers) where:
+            predictions:
+                The transcriptions predicted by the model.
+            labels:
+                The ground truth transcriptions.
+            wers:
+                The word error rates for each sample.
     """
     prediction_object = trainer.predict(test_dataset=dataset)
     predictions = prediction_object.predictions
@@ -291,7 +309,7 @@ def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[f
         for pred, ref in zip(predictions_str, labels_str)
     ]
 
-    return wers
+    return predictions_str, labels_str, wers
 
 
 def preprocess_logits_for_metrics(
