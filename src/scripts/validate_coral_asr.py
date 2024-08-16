@@ -63,7 +63,7 @@ def main(config: DictConfig) -> None:
     assert isinstance(dataset, DatasetDict)
 
     # TEMP
-    dataset["train"] = dataset["train"].select(range(1000))
+    dataset["train"] = dataset["train"].select(range(10_000))
 
     logger.info(f"Loading the {config.model_id!r} processor...")
     processor = Wav2Vec2Processor.from_pretrained(
@@ -297,13 +297,10 @@ def get_wers(
     predictions[predictions == -100] = pad_token
     labels[labels == -100] = pad_token
 
-    # Decode the predictions to get the transcriptions
+    # Decode the predictions and ground truth labels. We set `group_tokens=False` to
+    # avoid grouping identical neighboring tokens together (i.e., "menneske" shouldn't
+    # be "meneske").
     predictions_str = processor.batch_decode(predictions, group_tokens=False)
-
-    # Decode the ground truth labels. We set `group_tokens=False` to avoid grouping
-    # identical neighboring tokens together (i.e., "menneske" shouldn't be "meneske").
-    # We need this when decoding the predictions, as in this case there is a special
-    # token to separate the characters.
     labels_str = processor.batch_decode(labels, group_tokens=False)
 
     # Compute the word error rates
