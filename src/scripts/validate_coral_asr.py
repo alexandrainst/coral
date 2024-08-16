@@ -297,6 +297,7 @@ def get_wers(
     pad_token = processor.tokenizer.pad_token_id
     predictions[predictions == -100] = pad_token
     labels[labels == -100] = pad_token
+    breakpoint()
 
     # Decode the predictions to get the transcriptions
     predictions_str = processor.batch_decode(predictions)
