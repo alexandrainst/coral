@@ -16,13 +16,13 @@ dirs:
 seed: 4242
 
 evaluation_dataset:
-  id: CoRal-dataset/coral_v1.0  # Change to `alexandrainst/coral` when it is ready
-  subset: null  # Change to `read_aloud` when the dataset is ready
+  id: alexandrainst/coral
+  subset: read_aloud
   split: test
-  val_name: validation  # Change to `val` when the dataset is ready
+  val_name: val
   test_name: test
   text_column: text
-  audio_column: filename  # Change to `audio` when the dataset is ready
+  audio_column: audio
 
 # Dataset parameters
 characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
