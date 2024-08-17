@@ -28,6 +28,7 @@ from coral.data_models import Processor
 from datasets import Audio, Dataset, DatasetDict, load_dataset
 from omegaconf import DictConfig
 from requests import HTTPError
+from tqdm.auto import tqdm
 from transformers import AutoModelForCTC, Trainer, TrainingArguments, Wav2Vec2Processor
 
 logging.basicConfig(
@@ -65,6 +66,7 @@ def main(config: DictConfig) -> None:
     processor = Wav2Vec2Processor.from_pretrained(
         config.model_id, cache_dir=config.cache_dir
     )
+    assert isinstance(processor, Wav2Vec2Processor)
 
     logger.info("Resampling audio to 16kHz...")
     processed_dataset = dataset.cast_column(
@@ -116,9 +118,19 @@ def main(config: DictConfig) -> None:
     )
     new_data_dict: dict[str, Dataset] = dict()
     for split_name, split in processed_dataset.items():
-        wers = get_wers(dataset=split, trainer=trainer, processor=processor)
+        predictions, labels, wers = get_wers(
+            dataset=split, trainer=trainer, processor=processor
+        )
         new_data_dict[split_name] = (
             dataset[split_name]
+            .add_column(
+                name="asr_prediction",
+                column=predictions,
+                new_fingerprint=split._fingerprint,
+            )
+            .add_column(
+                name="asr_label", column=labels, new_fingerprint=split._fingerprint
+            )
             .add_column(name="asr_wer", column=wers, new_fingerprint=split._fingerprint)
             .add_column(
                 name="asr_validation_model",
@@ -247,7 +259,9 @@ def process_dataset(
     return processed_dataset
 
 
-def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[float]:
+def get_wers(
+    dataset: Dataset, trainer: Trainer, processor: Processor
+) -> tuple[list[str], list[float], list[float]]:
     """Get the word error rates for each sample in the dataset.
 
     Args:
@@ -260,7 +274,13 @@ def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[f
             The processor used for processing the data.
 
     Returns:
-        The word error rates for each sample in the dataset.
+        A triple (predictions, labels, wers) where:
+            predictions:
+                The transcriptions predicted by the model.
+            labels:
+                The ASR-processed ground-truth labels for each sample.
+            wers:
+                The word error rates for each sample.
     """
     prediction_object = trainer.predict(test_dataset=dataset)
     predictions = prediction_object.predictions
@@ -277,6 +297,7 @@ def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[f
 
     # Decode the predictions to get the transcriptions
     predictions_str = processor.batch_decode(predictions)
+    assert isinstance(predictions_str, list)
 
     # Decode the ground truth labels. We set `group_tokens=False` to avoid grouping
     # identical neighboring tokens together (i.e., "menneske" shouldn't be "meneske").
@@ -288,28 +309,35 @@ def get_wers(dataset: Dataset, trainer: Trainer, processor: Processor) -> list[f
     wer_metric = evaluate.load("wer")
     wers = [
         wer_metric.compute(predictions=[pred], references=[ref])
-        for pred, ref in zip(predictions_str, labels_str)
+        for pred, ref in zip(tqdm(predictions_str, desc="Computing WERs"), labels_str)
     ]
+    wers = [wer if isinstance(wer, float) else -100.0 for wer in wers]
+    assert all(wer >= 0 for wer in wers), (
+        "The number of WERs should be equal to the number of predictions - found "
+        f"{len(wers):,} WERs and {len(predictions_str):,} predictions."
+    )
 
-    return wers
+    return predictions_str, labels_str, wers
 
 
 def preprocess_logits_for_metrics(
-    logits: torch.Tensor, labels: torch.Tensor
-) -> tuple[torch.Tensor, torch.Tensor]:
+    logits: torch.Tensor, _: torch.Tensor
+) -> torch.Tensor:
     """Workaround to avoid storing too many tensors that are not needed.
 
     Args:
         logits:
-            The logits from the model.
+            The logits from the model, of shape (batch_size, seq_len, num_labels).
         labels:
-            The labels for the logits.
+            The labels for the logits - not used here.
 
     Returns:
-        The logits and labels to use for computing the metrics.
+        The prediction token IDs to use for computing the metrics.
     """
-    pred_ids = torch.argmax(logits[0], dim=-1)
-    return pred_ids, labels
+    assert isinstance(logits, torch.Tensor)
+    assert logits.ndim == 3
+    pred_ids = torch.argmax(logits, dim=-1)
+    return pred_ids
 
 
 if __name__ == "__main__":
