@@ -45,9 +45,7 @@ logger = logging.getLogger("get_coral_split_ids")
 warnings.filterwarnings("ignore", category=SettingWithCopyWarning)
 
 
-@hydra.main(
-    config_path="../../config", config_name="dataset_creation", version_base=None
-)
+@hydra.main(config_path="../../config", config_name="split_creation", version_base=None)
 def main(config: DictConfig) -> None:
     """Main function to get the speaker IDs for the CoRal test and validation splits.
 

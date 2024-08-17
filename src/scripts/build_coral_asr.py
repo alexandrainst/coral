@@ -15,7 +15,7 @@ import tarfile
 from pathlib import Path
 from time import sleep
 
-import click
+import hydra
 from datasets import (
     Audio,
     Dataset,
@@ -24,6 +24,7 @@ from datasets import (
     enable_progress_bar,
 )
 from joblib import Parallel, delayed
+from omegaconf import DictConfig
 from requests import HTTPError
 from tqdm.auto import tqdm
 
@@ -35,127 +36,19 @@ logging.basicConfig(
 logger = logging.getLogger("build_coral_asr")
 
 
-# Estimated number of hours: 7.50
-# Gender distribution:
-# - female: 58%
-# - male: 42%
-# Dialect distribution:
-# - Bornholmsk: 11%
-# - Fynsk: 12%
-# - Københavnsk: 11%
-# - Nordjysk: 10%
-# - Sjællandsk: 10%
-# - Sydømål: 10%
-# - Sønderjysk: 13%
-# - Vestjysk: 10%
-# - Østjysk: 12%
-# Age_group distribution:
-# - 0-24: 34%
-# - 25-49: 33%
-# - 50-: 33%
-# Accent distribution:
-# - native: 87%
-# - foreign: 13%
-TEST_SET_SPEAKER_IDS: list[str] = [
-    "spe_c3c1fdae39d6bf6e462868f8f52b7e3e",
-    "spe_d7da3d62a1a9885c1cb3280668437759",
-    "spe_ce5c35bd408b296511ce0b05ecc33de1",
-    "spe_e3013f96eed48bacc13dd8253609cf9b",
-    "spe_4facb80c94341b25425ec1d8962b1f8d",
-    "spe_20b91d51f72ee56930ca778cb16c29da",
-    "spe_e33e46611f54ae91ed7b235c11ef2628",
-    "spe_6b93da4530e853772df0fc8b2337142c",
-    "spe_6617b4c7273b31fc161fc6e07e620743",
-    "spe_1c32c35e35670f64d9e1a673c47aabd1",
-    "spe_590765d7656376e83a33c54f9c2e3976",
-    "spe_066938532ac270d527696f89d81f0de4",
-    "spe_545558c5701d956a2c63057cd313ff50",
-    "spe_af4e767c077909a95b9bd834ca224833",
-    "spe_4b7ba1403d8540b3101c07b9c8a19474",
-    "spe_e3742811d83011e22ec2ef5a7af32065",
-    "spe_fbf3381f525dbe5ddf1a2a1d36e9c4b9",
-    "spe_ef7f083c2097793e28388535a81e14ea",
-    "spe_b9112f9327f2390093bbc082a1651bad",
-    "spe_b788006083ced2efabc75a7907220250",
-    "spe_6e7cb65603907f863e06d7a02e00fb67",
-    "spe_003c825c9ad2f1496c22cc16a04b1598",
-    "spe_935a99ce745c2c042a77f6e4c831fd94",
-    "spe_55028d05581a88a8655fa1f74ddfb5a1",
-    "spe_6efa16af1112af15ab482171e156d3f3",
-    "spe_01fc2b156c7fe429f1b72bd3be5ad3c3",
-    "spe_b19c9900784bdf8f8ef3ea3e78002011",
-    "spe_02d28146c013111766f18f0d2198785e",
-    "spe_3937cb6805e15326b37253d6148babb5",
-    "spe_492647a87720047b55f4033d0df8082a",
-    "spe_9b8d26599c6b7932dbac00832b73dcf8",
-    "spe_6a029298b9eaa3d7e7f8f74510f88e70",
-]
-
-# Estimated number of hours: 1.54
-# Gender distribution:
-# - female: 48%
-# - male: 52%
-# Dialect distribution:
-# - Bornholmsk: 5%
-# - Fynsk: 11%
-# - Københavnsk: 17%
-# - Nordjysk: 9%
-# - Sjællandsk: 6%
-# - Sydømål: 18%
-# - Sønderjysk: 5%
-# - Vestjysk: 8%
-# - Østjysk: 19%
-# Age_group distribution:
-# - 0-24: 39%
-# - 25-49: 37%
-# - 50-: 24%
-# Accent distribution:
-# - native: 91%
-# - foreign: 9%
-VALIDATION_SET_SPEAKER_IDS: list[str] = [
-    "spe_a8ffed9a90c0e89338892f23dfaac338",
-    "spe_50d0664744aa2a241c084363b04e39c5",
-    "spe_003971defa823a2eb98f079cdc91c634",
-    "spe_0dd042aee46edc27b2ba0155abdf3d54",
-    "spe_cd5174de19523f69dd8613ea311997d4",
-    "spe_0cf8566481d05e4ed329e34211a36311",
-    "spe_4aa23a60464a18e3597cdeb3606ac572",
-    "spe_647d4e905427d45ab699abe73d80ef1d",
-    "spe_bb1d0e9d3f2bca18658975b3073924cb",
-    "spe_93f1d99433d997beeec289d60e074ed2",
-    "spe_9c4dc6be57f6c63860331813a71417e5",
-]
-
-
-@click.command()
-@click.option(
-    "--audio-dir",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True),
-    default="/Volumes/CoRal/_new_structure/raw",
-    show_default=True,
-    help="Path to the directory containing the raw audio files.",
+@hydra.main(
+    config_path="../../config", config_name="dataset_creation", version_base=None
 )
-@click.option(
-    "--metadata-database-path",
-    type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
-    default="/Volumes/CoRal/_new_structure/raw/CoRal_public.db",
-    show_default=True,
-    help="Path to the SQLite database containing the metadata.",
-)
-@click.option(
-    "--hub-id",
-    type=str,
-    default="alexandrainst/coral",
-    show_default=True,
-    help="Identifier of the Hugging Face Hub repository.",
-)
-def main(
-    audio_dir: Path | str, metadata_database_path: Path | str, hub_id: str
-) -> None:
-    """Build and upload the CoRal speech recognition dataset."""
-    metadata_database_path = Path(metadata_database_path)
-    read_aloud_dir = Path(audio_dir) / "recordings"
-    conversation_dir = Path(audio_dir) / "conversations"
+def main(config: DictConfig) -> None:
+    """Build and upload the CoRal speech recognition dataset.
+
+    Args:
+        config:
+            The Hydra configuration object
+    """
+    metadata_database_path = Path(config.metadata_database_path)
+    read_aloud_dir = Path(config.audio_dir) / "recordings"
+    conversation_dir = Path(config.audio_dir) / "conversations"
 
     logger.info("Copying the raw files to the current working directory...")
     temp_read_aloud_dir = copy_audio_directory_to_cwd(audio_dir=read_aloud_dir)
@@ -185,14 +78,18 @@ def main(
     read_aloud_dataset = split_dataset(dataset=read_aloud_dataset)
     conversation_dataset = split_dataset(dataset=conversation_dataset)
 
-    logger.info(f"Uploading the datasets to {hub_id!r} on the Hugging Face Hub...")
+    logger.info(
+        f"Uploading the datasets to {config.hub_id!r} on the Hugging Face Hub..."
+    )
     upload_dataset(
         read_aloud_dataset=read_aloud_dataset,
         conversation_dataset=conversation_dataset,
-        hub_id=hub_id,
+        hub_id=config.hub_id,
     )
 
-    logger.info(f"All done! See the datasets at https://hf.co/datasets/{hub_id}.")
+    logger.info(
+        f"All done! See the datasets at https://hf.co/datasets/{config.hub_id}."
+    )
 
 
 ##########################################
@@ -401,51 +298,62 @@ def split_dataset(dataset: Dataset) -> DatasetDict | None:
     return DatasetDict(splits)
 
 
-def examples_belong_to_train(examples: dict[str, list]) -> list[bool]:
+def examples_belong_to_train(
+    examples: dict[str, list], test_speakers: list[str], val_speakers: list[str]
+) -> list[bool]:
     """Check if each example belongs to the training set.
 
     Args:
         examples:
             A batch of examples.
+        test_speakers:
+            A list of speakers in the test set.
+        val_speakers:
+            A list of speakers in the validation set.
 
     Returns:
         A list of booleans indicating whether each example belongs to the training
         set.
     """
     return [
-        speaker_id not in VALIDATION_SET_SPEAKER_IDS + TEST_SET_SPEAKER_IDS
+        speaker_id not in test_speakers + val_speakers
         for speaker_id in examples["id_speaker"]
     ]
 
 
-def examples_belong_to_val(examples: dict[str, list]) -> list[bool]:
+def examples_belong_to_val(
+    examples: dict[str, list], val_speakers: list[str]
+) -> list[bool]:
     """Check if each example belongs to the validation set.
 
     Args:
         examples:
             A batch of examples.
+        val_speakers:
+            A list of speakers in the validation set.
 
     Returns:
         A list of booleans indicating whether each example belongs to the validation
         set.
     """
-    return [
-        speaker_id in VALIDATION_SET_SPEAKER_IDS
-        for speaker_id in examples["id_speaker"]
-    ]
+    return [speaker_id in val_speakers for speaker_id in examples["id_speaker"]]
 
 
-def examples_belong_to_test(examples: dict[str, list]) -> list[bool]:
+def examples_belong_to_test(
+    examples: dict[str, list], test_speakers: list[str]
+) -> list[bool]:
     """Check if each example belongs to the test set.
 
     Args:
         examples:
             A batch of examples.
+        test_speakers:
+            A list of speakers in the test set.
 
     Returns:
         A list of booleans indicating whether each example belongs to the test set.
     """
-    return [speaker_id in TEST_SET_SPEAKER_IDS for speaker_id in examples["id_speaker"]]
+    return [speaker_id in test_speakers for speaker_id in examples["id_speaker"]]
 
 
 #####################################
