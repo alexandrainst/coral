@@ -111,7 +111,7 @@ def main(config: DictConfig) -> None:
         predictions, labels, wers = get_wers(
             dataset=split, trainer=trainer, processor=processor
         )
-        new_data_dict[split_name] = (
+        new_split = (
             dataset[split_name]
             .add_column(
                 name="asr_prediction",
@@ -128,6 +128,11 @@ def main(config: DictConfig) -> None:
                 new_fingerprint=split._fingerprint,
             )
         )
+        if split_name in {"val", "test"}:
+            new_split = new_split.filter(
+                lambda x: x["asr_wer"] < config.max_val_test_wer
+            )
+        new_data_dict[split_name] = new_split
 
     logger.info(f"Uploading the validated dataset to {config.output_dataset_id!r}...")
     new_dataset = DatasetDict(new_data_dict)

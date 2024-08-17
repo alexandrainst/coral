@@ -10,3 +10,4 @@ output_dataset_subset: read_aloud
 output_dataset_split: null
 batch_size: 8
 cache_dir: null
+max_val_test_wer: 0.4
