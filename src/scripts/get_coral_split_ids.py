@@ -128,7 +128,7 @@ class AgeGroup(NamedTuple):
             return f"{self.min}-"
         return f"{self.min}-{self.max - 1}"
 
-    def __in__(self, age: int) -> bool:
+    def __contains__(self, age: object) -> bool:
         """Check if an age is in the age group.
 
         Args:
@@ -138,6 +138,8 @@ class AgeGroup(NamedTuple):
         Returns:
             Whether the age is in the age group.
         """
+        if not isinstance(age, int):
+            return False
         return self.min <= age and (self.max is None or age < self.max)
 
 
