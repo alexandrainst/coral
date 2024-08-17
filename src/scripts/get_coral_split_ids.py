@@ -489,10 +489,10 @@ def load_coral_metadata_df(
     # high-quality samples are included in the validation and test sets.
     if "asr_wer" in df.columns:
         samples_before = len(df)
-        df = df.query("asr_wer <= @max_val_test_wer")
+        df = df.query("asr_wer < @max_val_test_wer")
         samples_removed = samples_before - len(df)
         logger.info(
-            f"Removed {samples_removed:,} samples with WER > "
+            f"Removed {samples_removed:,} samples with WER >= "
             f"{max_val_test_wer:.2f}."
         )
     else:
