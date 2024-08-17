@@ -485,6 +485,12 @@ def load_coral_metadata_df(
         )
     )
 
+    # Remove the manually rejected samples
+    samples_before = len(df)
+    df = df.query("validated != 'rejected' and validated != 'maybe'")
+    samples_removed = samples_before - len(df)
+    logger.info(f"Removed {samples_removed:,} manually rejected samples.")
+
     # Filter the dataframe by auto-validation WER, to ensure that only the
     # high-quality samples are included in the validation and test sets.
     if "asr_wer" in df.columns:
