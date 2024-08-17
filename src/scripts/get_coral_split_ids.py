@@ -22,6 +22,7 @@ Usage:
 """
 
 import logging
+import warnings
 from pathlib import Path
 from typing import NamedTuple
 
@@ -29,8 +30,9 @@ import hydra
 import numpy as np
 import pandas as pd
 import torch
-from datasets import IterableDataset, load_dataset
+from datasets import Dataset, IterableDataset, load_dataset
 from omegaconf import DictConfig
+from pandas.errors import SettingWithCopyWarning
 from tqdm.auto import tqdm
 
 logging.basicConfig(
@@ -39,6 +41,8 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger("get_coral_split_ids")
+
+warnings.filterwarnings("ignore", category=SettingWithCopyWarning)
 
 
 @hydra.main(
@@ -55,16 +59,18 @@ def main(config: DictConfig) -> None:
     num_attempts = config.num_split_attempts
     df = load_coral_metadata_df(
         sub_dialect_to_dialect=config.sub_dialect_to_dialect,
+        age_groups=config.age_groups,
         max_val_test_wer=config.requirements.max_val_test_wer,
+        streaming=config.streaming,
     )
     logger.info(f"Loaded processed CoRal metadata with {len(df):,} samples.")
 
     # Build test split
-    test_candidates: list[Dataset] = list()
+    test_candidates: list[EvalDataset] = list()
     min_test_hours = config.requirements.test.min_hours
     max_test_hours = config.requirements.test.max_hours
     for seed in tqdm(range(4242, 4242 + num_attempts), desc="Computing test splits"):
-        test_candidate = Dataset(
+        test_candidate = EvalDataset(
             df=df,
             min_samples=int(min_test_hours * 60 * 60 / mean_seconds_per_sample),
             max_samples=int(max_test_hours * 60 * 60 / mean_seconds_per_sample),
@@ -87,11 +93,11 @@ def main(config: DictConfig) -> None:
     logger.info(f"Test dataset:\n{test_dataset}")
 
     # Build validation split
-    val_candidates: list[Dataset] = list()
+    val_candidates: list[EvalDataset] = list()
     min_val_hours = config.requirements.val.min_hours
     max_val_hours = config.requirements.val.max_hours
     for seed in tqdm(range(4242, 4242 + num_attempts), desc="Computing val splits"):
-        val_candidate = Dataset(
+        val_candidate = EvalDataset(
             df=df,
             min_samples=int(min_val_hours * 60 * 60 / mean_seconds_per_sample),
             max_samples=int(max_val_hours * 60 * 60 / mean_seconds_per_sample),
@@ -143,7 +149,7 @@ class AgeGroup(NamedTuple):
         return self.min <= age and (self.max is None or age < self.max)
 
 
-class Dataset:
+class EvalDataset:
     """Dataset class to keep track of the samples in the dataset.
 
     Attributes:
@@ -237,7 +243,7 @@ class Dataset:
         self.betas = dict(dialect=100.0, age_group=5.0)
         self.add_dialect_samples()
 
-    def add_speaker_samples(self, speaker: str) -> "Dataset":
+    def add_speaker_samples(self, speaker: str) -> "EvalDataset":
         """Add all samples of a speaker to the dataset.
 
         Args:
@@ -255,8 +261,6 @@ class Dataset:
         # age_group, and native_language
         row = speaker_samples.iloc[0]
         for key, count in self.counts.items():
-            if key == "age":
-                row["age"] = age_to_group(age=row["age"], age_groups=self.age_groups)
             count[row[key]] += n_samples
 
         self._update_weights()
@@ -270,15 +274,11 @@ class Dataset:
             for key, weight in self.weights.items()
         )
 
-    def add_dialect_samples(self) -> "Dataset":
+    def add_dialect_samples(self) -> "EvalDataset":
         """Get samples of dialects each dialect.
 
-        Args:
-            dataset:
-                Dataset object.
-
         Returns:
-            Dataset object with samples of each dialect.
+            EvalDataset object with samples of each dialect.
         """
         df_speaker = self.df.drop_duplicates(subset="id_speaker").query(
             "id_speaker not in @self.banned_speakers"
@@ -320,7 +320,7 @@ class Dataset:
 
         return self
 
-    def _update_weights(self) -> "Dataset":
+    def _update_weights(self) -> "EvalDataset":
         """Update the weights."""
         self.weights = {
             key: self._make_weights(count, beta=self.betas.get(key, 0))
@@ -351,7 +351,7 @@ class Dataset:
         return weights
 
     def __repr__(self) -> str:
-        """Return the string representation of the Dataset class."""
+        """Return the string representation of the EvalDataset class."""
         num_hours = len(self) * self.mean_seconds_per_sample / 60 / 60
         msg = (
             f"\nEstimated number of hours: {num_hours:.2f}"
@@ -393,11 +393,14 @@ def age_to_group(age: int, age_groups: list[AgeGroup]) -> str:
     for age_group in age_groups:
         if age in age_group:
             return str(age_group)
-    raise ValueError(f"Age {age} not in any age group.")
+    raise ValueError(f"Age {age} not in any age group, out of {age_groups}.")
 
 
 def load_coral_metadata_df(
-    sub_dialect_to_dialect: dict[str, str], max_val_test_wer: float
+    sub_dialect_to_dialect: dict[str, str],
+    age_groups: list[tuple[int, int]],
+    max_val_test_wer: float,
+    streaming: bool = False,
 ) -> pd.DataFrame:
     """Load the metadata of the CoRal dataset.
 
@@ -406,8 +409,12 @@ def load_coral_metadata_df(
     Args:
         sub_dialect_to_dialect:
             A mapping from sub-dialect to dialect.
+        age_groups:
+            The age groups to use for splitting.
         max_val_test_wer:
             The maximum WER for a sample to be included in the validation and test sets.
+        streaming:
+            Whether to load the dataset in streaming mode.
 
     Returns:
         The metadata of the CoRal dataset.
@@ -415,11 +422,13 @@ def load_coral_metadata_df(
     metadata_path = Path("coral-metadata.csv")
 
     if metadata_path.exists():
-        df = pd.read_csv(metadata_path, low_memory=False)
-    else:
-        coral = load_dataset(
-            path="alexandrainst/coral", split="train", streaming=True
-        ).remove_columns("audio")
+        return pd.read_csv(metadata_path, low_memory=False)
+
+    coral = load_dataset(
+        path="alexandrainst/coral", split="train", streaming=streaming
+    ).remove_columns("audio")
+
+    if streaming:
         assert isinstance(coral, IterableDataset)
 
         coral_splits: dict | None = coral.info.splits
@@ -436,43 +445,64 @@ def load_coral_metadata_df(
             )
         ]
         df = pd.DataFrame(metadata)
-        logger.info(f"Downloaded CoRal metadata with {len(df):,} raw samples.")
 
-        # Map the dialects to the dialect categories that we use for splitting
-        df.dialect = df.dialect.map(sub_dialect_to_dialect)
+    else:
+        assert isinstance(coral, Dataset)
+        df = pd.DataFrame(coral.to_pandas())
 
-        # Aggregate accents into binary "native" and "foreign" categories, as there are
-        # too few non-native speakers to have a separate category for each accent.
-        df["accent"] = df.language_native.apply(
-            lambda x: "native" if x == "da" else "foreign"
+    logger.info(f"Downloaded CoRal metadata with {len(df):,} raw samples.")
+
+    # Map the dialects to the dialect categories that we use for splitting
+    all_dialects = set(df.dialect.unique())
+    missing_dialects = all_dialects - set(sub_dialect_to_dialect.keys())
+    if missing_dialects:
+        raise ValueError(
+            f"Missing dialects in sub_dialect_to_dialect mapping: {missing_dialects}"
+        )
+    df.dialect = df.dialect.map(sub_dialect_to_dialect)
+
+    # Aggregate accents into binary "native" and "foreign" categories, as there are
+    # too few non-native speakers to have a separate category for each accent.
+    df["accent"] = df.language_native.apply(
+        lambda x: "native" if x == "da" else "foreign"
+    )
+
+    # We remove the nonbinary speakers from being in the validation and test sets,
+    # since there are only 3 such speakers in the dataset - they will be part of the
+    # training split instead.
+    samples_before = len(df)
+    df = df.query("gender != 'nonbinary'")
+    samples_removed = samples_before - len(df)
+    logger.info(f"Removed {samples_removed:,} nonbinary samples.")
+
+    # Convert age to age group
+    df["age_group"] = df.age.apply(
+        lambda age: age_to_group(
+            age=age,
+            age_groups=[
+                AgeGroup(min=min_age, max=max_age) for min_age, max_age in age_groups
+            ],
+        )
+    )
+
+    # Filter the dataframe by auto-validation WER, to ensure that only the
+    # high-quality samples are included in the validation and test sets.
+    if "asr_wer" in df.columns:
+        samples_before = len(df)
+        df = df.query("asr_wer <= @max_val_test_wer")
+        samples_removed = samples_before - len(df)
+        logger.info(
+            f"Removed {samples_removed:,} samples with WER > "
+            f"{max_val_test_wer:.2f}."
+        )
+    else:
+        logger.warning(
+            "No ASR WER column found in CoRal metadata. All samples will be "
+            "included in the validation and test sets."
         )
 
-        # We remove the nonbinary speakers from being in the validation and test sets,
-        # since there are only 3 such speakers in the dataset - they will be part of the
-        # training split instead.
-        samples_before = len(df)
-        df = df.query("gender != 'nonbinary'")
-        samples_removed = samples_before - len(df)
-        logger.info(f"Removed {samples_removed:,} nonbinary samples.")
-
-        # Filter the dataframe by auto-validation WER, to ensure that only the
-        # high-quality samples are included in the validation and test sets.
-        if "asr_wer" in df.columns:
-            samples_before = len(df)
-            df = df.query("asr_wer <= @max_val_test_wer")
-            samples_removed = samples_before - len(df)
-            logger.info(
-                f"Removed {samples_removed:,} samples with WER > "
-                f"{max_val_test_wer:.2f}."
-            )
-        else:
-            logger.warning(
-                "No ASR WER column found in CoRal metadata. All samples will be "
-                "included in the validation and test sets."
-            )
-
-        # Store the metadata for future use
-        df.to_csv("coral-metadata.csv", index=False)
+    # Store the metadata for future use
+    df.to_csv("coral-metadata.csv", index=False)
 
     return df
 
