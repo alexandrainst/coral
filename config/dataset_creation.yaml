@@ -1,3 +1,4 @@
+streaming: true
 num_split_attempts: 1000
 mean_seconds_per_sample: 5.0
 
@@ -47,7 +48,7 @@ sub_dialect_to_dialect:
   morsingmål: Vestjysk
   sydøstjysk: Østjysk
   østsjællandsk: Sjællandsk
-  syd for rigsgrænsen: "mellemslesvisk, angelmål, fjoldemål: Sønderjysk"
+  "syd for rigsgrænsen: mellemslesvisk, angelmål, fjoldemål": Sønderjysk
   vestfynsk (nordvest-, sydvestfynsk): Fynsk
   vestlig sønderjysk (m. mandø og rømø): Sønderjysk
   sydvestjysk (m. fanø): Vestjysk
@@ -62,7 +63,8 @@ sub_dialect_to_dialect:
   fjandbomål: Vestjysk
 
 requirements:
-  max_val_test_wer: 0.1  # TODO: Tune this
+  max_train_wer: 1.0
+  max_val_test_wer: 0.2
   test:
     min_hours: 7.5
     max_hours: 20.0
