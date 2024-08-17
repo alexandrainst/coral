@@ -35,6 +35,7 @@ logging.basicConfig(
 logger = logging.getLogger("build_coral_asr")
 
 
+# Estimated number of hours: 7.50
 # Gender distribution:
 # - female: 57%
 # - male: 43%
@@ -91,6 +92,7 @@ TEST_SET_SPEAKER_IDS: list[str] = [
     "spe_20b91d51f72ee56930ca778cb16c29da",
 ]
 
+# Estimated number of hours: 1.43
 # Gender distribution:
 # - female: 52%
 # - male: 48%
