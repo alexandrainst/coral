@@ -463,8 +463,8 @@ def load_coral_metadata_df(
 
     # Aggregate accents into binary "native" and "foreign" categories, as there are
     # too few non-native speakers to have a separate category for each accent.
-    df["accent"] = df.language_native.apply(
-        lambda x: "native" if x == "da" else "foreign"
+    df["accent"] = df.country_birth.apply(
+        lambda x: "native" if x == "DK" or x is None else "foreign"
     )
 
     # We remove the nonbinary speakers from being in the validation and test sets,
