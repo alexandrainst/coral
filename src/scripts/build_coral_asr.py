@@ -35,10 +35,95 @@ logging.basicConfig(
 logger = logging.getLogger("build_coral_asr")
 
 
-VALIDATION_SET_SPEAKER_IDS: list[str] = list()
+# Gender distribution:
+# - female: 57%
+# - male: 43%
+# Dialect distribution:
+# - Bornholmsk: 10%
+# - Fynsk: 11%
+# - Københavnsk: 12%
+# - Nordjysk: 11%
+# - Sjællandsk: 11%
+# - Sydømål: 11%
+# - Sønderjysk: 12%
+# - Vestjysk: 11%
+# - Østjysk: 12%
+# Age_group distribution:
+# - 0-24: 31%
+# - 25-49: 35%
+# - 50-: 33%
+# Accent distribution:
+# - native: 80%
+# - foreign: 20%
+TEST_SET_SPEAKER_IDS: list[str] = [
+    "spe_fe46df2f5904e1443590a5aa735946ca",
+    "spe_10b8eb8c3ba5fd8405d1516b7b12f2de",
+    "spe_65388692c15793f7746fe454931bdf49",
+    "spe_7b8398c898a828791c0fc40d6d146b3f",
+    "spe_a3d4edeab8ea4c9bb67e847103c4b5f7",
+    "spe_7902a69e777bf0fa15ae75c7ce913503",
+    "spe_3dd62e87b39a71dc50aaf90199dad34b",
+    "spe_55028d05581a88a8655fa1f74ddfb5a1",
+    "spe_035a5bcd2f0670c021e8c70d4effc563",
+    "spe_3aba2e587b07b3bc7ecb121bee547360",
+    "spe_4e8a1be0def20faf50d02a084a9adb6c",
+    "spe_434d5c8eb40fd915bdae28bc590d829c",
+    "spe_af4e767c077909a95b9bd834ca224833",
+    "spe_b977ebc0a2ba961cbe158190fce0dc06",
+    "spe_5f548d16aa39584dfd775c3a80b404a7",
+    "spe_b31ef7d6e97a7fd7ce8bf169600c64a2",
+    "spe_44dd789a42cfb357b3cd0145f667ffda",
+    "spe_0d673a6ff07fd1895ad0be7714755c78",
+    "spe_ae8bb53db7e325a8ecbb3238f4578d38",
+    "spe_b96ee10564409029a6810562e34cd7a1",
+    "spe_f3a0b2f9a75fcfc793a3109d8fbd6c94",
+    "spe_647d4e905427d45ab699abe73d80ef1d",
+    "spe_6617b4c7273b31fc161fc6e07e620743",
+    "spe_9b021d63f84de498fc97b75367678e78",
+    "spe_23c3eb37310f6ae61b3b275e88157309",
+    "spe_e01017cbabe39aa19980d30b022947dc",
+    "spe_6cb7a0be3ea54ae06b2c5c0c5d349347",
+    "spe_497254e1a7f3b8235252224fba53461f",
+    "spe_8948a0cc310c6fa8161665d4eda79846",
+    "spe_6e67cbe51a49d9e4abbd7699a4a89d91",
+    "spe_f5bb05a736c91f4347edc51e4199278a",
+    "spe_e3742811d83011e22ec2ef5a7af32065",
+    "spe_20b91d51f72ee56930ca778cb16c29da",
+]
 
-
-TEST_SET_SPEAKER_IDS: list[str] = list()
+# Gender distribution:
+# - female: 52%
+# - male: 48%
+# Dialect distribution:
+# - Bornholmsk: 13%
+# - Fynsk: 8%
+# - Københavnsk: 7%
+# - Nordjysk: 5%
+# - Sjællandsk: 8%
+# - Sydømål: 17%
+# - Sønderjysk: 14%
+# - Vestjysk: 16%
+# - Østjysk: 12%
+# Age_group distribution:
+# - 0-24: 21%
+# - 25-49: 36%
+# - 50-: 42%
+# Accent distribution:
+# - native: 94%
+# - foreign: 6%
+VALIDATION_SET_SPEAKER_IDS: list[str] = [
+    "spe_d5ec9dc47d76e3be1bc451561c6cf655",
+    "spe_4aa23a60464a18e3597cdeb3606ac572",
+    "spe_b9112f9327f2390093bbc082a1651bad",
+    "spe_b8669c732e901851c13ef1ee7f138e48",
+    "spe_6aeb15b456086536f45918dbdfc63ec6",
+    "spe_40ca0d47aa6dfd99e56f2afdca4b3ee9",
+    "spe_c3c1fdae39d6bf6e462868f8f52b7e3e",
+    "spe_ced5114cc6dc923dcb1bcc3db3480691",
+    "spe_e3013f96eed48bacc13dd8253609cf9b",
+    "spe_f64c7781f78d1ac24a979acb3080a1d6",
+    "spe_6e7cb65603907f863e06d7a02e00fb67",
+]
 
 
 @click.command()
