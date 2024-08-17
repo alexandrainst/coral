@@ -127,11 +127,16 @@ def main(config: DictConfig) -> None:
                 column=[config.model_id] * len(split),
                 new_fingerprint=split._fingerprint,
             )
+            .filter(lambda sample: sample["validated"] != "rejected")
         )
         if split_name in {"val", "test"}:
             new_split = new_split.filter(
                 lambda x: x["asr_wer"] < config.max_val_test_wer
             )
+        elif split_name == "train":
+            new_split = new_split.filter(lambda x: x["asr_wer"] < config.max_train_wer)
+        else:
+            raise ValueError(f"Unknown split name: {split_name!r}")
         new_data_dict[split_name] = new_split
 
     logger.info(f"Uploading the validated dataset to {config.output_dataset_id!r}...")
