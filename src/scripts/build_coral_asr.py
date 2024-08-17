@@ -12,6 +12,7 @@ import multiprocessing as mp
 import shutil
 import sqlite3
 import tarfile
+from functools import partial
 from pathlib import Path
 from time import sleep
 
@@ -75,8 +76,16 @@ def main(config: DictConfig) -> None:
     )
 
     logger.info("Splitting the datasets into train, validation and test sets...")
-    read_aloud_dataset = split_dataset(dataset=read_aloud_dataset)
-    conversation_dataset = split_dataset(dataset=conversation_dataset)
+    read_aloud_dataset = split_dataset(
+        dataset=read_aloud_dataset,
+        test_speakers=config.test_speakers,
+        val_speakers=config.val_speakers,
+    )
+    conversation_dataset = split_dataset(
+        dataset=conversation_dataset,
+        test_speakers=config.test_speakers,
+        val_speakers=config.val_speakers,
+    )
 
     logger.info(
         f"Uploading the datasets to {config.hub_id!r} on the Hugging Face Hub..."
@@ -264,12 +273,18 @@ def build_conversation_dataset(
 #####################################
 
 
-def split_dataset(dataset: Dataset) -> DatasetDict | None:
+def split_dataset(
+    dataset: Dataset, test_speakers: list[str], val_speakers: list[str]
+) -> DatasetDict | None:
     """Split a dataset into train, validation and test sets.
 
     Args:
         dataset:
             The dataset to split.
+        test_speakers:
+            A list of speakers in the test set.
+        val_speakers:
+            A list of speakers in the validation set.
 
     Returns:
         The split dataset, or None if no training samples are found.
@@ -282,16 +297,29 @@ def split_dataset(dataset: Dataset) -> DatasetDict | None:
         return None
 
     with no_progress_bar():
-        train_dataset = dataset.filter(function=examples_belong_to_train, batched=True)
+        train_dataset = dataset.filter(
+            function=partial(
+                examples_belong_to_train,
+                test_speakers=test_speakers,
+                val_speakers=val_speakers,
+            ),
+            batched=True,
+        )
     splits = dict(train=train_dataset)
 
     with no_progress_bar():
-        val_dataset = dataset.filter(function=examples_belong_to_val, batched=True)
+        val_dataset = dataset.filter(
+            function=partial(examples_belong_to_val, val_speakers=val_speakers),
+            batched=True,
+        )
     if len(val_dataset) > 0:
         splits["val"] = val_dataset
 
     with no_progress_bar():
-        test_dataset = dataset.filter(function=examples_belong_to_test, batched=True)
+        test_dataset = dataset.filter(
+            function=partial(examples_belong_to_test, test_speakers=test_speakers),
+            batched=True,
+        )
     if len(test_dataset) > 0:
         splits["test"] = test_dataset
 
