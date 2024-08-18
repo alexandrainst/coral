@@ -1,7 +1,7 @@
 defaults:
   - model: wav2vec2-with-lm
   - datasets:
-    - common_voice_13_da
+    - coral
   - override hydra/job_logging: custom
   - _self_
 
@@ -16,13 +16,13 @@ dirs:
 seed: 4242
 
 evaluation_dataset:
-  id: CoRal-dataset/coral_v1.0  # Change to `alexandrainst/coral` when it is ready
-  subset: null  # Change to `read_aloud` when the dataset is ready
+  id: alexandrainst/coral
+  subset: read_aloud
   split: test
-  val_name: validation  # Change to `val` when the dataset is ready
+  val_name: val
   test_name: test
   text_column: text
-  audio_column: filename  # Change to `audio` when the dataset is ready
+  audio_column: audio
 
 # Dataset parameters
 characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
@@ -51,7 +51,7 @@ wandb_group: default
 wandb_name: ${model_id}
 resume_from_checkpoint: false
 ignore_data_skip: false
-save_total_limit: 2
+save_total_limit: 1
 
 # Optimisation parameters
 learning_rate: 1e-4
@@ -61,8 +61,8 @@ total_batch_size: 256
 per_device_batch_size: 16
 max_steps: 10_000
 warmup_steps: 1_000
-logging_steps: 10
-eval_steps: 100
-save_steps: 100
+logging_steps: 100
+eval_steps: 500
+save_steps: 500
 early_stopping: false
 early_stopping_patience: 50
