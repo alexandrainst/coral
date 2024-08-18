@@ -51,7 +51,7 @@ wandb_group: default
 wandb_name: ${model_id}
 resume_from_checkpoint: false
 ignore_data_skip: false
-save_total_limit: 2
+save_total_limit: 1
 
 # Optimisation parameters
 learning_rate: 1e-4
