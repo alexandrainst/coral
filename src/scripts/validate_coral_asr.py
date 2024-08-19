@@ -78,7 +78,7 @@ def main(config: DictConfig) -> None:
     new_data_dict: dict[str, Dataset] = dict()
     for split_name, split in processed_dataset.items():
         predictions, labels, score_dict = compute_metrics(
-            dataset=split, transcriber=transcriber
+            dataset=split, transcriber=transcriber, metric_names=config.metrics
         )
         new_split = (
             dataset[split_name]
@@ -234,7 +234,9 @@ def process_dataset(
 
 
 def compute_metrics(
-    dataset: Dataset, transcriber: AutomaticSpeechRecognitionPipeline
+    dataset: Dataset,
+    transcriber: AutomaticSpeechRecognitionPipeline,
+    metric_names: list[str],
 ) -> tuple[list[str], list[str], dict[str, list[float]]]:
     """Compute the metrics for the dataset.
 
@@ -243,6 +245,9 @@ def compute_metrics(
             The dataset to validate.
         transcriber:
             The transcriber used for transcribing the audio.
+        metric_names:
+            The names of the metrics to compute. Needs to be compatible with the name of
+            the metric in the `evaluate` library.
 
     Returns:
         A triple (predictions, labels, cers, wers) where:
@@ -264,7 +269,7 @@ def compute_metrics(
     labels = dataset["text"]
 
     all_scores: dict[str, list[float]] = dict()
-    for metric_name in ["cer", "wer"]:
+    for metric_name in metric_names:
         metric = evaluate.load(metric_name)
         scores = [
             metric.compute(predictions=[pred.lower()], references=[ref.lower()])
