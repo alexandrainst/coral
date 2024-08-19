@@ -228,7 +228,7 @@ def process_dataset(
 
 def get_cers(
     dataset: Dataset, transcriber: AutomaticSpeechRecognitionPipeline
-) -> tuple[list[str], list[float], list[float]]:
+) -> tuple[list[str], list[str], list[float]]:
     """Get the word error rates for each sample in the dataset.
 
     Args:
