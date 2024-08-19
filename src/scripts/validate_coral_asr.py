@@ -54,6 +54,10 @@ def main(config: DictConfig) -> None:
         dataset = DatasetDict({config.dataset_split: dataset})
     assert isinstance(dataset, DatasetDict)
 
+    # TEMP
+    for split_name, split in dataset.items():
+        dataset[split_name] = split.select(range(10))
+
     logger.info("Resampling audio to 16kHz...")
     processed_dataset = dataset.cast_column(
         column=config.audio_column, feature=Audio(sampling_rate=16_000)
