@@ -13,7 +13,6 @@ import evaluate
 import hydra
 import torch
 from coral.data import clean_example
-from coral.data_models import Processor
 from datasets import Audio, Dataset, DatasetDict, load_dataset
 from omegaconf import DictConfig
 from requests import HTTPError
@@ -54,10 +53,28 @@ def main(config: DictConfig) -> None:
         dataset = DatasetDict({config.dataset_split: dataset})
     assert isinstance(dataset, DatasetDict)
 
+    # TEMP
+    for split_name, split in dataset.items():
+        dataset[split_name] = split.select(range(10))
+
+    # This contains all the punctuation characters that will be removed from the
+    # transcriptions, as they do not have an influence on the pronunciation of the
+    # words.
+    non_standard_characters_regex = re.compile(
+        f"[^{re.escape(config.characters_to_keep + ' |')}]"
+    )
+
     logger.info("Resampling audio to 16kHz...")
     processed_dataset = dataset.cast_column(
         column=config.audio_column, feature=Audio(sampling_rate=16_000)
     )
+
+    processed_dataset = process_dataset(
+        dataset=processed_dataset,
+        non_standard_characters_regex=non_standard_characters_regex,
+        text_column=config.text_column,
+    )
+    assert isinstance(processed_dataset, DatasetDict)
 
     logger.info(f"Loading the {config.model_id!r} ASR model...")
     if torch.cuda.is_available():
@@ -80,7 +97,10 @@ def main(config: DictConfig) -> None:
         logger.info(f"Validating the {split_name} split of the dataset...")
 
         predictions, labels, score_dict = compute_metrics(
-            dataset=split, transcriber=transcriber, metric_names=metric_names
+            dataset=split,
+            transcriber=transcriber,
+            metric_names=metric_names,
+            non_standard_characters_regex=non_standard_characters_regex,
         )
         new_split = (
             dataset[split_name]
@@ -140,21 +160,19 @@ def main(config: DictConfig) -> None:
 
 def process_dataset(
     dataset: DatasetDict,
-    characters_to_keep: str,
+    non_standard_characters_regex: re.Pattern[str],
     text_column: str,
-    processor: Processor,
 ) -> DatasetDict:
     """Process a dataset for ASR.
 
     Args:
         dataset:
             The dataset to clean.
-        characters_to_keep:
-            The characters to keep in the transcriptions.
+        non_standard_characters_regex:
+            Regular expression that matches all characters that should be removed from
+            the transcriptions.
         text_column:
             The name of the column containing the transcriptions.
-        processor:
-            The processor used for processing the data.
 
     Returns:
         The processed dataset.
@@ -200,13 +218,6 @@ def process_dataset(
         "\u200b": " ",  # Empty whitespace symbol
     }
 
-    # This contains all the punctuation characters that will be removed from the
-    # transcriptions, as they do not have an influence on the pronunciation of the
-    # words.
-    non_standard_characters_regex = re.compile(
-        f"[^{re.escape(characters_to_keep + ' |')}]"
-    )
-
     def process_examples(examples: dict[str, list]) -> dict:
         """Clean the transcriptions in the examples.
 
@@ -226,13 +237,9 @@ def process_dataset(
             )[text_column]
             for sample_text in examples[text_column]
         ]
-        examples["labels"] = processor(
-            text=examples[text_column], truncation=True
-        ).input_ids
         return examples
 
     processed_dataset = dataset.map(process_examples, batched=True)
-
     return processed_dataset
 
 
@@ -240,6 +247,7 @@ def compute_metrics(
     dataset: Dataset,
     transcriber: AutomaticSpeechRecognitionPipeline,
     metric_names: list[str],
+    non_standard_characters_regex: re.Pattern[str],
 ) -> tuple[list[str], list[str], dict[str, list[float]]]:
     """Compute the metrics for the dataset.
 
@@ -251,6 +259,9 @@ def compute_metrics(
         metric_names:
             The names of the metrics to compute. Needs to be compatible with the name of
             the metric in the `evaluate` library.
+        non_standard_characters_regex:
+            Regular expression that matches all characters that should be removed from
+            the transcriptions.
 
     Returns:
         A triple (predictions, labels, cers, wers) where:
@@ -267,18 +278,22 @@ def compute_metrics(
     key_dataset = KeyDataset(dataset=dataset, key="audio")
     with tqdm(total=len(dataset), desc="Transcribing") as pbar:
         for out in transcriber(key_dataset):
-            prediction = out["text"]
-            assert isinstance(prediction, str)
+            assert isinstance(out, dict) and isinstance(out.get("text"), str)
+            prediction = re.sub(
+                pattern=non_standard_characters_regex,
+                repl="",
+                string=out["text"].strip().lower(),
+            )
             predictions.append(prediction.strip())
             pbar.update()
 
-    labels = dataset["text"]
+    labels = [lbl.lower().strip() for lbl in dataset["text"]]
 
     all_scores: dict[str, list[float]] = dict()
     for metric_name in metric_names:
         metric = evaluate.load(metric_name)
         scores = [
-            metric.compute(predictions=[pred.lower()], references=[ref.lower()])
+            metric.compute(predictions=[pred], references=[ref])
             for pred, ref in zip(
                 tqdm(predictions, desc=f"Computing {metric_name.upper()}s"), labels
             )
