@@ -74,10 +74,10 @@ def main(config: DictConfig) -> None:
     )
     assert isinstance(transcriber, AutomaticSpeechRecognitionPipeline)
 
-    logger.info("Validating the dataset...")
     new_data_dict: dict[str, Dataset] = dict()
     metric_names = [metric.name.lower() for metric in config.metrics]
     for split_name, split in processed_dataset.items():
+        logger.info(f"Validating the {split_name} split of the dataset...")
         predictions, labels, score_dict = compute_metrics(
             dataset=split, transcriber=transcriber, metric_names=metric_names
         )
@@ -264,9 +264,11 @@ def compute_metrics(
     """
     predictions: list[str] = list()
     key_dataset = KeyDataset(dataset=dataset, key="audio")
-    for out in tqdm(transcriber(inputs=key_dataset), desc="Transcribing"):
-        prediction = out["text"].strip()
-        predictions.append(prediction)
+    with tqdm(total=len(dataset), desc="Transcribing") as pbar:
+        for out in transcriber(key_dataset):
+            prediction = out["text"].strip()
+            predictions.append(prediction)
+            pbar.update()
 
     labels = dataset["text"]
 
