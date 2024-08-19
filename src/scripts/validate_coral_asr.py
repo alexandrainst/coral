@@ -239,7 +239,11 @@ def process_dataset(
 
     enable_progress_bar()
     processed_dataset = dataset.map(
-        process_examples, batched=True, desc="Processing", num_proc=mp.cpu_count()
+        process_examples,
+        batched=True,
+        desc="Processing dataset",
+        num_proc=mp.cpu_count(),
+        batch_size=10_000,
     )
     return processed_dataset
 
