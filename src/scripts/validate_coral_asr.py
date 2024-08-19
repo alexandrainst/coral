@@ -77,7 +77,7 @@ def main(config: DictConfig) -> None:
     logger.info("Validating the dataset...")
     new_data_dict: dict[str, Dataset] = dict()
     for split_name, split in processed_dataset.items():
-        predictions, labels, wers = get_wers(dataset=split, transcriber=transcriber)
+        predictions, labels, cers = get_cers(dataset=split, transcriber=transcriber)
         new_split = (
             dataset[split_name]
             .add_column(
@@ -88,7 +88,7 @@ def main(config: DictConfig) -> None:
             .add_column(
                 name="asr_label", column=labels, new_fingerprint=split._fingerprint
             )
-            .add_column(name="asr_wer", column=wers, new_fingerprint=split._fingerprint)
+            .add_column(name="asr_cer", column=cers, new_fingerprint=split._fingerprint)
             .add_column(
                 name="asr_validation_model",
                 column=[config.model_id] * len(split),
@@ -98,10 +98,10 @@ def main(config: DictConfig) -> None:
         )
         if split_name in {"val", "test"}:
             new_split = new_split.filter(
-                lambda x: x["asr_wer"] < config.max_val_test_wer
+                lambda x: x["asr_cer"] < config.max_val_test_cer
             )
         elif split_name == "train":
-            new_split = new_split.filter(lambda x: x["asr_wer"] < config.max_train_wer)
+            new_split = new_split.filter(lambda x: x["asr_cer"] < config.max_train_cer)
         else:
             raise ValueError(f"Unknown split name: {split_name!r}")
         new_data_dict[split_name] = new_split
@@ -226,7 +226,7 @@ def process_dataset(
     return processed_dataset
 
 
-def get_wers(
+def get_cers(
     dataset: Dataset, transcriber: AutomaticSpeechRecognitionPipeline
 ) -> tuple[list[str], list[float], list[float]]:
     """Get the word error rates for each sample in the dataset.
@@ -238,12 +238,12 @@ def get_wers(
             The transcriber used for transcribing the audio.
 
     Returns:
-        A triple (predictions, labels, wers) where:
+        A triple (predictions, labels, cers) where:
             predictions:
                 The transcriptions predicted by the model.
             labels:
                 The ASR-processed ground-truth labels for each sample.
-            wers:
+            cers:
                 The word error rates for each sample.
     """
     predictions: list[str] = list()
@@ -254,22 +254,22 @@ def get_wers(
 
     labels = dataset["text"]
 
-    # Compute the word error rates
-    wer_metric = evaluate.load("wer")
-    wers = [
-        wer_metric.compute(predictions=[pred], references=[ref])
-        for pred, ref in zip(tqdm(predictions, desc="Computing WERs"), labels)
+    # Compute the character error rates
+    cer_metric = evaluate.load("cer")
+    cers = [
+        cer_metric.compute(predictions=[pred.lower()], references=[ref.lower()])
+        for pred, ref in zip(tqdm(predictions, desc="Computing CERs"), labels)
     ]
 
-    # Ensure that the WERs are indeed floats, as `compute` returns a dictionary for some
-    # metrics
-    wers = [wer if isinstance(wer, float) else -100.0 for wer in wers]
-    assert all(wer >= 0 for wer in wers), (
-        "The number of WERs should be equal to the number of predictions - found "
-        f"{len(wers):,} WERs and {len(predictions):,} predictions."
+    # Ensure that the scores are indeed floats, as `compute` returns a dictionary for
+    # some metrics
+    cers = [cer if isinstance(cer, float) else -100.0 for cer in cers]
+    assert all(cer >= 0 for cer in cers), (
+        "The number of CERs should be equal to the number of predictions - found "
+        f"{len(cers):,} CERs and {len(predictions):,} predictions."
     )
 
-    return predictions, labels, wers
+    return predictions, labels, cers
 
 
 def preprocess_logits_for_metrics(
