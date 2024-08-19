@@ -56,7 +56,7 @@ def main(config: DictConfig) -> None:
 
     # TEMP
     for split_name, split in dataset.items():
-        dataset[split_name] = split.select(range(1000))
+        dataset[split_name] = split.select(range(10))
 
     logger.info("Resampling audio to 16kHz...")
     processed_dataset = dataset.cast_column(
