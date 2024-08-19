@@ -248,6 +248,7 @@ def get_cers(
     """
     predictions: list[str] = list()
     key_dataset = KeyDataset(dataset=dataset, key="audio")
+    breakpoint()
     for out in tqdm(transcriber(inputs=key_dataset), desc="Transcribing"):
         prediction = out["text"].strip()
         predictions.append(prediction)
