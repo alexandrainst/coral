@@ -78,6 +78,10 @@ def main(config: DictConfig) -> None:
     metric_names = [metric.name.lower() for metric in config.metrics]
     for split_name, split in processed_dataset.items():
         logger.info(f"Validating the {split_name} split of the dataset...")
+
+        # TEMP
+        split = split.select(range(1000))
+
         predictions, labels, score_dict = compute_metrics(
             dataset=split, transcriber=transcriber, metric_names=metric_names
         )
