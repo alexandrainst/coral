@@ -5,6 +5,7 @@ Usage:
 """
 
 import logging
+import multiprocessing as mp
 import re
 import warnings
 from time import sleep
@@ -237,7 +238,9 @@ def process_dataset(
         return examples
 
     enable_progress_bar()
-    processed_dataset = dataset.map(process_examples, batched=True)
+    processed_dataset = dataset.map(
+        process_examples, batched=True, desc="Processing", num_proc=mp.cpu_count()
+    )
     return processed_dataset
 
 
