@@ -77,7 +77,9 @@ def main(config: DictConfig) -> None:
     logger.info("Validating the dataset...")
     new_data_dict: dict[str, Dataset] = dict()
     for split_name, split in processed_dataset.items():
-        predictions, labels, cers = get_cers(dataset=split, transcriber=transcriber)
+        predictions, labels, score_dict = compute_metrics(
+            dataset=split, transcriber=transcriber
+        )
         new_split = (
             dataset[split_name]
             .add_column(
@@ -88,14 +90,19 @@ def main(config: DictConfig) -> None:
             .add_column(
                 name="asr_label", column=labels, new_fingerprint=split._fingerprint
             )
-            .add_column(name="asr_cer", column=cers, new_fingerprint=split._fingerprint)
             .add_column(
                 name="asr_validation_model",
                 column=[config.model_id] * len(split),
                 new_fingerprint=split._fingerprint,
             )
-            .filter(lambda sample: sample["validated"] != "rejected")
         )
+        for metric_name, scores in score_dict.items():
+            new_split = new_split.add_column(
+                name=f"asr_{metric_name.lower()}",
+                column=scores,
+                new_fingerprint=split._fingerprint,
+            )
+        new_split = new_split.filter(lambda sample: sample["validated"] != "rejected")
         if split_name in {"val", "test"}:
             new_split = new_split.filter(
                 lambda x: x["asr_cer"] < config.max_val_test_cer
@@ -226,10 +233,10 @@ def process_dataset(
     return processed_dataset
 
 
-def get_cers(
+def compute_metrics(
     dataset: Dataset, transcriber: AutomaticSpeechRecognitionPipeline
-) -> tuple[list[str], list[str], list[float]]:
-    """Get the word error rates for each sample in the dataset.
+) -> tuple[list[str], list[str], dict[str, list[float]]]:
+    """Compute the metrics for the dataset.
 
     Args:
         dataset:
@@ -238,12 +245,14 @@ def get_cers(
             The transcriber used for transcribing the audio.
 
     Returns:
-        A triple (predictions, labels, cers) where:
+        A triple (predictions, labels, cers, wers) where:
             predictions:
                 The transcriptions predicted by the model.
             labels:
                 The ASR-processed ground-truth labels for each sample.
             cers:
+                The word error rates for each sample.
+            wers:
                 The word error rates for each sample.
     """
     predictions: list[str] = list()
@@ -254,22 +263,28 @@ def get_cers(
 
     labels = dataset["text"]
 
-    # Compute the character error rates
-    cer_metric = evaluate.load("cer")
-    cers = [
-        cer_metric.compute(predictions=[pred.lower()], references=[ref.lower()])
-        for pred, ref in zip(tqdm(predictions, desc="Computing CERs"), labels)
-    ]
+    all_scores: dict[str, list[float]] = dict()
+    for metric_name in ["cer", "wer"]:
+        metric = evaluate.load(metric_name)
+        scores = [
+            metric.compute(predictions=[pred.lower()], references=[ref.lower()])
+            for pred, ref in zip(
+                tqdm(predictions, desc=f"Computing {metric_name.upper()}s"), labels
+            )
+        ]
 
-    # Ensure that the scores are indeed floats, as `compute` returns a dictionary for
-    # some metrics
-    cers = [cer if isinstance(cer, float) else -100.0 for cer in cers]
-    assert all(cer >= 0 for cer in cers), (
-        "The number of CERs should be equal to the number of predictions - found "
-        f"{len(cers):,} CERs and {len(predictions):,} predictions."
-    )
+        # Ensure that the scores are indeed floats, as `compute` returns a dictionary for
+        # some metrics
+        scores = [score if isinstance(score, float) else -100.0 for score in scores]
+        assert all(score >= 0 for score in scores), (
+            f"The number of {metric_name.upper()}s should be equal to the number "
+            f"of predictions - found {len(scores):,} {metric_name.upper()}s and "
+            f"{len(predictions):,} predictions."
+        )
 
-    return predictions, labels, cers
+        all_scores[metric_name] = scores
+
+    return predictions, labels, all_scores
 
 
 def preprocess_logits_for_metrics(
