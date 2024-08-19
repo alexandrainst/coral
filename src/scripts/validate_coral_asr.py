@@ -6,20 +6,20 @@ Usage:
 
 import logging
 import re
+import warnings
 from time import sleep
 
 import evaluate
 import hydra
-import numpy as np
 import torch
 from coral.data import clean_example
-from coral.data_collators import DataCollatorCTCWithPadding
 from coral.data_models import Processor
 from datasets import Audio, Dataset, DatasetDict, load_dataset
 from omegaconf import DictConfig
 from requests import HTTPError
 from tqdm.auto import tqdm
-from transformers import AutoModelForCTC, Trainer, TrainingArguments, Wav2Vec2Processor
+from transformers import AutomaticSpeechRecognitionPipeline, pipeline
+from transformers.pipelines.pt_utils import KeyDataset
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,6 +27,8 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger("validate_coral_asr")
+
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 @hydra.main(
@@ -52,32 +54,10 @@ def main(config: DictConfig) -> None:
         dataset = DatasetDict({config.dataset_split: dataset})
     assert isinstance(dataset, DatasetDict)
 
-    logger.info(f"Loading the {config.model_id!r} processor...")
-    processor = Wav2Vec2Processor.from_pretrained(
-        config.model_id, cache_dir=config.cache_dir
-    )
-    assert isinstance(processor, Wav2Vec2Processor)
-
     logger.info("Resampling audio to 16kHz...")
     processed_dataset = dataset.cast_column(
         column=config.audio_column, feature=Audio(sampling_rate=16_000)
     )
-
-    logger.info("Processing the dataset...")
-    characters_to_keep = "".join(
-        [
-            tok
-            for tok in processor.tokenizer.get_vocab().keys()
-            if tok not in processor.tokenizer.all_special_tokens
-        ]
-    )
-    processed_dataset = process_dataset(
-        dataset=processed_dataset,
-        characters_to_keep=characters_to_keep,
-        text_column=config.text_column,
-        processor=processor,
-    )
-    assert isinstance(processed_dataset, DatasetDict)
 
     logger.info(f"Loading the {config.model_id!r} ASR model...")
     if torch.cuda.is_available():
@@ -86,31 +66,18 @@ def main(config: DictConfig) -> None:
         device = torch.device("mps")
     else:
         device = torch.device("cpu")
-    model = AutoModelForCTC.from_pretrained(
-        config.model_id, cache_dir=config.cache_dir
-    ).to(device)
-    data_collator = DataCollatorCTCWithPadding(
-        processor=processor, max_seconds_per_example=10, padding="longest"
+    transcriber = pipeline(
+        task="automatic-speech-recognition",
+        model=config.model_id,
+        device=device,
+        batch_size=config.batch_size,
     )
+    assert isinstance(transcriber, AutomaticSpeechRecognitionPipeline)
 
     logger.info("Validating the dataset...")
-    trainer = Trainer(
-        args=TrainingArguments(
-            output_dir=".",
-            remove_unused_columns=False,
-            report_to=[],
-            per_device_eval_batch_size=config.batch_size,
-        ),
-        model=model,
-        data_collator=data_collator,
-        tokenizer=processor.tokenizer,
-        preprocess_logits_for_metrics=preprocess_logits_for_metrics,
-    )
     new_data_dict: dict[str, Dataset] = dict()
     for split_name, split in processed_dataset.items():
-        predictions, labels, wers = get_wers(
-            dataset=split, trainer=trainer, processor=processor
-        )
+        predictions, labels, wers = get_wers(dataset=split, transcriber=transcriber)
         new_split = (
             dataset[split_name]
             .add_column(
@@ -260,18 +227,15 @@ def process_dataset(
 
 
 def get_wers(
-    dataset: Dataset, trainer: Trainer, processor: Processor
+    dataset: Dataset, transcriber: AutomaticSpeechRecognitionPipeline
 ) -> tuple[list[str], list[float], list[float]]:
     """Get the word error rates for each sample in the dataset.
 
     Args:
         dataset:
             The dataset to validate.
-        trainer:
-            The trainer to use for validation, which contains the model and data
-            collator.
-        processor:
-            The processor used for processing the data.
+        transcriber:
+            The transcriber used for transcribing the audio.
 
     Returns:
         A triple (predictions, labels, wers) where:
@@ -282,42 +246,30 @@ def get_wers(
             wers:
                 The word error rates for each sample.
     """
-    prediction_object = trainer.predict(test_dataset=dataset)
-    predictions = prediction_object.predictions
-    labels = prediction_object.label_ids
-    if isinstance(predictions, tuple) and len(predictions) > 1:
-        predictions = predictions[1]
-    assert isinstance(predictions, np.ndarray)
-    assert isinstance(labels, np.ndarray)
+    predictions: list[str] = list()
+    key_dataset = KeyDataset(dataset=dataset, key="audio")
+    for out in tqdm(transcriber(inputs=key_dataset), desc="Transcribing"):
+        prediction = out["text"].strip()
+        predictions.append(prediction)
 
-    # Replace the -100 tokens with the pad token
-    pad_token = processor.tokenizer.pad_token_id
-    predictions[predictions == -100] = pad_token
-    labels[labels == -100] = pad_token
-
-    # Decode the predictions to get the transcriptions
-    predictions_str = processor.batch_decode(predictions)
-    assert isinstance(predictions_str, list)
-
-    # Decode the ground truth labels. We set `group_tokens=False` to avoid grouping
-    # identical neighboring tokens together (i.e., "menneske" shouldn't be "meneske").
-    # We need this when decoding the predictions, as in this case there is a special
-    # token to separate the characters.
-    labels_str = processor.batch_decode(labels, group_tokens=False)
+    labels = dataset["text"]
 
     # Compute the word error rates
     wer_metric = evaluate.load("wer")
     wers = [
         wer_metric.compute(predictions=[pred], references=[ref])
-        for pred, ref in zip(tqdm(predictions_str, desc="Computing WERs"), labels_str)
+        for pred, ref in zip(tqdm(predictions, desc="Computing WERs"), labels)
     ]
+
+    # Ensure that the WERs are indeed floats, as `compute` returns a dictionary for some
+    # metrics
     wers = [wer if isinstance(wer, float) else -100.0 for wer in wers]
     assert all(wer >= 0 for wer in wers), (
         "The number of WERs should be equal to the number of predictions - found "
-        f"{len(wers):,} WERs and {len(predictions_str):,} predictions."
+        f"{len(wers):,} WERs and {len(predictions):,} predictions."
     )
 
-    return predictions_str, labels_str, wers
+    return predictions, labels, wers
 
 
 def preprocess_logits_for_metrics(

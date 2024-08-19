@@ -1,4 +1,4 @@
-model_id: alexandrainst/coral-asr-bootstrap
+model_id: openai/whisper-large-v3
 dataset_id: alexandrainst/coral
 dataset_subset: read_aloud
 dataset_split: null
@@ -12,3 +12,4 @@ batch_size: 8
 cache_dir: null
 max_train_wer: 1.0
 max_val_test_wer: 0.4
+characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
