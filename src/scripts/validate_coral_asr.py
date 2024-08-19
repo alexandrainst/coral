@@ -243,7 +243,6 @@ def process_dataset(
         batched=True,
         desc="Processing dataset",
         num_proc=mp.cpu_count(),
-        batch_size=10_000,
     )
     return processed_dataset
 
