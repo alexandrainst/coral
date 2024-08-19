@@ -13,7 +13,7 @@ import evaluate
 import hydra
 import torch
 from coral.data import clean_example
-from datasets import Audio, Dataset, DatasetDict, load_dataset
+from datasets import Audio, Dataset, DatasetDict, enable_progress_bar, load_dataset
 from omegaconf import DictConfig
 from requests import HTTPError
 from tqdm.auto import tqdm
@@ -53,6 +53,11 @@ def main(config: DictConfig) -> None:
         dataset = DatasetDict({config.dataset_split: dataset})
     assert isinstance(dataset, DatasetDict)
 
+    logger.info("Resampling audio to 16kHz...")
+    processed_dataset = dataset.cast_column(
+        column=config.audio_column, feature=Audio(sampling_rate=16_000)
+    )
+
     # This contains all the punctuation characters that will be removed from the
     # transcriptions, as they do not have an influence on the pronunciation of the
     # words.
@@ -60,11 +65,7 @@ def main(config: DictConfig) -> None:
         f"[^{re.escape(config.characters_to_keep + ' |')}]"
     )
 
-    logger.info("Resampling audio to 16kHz...")
-    processed_dataset = dataset.cast_column(
-        column=config.audio_column, feature=Audio(sampling_rate=16_000)
-    )
-
+    logger.info("Processing the dataset...")
     processed_dataset = process_dataset(
         dataset=processed_dataset,
         non_standard_characters_regex=non_standard_characters_regex,
@@ -235,6 +236,7 @@ def process_dataset(
         ]
         return examples
 
+    enable_progress_bar()
     processed_dataset = dataset.map(process_examples, batched=True)
     return processed_dataset
 
