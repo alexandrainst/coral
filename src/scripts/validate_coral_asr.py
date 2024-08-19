@@ -103,12 +103,12 @@ def main(config: DictConfig) -> None:
                 new_fingerprint=split._fingerprint,
             )
         new_split = new_split.filter(lambda sample: sample["validated"] != "rejected")
-        if split_name in {"val", "test"}:
+        if split_name in {"val", "test"} and "val_test" in config.max_errors:
             for metric_name, max_value in config.max_errors["val_test"].items():
                 new_split = new_split.filter(
                     lambda x: x[f"asr_{metric_name}"] < max_value
                 )
-        elif split_name == "train":
+        elif split_name == "train" and "train" in config.max_errors:
             for metric_name, max_value in config.max_errors["train"].items():
                 new_split = new_split.filter(
                     lambda x: x[f"asr_{metric_name}"] < max_value
