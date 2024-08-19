@@ -104,11 +104,15 @@ def main(config: DictConfig) -> None:
             )
         new_split = new_split.filter(lambda sample: sample["validated"] != "rejected")
         if split_name in {"val", "test"}:
-            new_split = new_split.filter(
-                lambda x: x["asr_cer"] < config.max_val_test_cer
-            )
+            for metric_name, max_value in config.max_errors["val_test"].items():
+                new_split = new_split.filter(
+                    lambda x: x[f"asr_{metric_name}"] < max_value
+                )
         elif split_name == "train":
-            new_split = new_split.filter(lambda x: x["asr_cer"] < config.max_train_cer)
+            for metric_name, max_value in config.max_errors["train"].items():
+                new_split = new_split.filter(
+                    lambda x: x[f"asr_{metric_name}"] < max_value
+                )
         else:
             raise ValueError(f"Unknown split name: {split_name!r}")
         new_data_dict[split_name] = new_split

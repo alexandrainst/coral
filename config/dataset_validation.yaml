@@ -10,9 +10,14 @@ output_dataset_subset: read_aloud
 output_dataset_split: null
 batch_size: 8
 cache_dir: null
-max_train_wer: 1.0
-max_val_test_wer: 0.4
 characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
 metrics:
   - wer
   - cer
+max_errors:
+  train:
+    wer: 1.0
+    cer: 1.0
+  val_test:
+    wer: 0.4
+    cer: 0.4
