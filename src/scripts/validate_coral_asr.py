@@ -76,9 +76,10 @@ def main(config: DictConfig) -> None:
 
     logger.info("Validating the dataset...")
     new_data_dict: dict[str, Dataset] = dict()
+    metric_names = [metric.name.lower() for metric in config.metrics]
     for split_name, split in processed_dataset.items():
         predictions, labels, score_dict = compute_metrics(
-            dataset=split, transcriber=transcriber, metric_names=config.metrics
+            dataset=split, transcriber=transcriber, metric_names=metric_names
         )
         new_split = (
             dataset[split_name]
@@ -103,18 +104,15 @@ def main(config: DictConfig) -> None:
                 new_fingerprint=split._fingerprint,
             )
         new_split = new_split.filter(lambda sample: sample["validated"] != "rejected")
-        if split_name in {"val", "test"} and "val_test" in config.max_errors:
-            for metric_name, max_value in config.max_errors["val_test"].items():
+        for metric in config.metrics:
+            if "max" in metric:
                 new_split = new_split.filter(
-                    lambda x: x[f"asr_{metric_name}"] < max_value
+                    lambda sample: sample[f"asr_{metric.name.lower()}"] < metric.max
                 )
-        elif split_name == "train" and "train" in config.max_errors:
-            for metric_name, max_value in config.max_errors["train"].items():
+            elif "min" in metric:
                 new_split = new_split.filter(
-                    lambda x: x[f"asr_{metric_name}"] < max_value
+                    lambda sample: sample[f"asr_{metric.name.lower()}"] > metric.min
                 )
-        else:
-            raise ValueError(f"Unknown split name: {split_name!r}")
         new_data_dict[split_name] = new_split
 
     logger.info(f"Uploading the validated dataset to {config.output_dataset_id!r}...")
