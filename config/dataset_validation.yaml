@@ -8,7 +8,7 @@ audio_column: audio
 output_dataset_id: alexandrainst/coral
 output_dataset_subset: read_aloud
 output_dataset_split: null
-batch_size: 8
+batch_size: 16
 cache_dir: null
 characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
 metrics:
