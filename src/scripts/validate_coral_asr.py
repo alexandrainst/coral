@@ -53,10 +53,6 @@ def main(config: DictConfig) -> None:
         dataset = DatasetDict({config.dataset_split: dataset})
     assert isinstance(dataset, DatasetDict)
 
-    # TEMP
-    for split_name, split in dataset.items():
-        dataset[split_name] = split.select(range(10))
-
     # This contains all the punctuation characters that will be removed from the
     # transcriptions, as they do not have an influence on the pronunciation of the
     # words.
