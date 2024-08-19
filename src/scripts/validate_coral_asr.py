@@ -266,8 +266,9 @@ def compute_metrics(
     key_dataset = KeyDataset(dataset=dataset, key="audio")
     with tqdm(total=len(dataset), desc="Transcribing") as pbar:
         for out in transcriber(key_dataset):
-            prediction = out["text"].strip()
-            predictions.append(prediction)
+            prediction = out["text"]
+            assert isinstance(prediction, str)
+            predictions.append(prediction.strip())
             pbar.update()
 
     labels = dataset["text"]
