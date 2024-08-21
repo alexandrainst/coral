@@ -55,7 +55,7 @@ def main(config: DictConfig) -> None:
     assert isinstance(dataset, DatasetDict)
 
     # TEMP
-    dataset["train"] = dataset["train"].select(range(100))
+    dataset["train"] = dataset["train"].select(range(1000))
 
     logger.info("Resampling audio to 16kHz...")
     processed_dataset = dataset.cast_column(
