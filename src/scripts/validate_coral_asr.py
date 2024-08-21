@@ -282,9 +282,20 @@ def compute_metrics(
                 The word error rates for each sample.
     """
     predictions: list[str] = list()
-    key_dataset = KeyDataset(dataset=dataset, key="audio")
+
+    def prediction_itr():
+        key_dataset = KeyDataset(dataset=dataset, key="audio")
+        itr = iter(transcriber(key_dataset))
+        while True:
+            try:
+                yield next(itr)
+            except ValueError:
+                yield dict(text="")
+            except StopIteration:
+                break
+
     with tqdm(total=len(dataset), desc="Transcribing") as pbar:
-        for out in transcriber(key_dataset):
+        for out in prediction_itr():
             assert isinstance(out, dict) and isinstance(out.get("text"), str)
             prediction = re.sub(
                 pattern=non_standard_characters_regex,
