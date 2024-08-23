@@ -180,7 +180,10 @@ def main(config: DictConfig) -> None:
 
     # Filter the dataset based on the metrics from the validation model
     new_dataset = DatasetDict(new_data_dict)
-    for metric in config.metrics:
+    metrics_with_constraints = [
+        metric for metric in config.metrics if "max" in metric or "min" in metric
+    ]
+    for metric in metrics_with_constraints:
         num_samples_before = sum(len(split) for split in new_dataset.values())
         if "max" in metric:
             new_dataset = new_dataset.filter(
@@ -191,7 +194,11 @@ def main(config: DictConfig) -> None:
                 batched=True,
                 num_proc=mp.cpu_count(),
             )
-        elif "min" in metric:
+            msg = (
+                "Filtered out {num_samples_removed:,} samples with a "
+                f"{metric.name.lower()} score greater than {metric.max:.2f}."
+            )
+        else:
             new_dataset = new_dataset.filter(
                 lambda samples: [
                     score > metric.min
@@ -200,14 +207,14 @@ def main(config: DictConfig) -> None:
                 batched=True,
                 num_proc=mp.cpu_count(),
             )
+            msg = (
+                "Filtered out {num_samples_removed:,} samples with a "
+                f"{metric.name.lower()} score lower than {metric.min:.2f}."
+            )
         num_samples_removed = num_samples_before - sum(
             len(split) for split in new_dataset.values()
         )
-        greater_or_lower = "greater" if "max" in metric else "lower"
-        logger.info(
-            f"Filtered out {num_samples_removed:,} samples with a {metric.name.lower()} "
-            f"score {greater_or_lower} than {metric[greater_or_lower]:.2f}."
-        )
+        logger.info(msg.format(num_samples_removed=num_samples_removed))
 
     breakpoint()
     logger.info(f"Uploading the validated dataset to {config.output_dataset_id!r}...")
