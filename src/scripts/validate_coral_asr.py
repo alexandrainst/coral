@@ -5,10 +5,11 @@ Usage:
 """
 
 import logging
-import multiprocessing as mp
 import re
 import warnings
+from functools import partial
 from time import sleep
+from typing import Any
 
 import evaluate
 import hydra
@@ -17,7 +18,6 @@ from coral.data import clean_example
 from datasets import (
     Dataset,
     DatasetDict,
-    IterableDataset,
     IterableDatasetDict,
     enable_progress_bar,
     load_dataset,
@@ -56,76 +56,51 @@ def main(config: DictConfig) -> None:
         revision=config.dataset_revision,
         token=True,
         cache_dir=config.cache_dir,
-        streaming=True,
     )
-    if isinstance(dataset, IterableDataset):
-        dataset = IterableDatasetDict(dict(train=dataset))
-    assert isinstance(dataset, IterableDatasetDict)
+    if isinstance(dataset, Dataset):
+        dataset = DatasetDict(dict(train=dataset))
+    assert isinstance(dataset, DatasetDict)
 
-    # num_samples_before = sum(len(split) for split in dataset.values())
-    dataset = dataset.filter(
+    iterable_dataset: IterableDatasetDict = IterableDatasetDict(
+        {
+            split_name: split.to_iterable_dataset()
+            for split_name, split in dataset.items()
+        }
+    )
+
+    iterable_dataset = iterable_dataset.filter(
         lambda samples: [
             audio_dct["array"].shape[0]
             > audio_dct["sampling_rate"] * config.min_seconds_per_example
             for audio_dct in samples[config.audio_column]
         ],
         batched=True,
-        # num_proc=mp.cpu_count(),
-        # desc="Filtering out samples with too short audio",
-    )
-    # num_short_samples_removed = num_samples_before - sum(
-    #     len(split) for split in dataset.values()
-    # )
-    dataset = dataset.filter(
+    ).filter(
         lambda samples: [
             audio_dct["array"].shape[0]
             < audio_dct["sampling_rate"] * config.max_seconds_per_example
             for audio_dct in samples[config.audio_column]
         ],
         batched=True,
-        # num_proc=mp.cpu_count(),
-        # desc="Filtering out samples with too long audio",
     )
-    # num_long_samples_removed = (
-    #     num_samples_before
-    #     - num_short_samples_removed
-    #     - sum(len(split) for split in dataset.values())
-    # )
-    # logger.info(
-    #     f"Filtered out {num_short_samples_removed:,} samples with too short audio "
-    #     f"(< {config.min_seconds_per_example} seconds) and {num_long_samples_removed:,} "
-    #     f"samples with too long audio (> {config.max_seconds_per_example} seconds)."
-    # )
 
-    for split_name, split in dataset.items():
+    for split_name, split in iterable_dataset.items():
         # num_samples_before = len(split)
         if split_name == config.train_split:
-            dataset[split_name] = split.filter(
+            iterable_dataset[split_name] = split.filter(
                 lambda samples: [
                     validated != "rejected" for validated in samples["validated"]
                 ],
                 batched=True,
-                # num_proc=mp.cpu_count(),
             )
-            # msg = (
-            #     "Filtered out {num_samples_removed:,} samples with a 'rejected' "
-            #     f"validation status from the {split_name} split."
-            # )
         else:
-            dataset[split_name] = split.filter(
+            iterable_dataset[split_name] = split.filter(
                 lambda samples: [
                     validated != "rejected" and validated != "maybe"
                     for validated in samples["validated"]
                 ],
                 batched=True,
-                # num_proc=mp.cpu_count(),
             )
-            # msg = (
-            #     "Filtered out {num_samples_removed:,} samples with a 'rejected' or "
-            #     f"'maybe' validation status from the {split_name} split."
-            # )
-        # num_samples_removed = num_samples_before - len(dataset[split_name])
-        # logger.info(msg.format(num_samples_removed=num_samples_removed))
 
     # This contains all the punctuation characters that will be removed from the
     # transcriptions, as they do not have an influence on the pronunciation of the
@@ -135,12 +110,10 @@ def main(config: DictConfig) -> None:
     )
 
     logger.info("Processing the dataset...")
-    processed_dataset = process_dataset(
-        dataset=dataset,
+    iterable_dataset = process_dataset(
+        iterable_dataset=iterable_dataset,
         non_standard_characters_regex=non_standard_characters_regex,
         text_column=config.text_column,
-        audio_column=config.audio_column,
-        sample_rate=config.sample_rate,
     )
 
     logger.info(f"Loading the {config.model_id!r} ASR model...")
@@ -157,7 +130,7 @@ def main(config: DictConfig) -> None:
 
     new_data_dict: dict[str, Dataset] = dict()
     metric_names = [metric.name.lower() for metric in config.metrics]
-    for split_name, split in processed_dataset.items():
+    for split_name, split in iterable_dataset.items():
         logger.info(f"Validating the {split_name} split of the dataset...")
         predictions, labels, score_dict = compute_metrics(
             dataset=split,
@@ -165,24 +138,15 @@ def main(config: DictConfig) -> None:
             metric_names=metric_names,
             non_standard_characters_regex=non_standard_characters_regex,
             text_column=config.text_column,
-            batch_size=config.batch_size,
         )
 
         # Create a new split with the predictions, labels, and scores
         new_split = (
             dataset[split_name]
+            .add_column(name="asr_prediction", column=predictions)
+            .add_column(name="asr_label", column=labels)
             .add_column(
-                name="asr_prediction",
-                column=predictions,
-                new_fingerprint=split._fingerprint,
-            )
-            .add_column(
-                name="asr_label", column=labels, new_fingerprint=split._fingerprint
-            )
-            .add_column(
-                name="asr_validation_model",
-                column=[config.model_id] * len(split),
-                new_fingerprint=split._fingerprint,
+                name="asr_validation_model", column=[config.model_id] * len(split)
             )
         )
         for metric_name, scores in score_dict.items():
@@ -195,42 +159,18 @@ def main(config: DictConfig) -> None:
 
     # Filter the dataset based on the metrics from the validation model
     new_dataset = DatasetDict(new_data_dict)
-    metrics_with_constraints = [
-        metric for metric in config.metrics if "max" in metric or "min" in metric
-    ]
-    for metric in metrics_with_constraints:
-        num_samples_before = sum(len(split) for split in new_dataset.values())
-        if "max" in metric:
-            new_dataset = new_dataset.filter(
-                lambda samples: [
-                    score < metric.max
-                    for score in samples[f"asr_{metric.name.lower()}"]
-                ],
-                batched=True,
-                num_proc=mp.cpu_count(),
-            )
-            msg = (
-                f"Filtered out {{num_samples_removed:,}} samples with a {metric.name} "
-                f"score greater than {metric.max:.2f}."
-            )
-        else:
-            new_dataset = new_dataset.filter(
-                lambda samples: [
-                    score > metric.min
-                    for score in samples[f"asr_{metric.name.lower()}"]
-                ],
-                batched=True,
-                num_proc=mp.cpu_count(),
-            )
-            msg = (
-                f"Filtered out {{num_samples_removed:,}} samples with a {metric.name} "
-                f"score lower than {metric.min:.2f}."
-            )
-        num_samples_removed = num_samples_before - sum(
-            len(split) for split in new_dataset.values()
-        )
-        logger.info(msg.format(num_samples_removed=num_samples_removed))
+    num_samples_before = sum(len(split) for split in new_dataset.values())
+    new_dataset = new_dataset.filter(
+        partial(filter_sample_by_metrics, metric_contraints=config.metrics)
+    )
+    num_samples_removed = num_samples_before - sum(
+        len(split) for split in new_dataset.values()
+    )
+    logger.info(
+        f"Removed {num_samples_removed:,} samples based on the validation model."
+    )
 
+    breakpoint()
     logger.info(f"Uploading the validated dataset to {config.output_dataset_id!r}...")
     for _ in range(60):
         try:
@@ -253,16 +193,14 @@ def main(config: DictConfig) -> None:
 
 
 def process_dataset(
-    dataset: DatasetDict,
+    iterable_dataset: IterableDatasetDict,
     non_standard_characters_regex: re.Pattern[str],
     text_column: str,
-    audio_column: str,
-    sample_rate: int,
-) -> DatasetDict:
+) -> IterableDatasetDict:
     """Process a dataset for ASR.
 
     Args:
-        dataset:
+        iterable_dataset:
             The dataset to clean.
         non_standard_characters_regex:
             Regular expression that matches all characters that should be removed from
@@ -279,9 +217,6 @@ def process_dataset(
     Returns:
         The processed dataset.
     """
-    # logger.info("Casting the audio to the correct sampling rate...")
-    # processed_dataset = dataset.cast_column( column=audio_column, feature=Audio(sampling_rate=sample_rate))
-
     # Dictionary that contains characters to be converted (from the key to the value).
     # Some values contain spaces to ensure that they're separated from other
     # characters, and superfluous spaces are removed later. Note also that these are
@@ -344,12 +279,7 @@ def process_dataset(
         ]
         return examples
 
-    processed_dataset = dataset.map(
-        clean_examples,
-        batched=True,  # , desc="Cleaning dataset", num_proc=mp.cpu_count()
-    )
-
-    return processed_dataset
+    return iterable_dataset.map(clean_examples, batched=True)
 
 
 def compute_metrics(
@@ -358,7 +288,6 @@ def compute_metrics(
     metric_names: list[str],
     non_standard_characters_regex: re.Pattern[str],
     text_column: str,
-    batch_size: int,
 ) -> tuple[list[str], list[str], dict[str, list[float]]]:
     """Compute the metrics for the dataset.
 
@@ -390,8 +319,7 @@ def compute_metrics(
                 The word error rates for each sample.
     """
     predictions: list[str] = list()
-    # labels = [lbl.lower().strip() for lbl in dataset[text_column]]
-    labels: list[str] = []
+    labels: list[str] = list()
 
     with tqdm(desc="Transcribing") as pbar:
         for sample in dataset:
@@ -402,8 +330,8 @@ def compute_metrics(
                 repl="",
                 string=out["text"].strip().lower(),
             )
-            breakpoint()
             predictions.append(prediction.strip())
+            labels.append(sample[text_column].strip().lower())
             pbar.update()
 
     all_scores: dict[str, list[float]] = dict()
@@ -448,6 +376,38 @@ def preprocess_logits_for_metrics(
     assert logits.ndim == 3
     pred_ids = torch.argmax(logits, dim=-1)
     return pred_ids
+
+
+def filter_sample_by_metrics(
+    sample: dict[str, Any], metric_contraints: list[dict]
+) -> bool:
+    """Filter samples based on the metrics.
+
+    Args:
+        sample:
+            The sample to filter.
+        metric_contraints:
+            The constraints to apply to the metrics.
+
+    Returns:
+        Whether the sample passes the constraints.
+    """
+    for metric_constraint_dct in metric_contraints:
+        if "max" in metric_constraint_dct:
+            below_max = (
+                sample[f"asr_{metric_constraint_dct['name'].lower()}"]
+                < metric_constraint_dct["max"]
+            )
+            if not below_max:
+                return False
+        if "min" in metric_constraint_dct:
+            above_min = (
+                sample[f"asr_{metric_constraint_dct['name'].lower()}"]
+                > metric_constraint_dct["min"]
+            )
+            if not above_min:
+                return False
+    return True
 
 
 if __name__ == "__main__":
