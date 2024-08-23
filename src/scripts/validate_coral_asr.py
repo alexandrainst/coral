@@ -202,6 +202,16 @@ def process_dataset(
         column=audio_column, feature=Audio(sampling_rate=sample_rate)
     )
 
+    max_audio_length = sample_rate * max_seconds_per_example
+    processed_dataset = processed_dataset.filter(
+        lambda samples: [
+            0 < len(sample[audio_column]["array"]) < max_audio_length
+            for sample in samples
+        ],
+        batched=True,
+        num_proc=mp.cpu_count(),
+    )
+
     # Dictionary that contains characters to be converted (from the key to the value).
     # Some values contain spaces to ensure that they're separated from other
     # characters, and superfluous spaces are removed later. Note also that these are
@@ -267,16 +277,6 @@ def process_dataset(
     enable_progress_bar()
     processed_dataset = dataset.map(
         clean_examples, batched=True, desc="Cleaning dataset", num_proc=mp.cpu_count()
-    )
-
-    max_audio_length = sample_rate * max_seconds_per_example
-    processed_dataset = processed_dataset.filter(
-        lambda samples: [
-            0 < len(sample[audio_column]["array"]) < max_audio_length
-            for sample in samples
-        ],
-        batched=True,
-        num_proc=mp.cpu_count(),
     )
 
     return processed_dataset
