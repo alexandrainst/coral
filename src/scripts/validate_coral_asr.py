@@ -72,8 +72,8 @@ def main(config: DictConfig) -> None:
             for audio_dct in samples[config.audio_column]
         ],
         batched=True,
-        num_proc=mp.cpu_count(),
-        desc="Filtering out samples with too short audio",
+        # num_proc=mp.cpu_count(),
+        # desc="Filtering out samples with too short audio",
     )
     breakpoint()
     # num_short_samples_removed = num_samples_before - sum(
@@ -86,8 +86,8 @@ def main(config: DictConfig) -> None:
             for audio_dct in samples[config.audio_column]
         ],
         batched=True,
-        num_proc=mp.cpu_count(),
-        desc="Filtering out samples with too long audio",
+        # num_proc=mp.cpu_count(),
+        # desc="Filtering out samples with too long audio",
     )
     # num_long_samples_removed = (
     #     num_samples_before
@@ -102,15 +102,13 @@ def main(config: DictConfig) -> None:
 
     for split_name, split in dataset.items():
         # num_samples_before = len(split)
-        if "validated" not in dataset.column_names[split_name]:
-            continue
         if split_name == config.train_split:
             dataset[split_name] = split.filter(
                 lambda samples: [
                     validated != "rejected" for validated in samples["validated"]
                 ],
                 batched=True,
-                num_proc=mp.cpu_count(),
+                # num_proc=mp.cpu_count(),
             )
             # msg = (
             #     "Filtered out {num_samples_removed:,} samples with a 'rejected' "
@@ -123,7 +121,7 @@ def main(config: DictConfig) -> None:
                     for validated in samples["validated"]
                 ],
                 batched=True,
-                num_proc=mp.cpu_count(),
+                # num_proc=mp.cpu_count(),
             )
             # msg = (
             #     "Filtered out {num_samples_removed:,} samples with a 'rejected' or "
