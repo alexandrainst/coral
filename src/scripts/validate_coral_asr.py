@@ -205,11 +205,12 @@ def process_dataset(
     max_audio_length = sample_rate * max_seconds_per_example
     processed_dataset = processed_dataset.filter(
         lambda samples: [
-            0 < len(sample[audio_column]["array"]) < max_audio_length
-            for sample in samples
+            0 < len(audio_dct["array"]) < max_audio_length
+            for audio_dct in samples[audio_column]
         ],
         batched=True,
         num_proc=mp.cpu_count(),
+        desc="Filtering out samples with too long or too short audio",
     )
 
     # Dictionary that contains characters to be converted (from the key to the value).
