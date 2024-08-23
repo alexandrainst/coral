@@ -63,21 +63,34 @@ def main(config: DictConfig) -> None:
     num_samples_before = sum(len(split) for split in dataset.values())
     dataset = dataset.filter(
         lambda samples: [
-            0
-            < audio_dct["array"].shape[0]
+            audio_dct["array"].shape[0] > 0
+            for audio_dct in samples[config.audio_column]
+        ],
+        batched=True,
+        num_proc=mp.cpu_count(),
+        desc="Filtering out samples with too short audio",
+    )
+    num_short_samples_removed = num_samples_before - sum(
+        len(split) for split in dataset.values()
+    )
+    dataset = dataset.filter(
+        lambda samples: [
+            audio_dct["array"].shape[0]
             < audio_dct["sampling_rate"] * config.max_seconds_per_example
             for audio_dct in samples[config.audio_column]
         ],
         batched=True,
         num_proc=mp.cpu_count(),
-        desc="Filtering out samples with too long or too short audio",
+        desc="Filtering out samples with too long audio",
     )
-    num_samples_removed = num_samples_before - sum(
-        len(split) for split in dataset.values()
+    num_long_samples_removed = (
+        num_samples_before
+        - num_short_samples_removed
+        - sum(len(split) for split in dataset.values())
     )
     logger.info(
-        f"Filtered out {num_samples_removed:,} samples with audio that was too long "
-        "or too short."
+        f"Filtered out {num_short_samples_removed:,} samples with too short audio and "
+        f"{num_long_samples_removed:,} samples with too long audio."
     )
     breakpoint()
 
