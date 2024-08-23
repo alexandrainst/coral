@@ -99,6 +99,7 @@ def main(config: DictConfig) -> None:
             text_column=config.text_column,
             batch_size=config.batch_size,
         )
+        breakpoint()
         new_split = (
             dataset[split_name]
             .add_column(
