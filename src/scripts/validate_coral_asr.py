@@ -66,6 +66,7 @@ def main(config: DictConfig) -> None:
         audio_column=config.audio_column,
         min_seconds_per_example=config.min_seconds_per_example,
         max_seconds_per_example=config.max_seconds_per_example,
+        train_split=config.train_split,
     )
 
     # This contains all the punctuation characters that will be removed from the
@@ -163,6 +164,7 @@ def filter_dataset(
     audio_column: str,
     min_seconds_per_example: int,
     max_seconds_per_example: int,
+    train_split: str,
 ) -> DatasetDict:
     """Filter the dataset based on the validation status.
 
@@ -177,6 +179,8 @@ def filter_dataset(
             The minimum number of seconds that an example can have.
         max_seconds_per_example:
             The maximum number of seconds that an example can have.
+        train_split:
+            The name of the training split.
 
     Returns:
         The filtered dataset.
@@ -219,9 +223,18 @@ def filter_dataset(
             )
         ]
 
-    return dataset.filter(
-        filter_samples, batched=True, num_proc=mp.cpu_count(), desc="Filtering dataset"
-    )
+    for split_name, split in dataset.items():
+        filter_fn = partial(
+            filter_samples, remove_maybe_validated=not split_name == train_split
+        )
+        dataset[split_name] = split.filter(
+            filter_fn,
+            batched=True,
+            num_proc=mp.cpu_count(),
+            desc=f"Filtering {split_name} split",
+        )
+
+    return dataset
 
 
 def process_dataset(
