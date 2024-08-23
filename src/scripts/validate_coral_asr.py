@@ -90,8 +90,9 @@ def main(config: DictConfig) -> None:
         - sum(len(split) for split in dataset.values())
     )
     logger.info(
-        f"Filtered out {num_short_samples_removed:,} samples with too short audio and "
-        f"{num_long_samples_removed:,} samples with too long audio."
+        f"Filtered out {num_short_samples_removed:,} samples with too short audio "
+        f"(< {config.min_seconds_per_example} seconds) and {num_long_samples_removed:,} "
+        f"samples with too long audio (> {config.max_seconds_per_example} seconds)."
     )
     breakpoint()
 
