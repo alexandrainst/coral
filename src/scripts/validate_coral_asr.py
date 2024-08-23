@@ -99,7 +99,6 @@ def main(config: DictConfig) -> None:
             text_column=config.text_column,
             batch_size=config.batch_size,
         )
-        breakpoint()
         new_split = (
             dataset[split_name]
             .add_column(
@@ -288,8 +287,6 @@ def compute_metrics(
             wers:
                 The word error rates for each sample.
     """
-    dataset = dataset.select(range(len(dataset) - 1000, len(dataset)))
-
     predictions: list[str] = list()
     labels = [lbl.lower().strip() for lbl in dataset[text_column]]
 
