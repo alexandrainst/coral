@@ -14,7 +14,15 @@ import evaluate
 import hydra
 import torch
 from coral.data import clean_example
-from datasets import Audio, Dataset, DatasetDict, enable_progress_bar, load_dataset
+from datasets import (
+    Audio,
+    Dataset,
+    DatasetDict,
+    IterableDataset,
+    IterableDatasetDict,
+    enable_progress_bar,
+    load_dataset,
+)
 from omegaconf import DictConfig
 from requests import HTTPError
 from tqdm.auto import tqdm
@@ -50,12 +58,13 @@ def main(config: DictConfig) -> None:
         revision=config.dataset_revision,
         token=True,
         cache_dir=config.cache_dir,
+        streaming=True,
     )
-    if isinstance(dataset, Dataset):
-        dataset = DatasetDict(dict(train=dataset))
-    assert isinstance(dataset, DatasetDict)
+    if isinstance(dataset, IterableDataset):
+        dataset = IterableDatasetDict(dict(train=dataset))
+    assert isinstance(dataset, IterableDatasetDict)
 
-    num_samples_before = sum(len(split) for split in dataset.values())
+    # num_samples_before = sum(len(split) for split in dataset.values())
     dataset = dataset.filter(
         lambda samples: [
             audio_dct["array"].shape[0]
@@ -66,9 +75,10 @@ def main(config: DictConfig) -> None:
         num_proc=mp.cpu_count(),
         desc="Filtering out samples with too short audio",
     )
-    num_short_samples_removed = num_samples_before - sum(
-        len(split) for split in dataset.values()
-    )
+    breakpoint()
+    # num_short_samples_removed = num_samples_before - sum(
+    #     len(split) for split in dataset.values()
+    # )
     dataset = dataset.filter(
         lambda samples: [
             audio_dct["array"].shape[0]
@@ -79,19 +89,19 @@ def main(config: DictConfig) -> None:
         num_proc=mp.cpu_count(),
         desc="Filtering out samples with too long audio",
     )
-    num_long_samples_removed = (
-        num_samples_before
-        - num_short_samples_removed
-        - sum(len(split) for split in dataset.values())
-    )
-    logger.info(
-        f"Filtered out {num_short_samples_removed:,} samples with too short audio "
-        f"(< {config.min_seconds_per_example} seconds) and {num_long_samples_removed:,} "
-        f"samples with too long audio (> {config.max_seconds_per_example} seconds)."
-    )
+    # num_long_samples_removed = (
+    #     num_samples_before
+    #     - num_short_samples_removed
+    #     - sum(len(split) for split in dataset.values())
+    # )
+    # logger.info(
+    #     f"Filtered out {num_short_samples_removed:,} samples with too short audio "
+    #     f"(< {config.min_seconds_per_example} seconds) and {num_long_samples_removed:,} "
+    #     f"samples with too long audio (> {config.max_seconds_per_example} seconds)."
+    # )
 
     for split_name, split in dataset.items():
-        num_samples_before = len(split)
+        # num_samples_before = len(split)
         if "validated" not in dataset.column_names[split_name]:
             continue
         if split_name == config.train_split:
@@ -102,10 +112,10 @@ def main(config: DictConfig) -> None:
                 batched=True,
                 num_proc=mp.cpu_count(),
             )
-            msg = (
-                "Filtered out {num_samples_removed:,} samples with a 'rejected' "
-                f"validation status from the {split_name} split."
-            )
+            # msg = (
+            #     "Filtered out {num_samples_removed:,} samples with a 'rejected' "
+            #     f"validation status from the {split_name} split."
+            # )
         else:
             dataset[split_name] = split.filter(
                 lambda samples: [
@@ -115,12 +125,12 @@ def main(config: DictConfig) -> None:
                 batched=True,
                 num_proc=mp.cpu_count(),
             )
-            msg = (
-                "Filtered out {num_samples_removed:,} samples with a 'rejected' or "
-                f"'maybe' validation status from the {split_name} split."
-            )
-        num_samples_removed = num_samples_before - len(dataset[split_name])
-        logger.info(msg.format(num_samples_removed=num_samples_removed))
+            # msg = (
+            #     "Filtered out {num_samples_removed:,} samples with a 'rejected' or "
+            #     f"'maybe' validation status from the {split_name} split."
+            # )
+        # num_samples_removed = num_samples_before - len(dataset[split_name])
+        # logger.info(msg.format(num_samples_removed=num_samples_removed))
 
     # This contains all the punctuation characters that will be removed from the
     # transcriptions, as they do not have an influence on the pronunciation of the
