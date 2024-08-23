@@ -95,8 +95,7 @@ def main(config: DictConfig) -> None:
         f"samples with too long audio (> {config.max_seconds_per_example} seconds)."
     )
 
-    breakpoint()
-    if "validated" in dataset.column_names:
+    if all("validated" in cols for cols in dataset.column_names.values()):
         num_samples_before = sum(len(split) for split in dataset.values())
         dataset = dataset.filter(
             lambda samples: [
