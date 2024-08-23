@@ -58,7 +58,7 @@ def main(config: DictConfig) -> None:
 
     # TEMP
     for split_name, split in dataset.items():
-        dataset[split_name] = split.select(range(100))
+        dataset[split_name] = split.select(range(1000))
 
     dataset = filter_dataset(
         dataset=dataset,
