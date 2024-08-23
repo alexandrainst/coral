@@ -230,7 +230,7 @@ def process_dataset(
         "\u200b": " ",  # Empty whitespace symbol
     }
 
-    def process_examples(examples: dict[str, list]) -> dict:
+    def clean_examples(examples: dict[str, list]) -> dict:
         """Clean the transcriptions in the examples.
 
         Args:
@@ -253,15 +253,15 @@ def process_dataset(
 
     enable_progress_bar()
     processed_dataset = dataset.map(
-        process_examples,
-        batched=True,
-        desc="Processing dataset",
-        num_proc=mp.cpu_count(),
+        clean_examples, batched=True, desc="Cleaning dataset", num_proc=mp.cpu_count()
     )
 
     max_seconds = sample_rate * max_seconds_per_example
     processed_dataset = processed_dataset.filter(
-        lambda sample: 0 < len(sample[audio_column]["array"]) < max_seconds,
+        lambda samples: [
+            0 < len(sample[audio_column]["array"]) < max_seconds for sample in samples
+        ],
+        batched=True,
         num_proc=mp.cpu_count(),
     )
 
