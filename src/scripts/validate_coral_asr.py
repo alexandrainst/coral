@@ -60,7 +60,6 @@ def main(config: DictConfig) -> None:
     for split_name, split in dataset.items():
         dataset[split_name] = split.select(range(100))
 
-    logger.info("Filtering the dataset...")
     dataset = filter_dataset(
         dataset=dataset,
         audio_column=config.audio_column,
@@ -76,7 +75,6 @@ def main(config: DictConfig) -> None:
         f"[^{re.escape(config.characters_to_keep + ' |')}]"
     )
 
-    logger.info("Processing the dataset...")
     dataset = process_dataset(
         dataset=dataset,
         non_standard_characters_regex=non_standard_characters_regex,
@@ -185,6 +183,7 @@ def filter_dataset(
     Returns:
         The filtered dataset.
     """
+    logger.info("Filtering the dataset...")
 
     def filter_samples(
         samples: dict[str, Any], remove_maybe_validated: bool
@@ -270,6 +269,8 @@ def process_dataset(
     Returns:
         The processed dataset.
     """
+    logger.info("Processing the dataset...")
+
     # Dictionary that contains characters to be converted (from the key to the value).
     # Some values contain spaces to ensure that they're separated from other
     # characters, and superfluous spaces are removed later. Note also that these are
