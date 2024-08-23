@@ -99,7 +99,6 @@ def main(config: DictConfig) -> None:
             text_column=config.text_column,
             batch_size=config.batch_size,
         )
-        breakpoint()
         new_split = (
             dataset[split_name]
             .add_column(
@@ -122,7 +121,10 @@ def main(config: DictConfig) -> None:
                 column=scores,
                 new_fingerprint=split._fingerprint,
             )
-        new_split = new_split.filter(lambda sample: sample["validated"] != "rejected")
+        if "validated" in new_split.column_names:
+            new_split = new_split.filter(
+                lambda sample: sample["validated"] != "rejected"
+            )
         for metric in config.metrics:
             if "max" in metric:
                 new_split = new_split.filter(
@@ -136,6 +138,7 @@ def main(config: DictConfig) -> None:
 
     logger.info(f"Uploading the validated dataset to {config.output_dataset_id!r}...")
     new_dataset = DatasetDict(new_data_dict)
+    breakpoint()
     for _ in range(60):
         try:
             new_dataset.push_to_hub(
@@ -284,13 +287,14 @@ def compute_metrics(
             wers:
                 The word error rates for each sample.
     """
-    predictions: list[str] = list()
+    dataset = dataset.select(range(len(dataset) - 1000, len(dataset)))
+    breakpoint()
 
+    predictions: list[str] = list()
     labels = [lbl.lower().strip() for lbl in dataset[text_column]]
-    key_dataset = KeyDataset(dataset=dataset, key="audio")
 
     with tqdm(total=len(dataset), desc="Transcribing") as pbar:
-        for out in transcriber(key_dataset, batch_size=batch_size):
+        for out in transcriber(KeyDataset(dataset, "audio"), batch_size=batch_size):
             prediction = re.sub(
                 pattern=non_standard_characters_regex,
                 repl="",
