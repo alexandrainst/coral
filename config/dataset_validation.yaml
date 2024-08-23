@@ -18,4 +18,4 @@ metrics:
   - name: wer
     max: 1.0
   - name: cer
-    max: 1.0
+    max: 0.6
