@@ -72,8 +72,8 @@ def main(config: DictConfig) -> None:
         num_proc=mp.cpu_count(),
         desc="Filtering out samples with too long or too short audio",
     )
-    num_samples_removed = (
-        sum(len(split) for split in dataset.values()) - num_samples_before
+    num_samples_removed = num_samples_before - sum(
+        len(split) for split in dataset.values()
     )
     logger.info(
         f"Filtered out {num_samples_removed:,} samples with audio that was too long "
