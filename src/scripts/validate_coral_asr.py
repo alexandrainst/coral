@@ -15,13 +15,7 @@ import evaluate
 import hydra
 import torch
 from coral.data import clean_example
-from datasets import (
-    Dataset,
-    DatasetDict,
-    IterableDatasetDict,
-    enable_progress_bar,
-    load_dataset,
-)
+from datasets import Dataset, DatasetDict, enable_progress_bar, load_dataset
 from omegaconf import DictConfig
 from requests import HTTPError
 from tqdm.auto import tqdm
@@ -61,14 +55,7 @@ def main(config: DictConfig) -> None:
         dataset = DatasetDict(dict(train=dataset))
     assert isinstance(dataset, DatasetDict)
 
-    iterable_dataset: IterableDatasetDict = IterableDatasetDict(
-        {
-            split_name: split.to_iterable_dataset()
-            for split_name, split in dataset.items()
-        }
-    )
-
-    iterable_dataset = iterable_dataset.filter(
+    dataset = dataset.filter(
         lambda samples: [
             audio_dct["array"].shape[0]
             > audio_dct["sampling_rate"] * config.min_seconds_per_example
@@ -84,17 +71,16 @@ def main(config: DictConfig) -> None:
         batched=True,
     )
 
-    for split_name, split in iterable_dataset.items():
-        # num_samples_before = len(split)
+    for split_name, split in dataset.items():
         if split_name == config.train_split:
-            iterable_dataset[split_name] = split.filter(
+            dataset[split_name] = split.filter(
                 lambda samples: [
                     validated != "rejected" for validated in samples["validated"]
                 ],
                 batched=True,
             )
         else:
-            iterable_dataset[split_name] = split.filter(
+            dataset[split_name] = split.filter(
                 lambda samples: [
                     validated != "rejected" and validated != "maybe"
                     for validated in samples["validated"]
@@ -110,8 +96,8 @@ def main(config: DictConfig) -> None:
     )
 
     logger.info("Processing the dataset...")
-    iterable_dataset = process_dataset(
-        iterable_dataset=iterable_dataset,
+    dataset = process_dataset(
+        dataset=dataset,
         non_standard_characters_regex=non_standard_characters_regex,
         text_column=config.text_column,
     )
@@ -130,7 +116,7 @@ def main(config: DictConfig) -> None:
 
     new_data_dict: dict[str, Dataset] = dict()
     metric_names = [metric.name.lower() for metric in config.metrics]
-    for split_name, split in iterable_dataset.items():
+    for split_name, split in dataset.items():
         logger.info(f"Validating the {split_name} split of the dataset...")
         predictions, labels, score_dict = compute_metrics(
             dataset=split,
@@ -193,14 +179,14 @@ def main(config: DictConfig) -> None:
 
 
 def process_dataset(
-    iterable_dataset: IterableDatasetDict,
+    dataset: DatasetDict,
     non_standard_characters_regex: re.Pattern[str],
     text_column: str,
-) -> IterableDatasetDict:
+) -> DatasetDict:
     """Process a dataset for ASR.
 
     Args:
-        iterable_dataset:
+        dataset:
             The dataset to clean.
         non_standard_characters_regex:
             Regular expression that matches all characters that should be removed from
@@ -279,7 +265,7 @@ def process_dataset(
         ]
         return examples
 
-    return iterable_dataset.map(clean_examples, batched=True)
+    return dataset.map(clean_examples, batched=True)
 
 
 def compute_metrics(
