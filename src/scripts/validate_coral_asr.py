@@ -56,6 +56,7 @@ def main(config: DictConfig) -> None:
         dataset = DatasetDict({config.dataset_split: dataset})
     assert isinstance(dataset, DatasetDict)
 
+    breakpoint()
     num_samples_before = sum(len(split) for split in dataset.values())
     max_audio_length = config.sample_rate * config.max_seconds_per_example
     dataset = dataset.filter(
