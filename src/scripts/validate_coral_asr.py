@@ -47,13 +47,12 @@ def main(config: DictConfig) -> None:
     dataset = load_dataset(
         path=config.dataset_id,
         name=config.dataset_subset,
-        split=config.dataset_split,
         revision=config.dataset_revision,
         token=True,
         cache_dir=config.cache_dir,
     )
     if isinstance(dataset, Dataset):
-        dataset = DatasetDict({config.dataset_split: dataset})
+        dataset = DatasetDict(dict(train=dataset))
     assert isinstance(dataset, DatasetDict)
 
     # TEMP
@@ -95,22 +94,37 @@ def main(config: DictConfig) -> None:
         f"samples with too long audio (> {config.max_seconds_per_example} seconds)."
     )
 
-    if all("validated" in cols for cols in dataset.column_names.values()):
-        num_samples_before = sum(len(split) for split in dataset.values())
-        dataset = dataset.filter(
-            lambda samples: [
-                validated != "rejected" for validated in samples["validated"]
-            ],
-            batched=True,
-            num_proc=mp.cpu_count(),
-        )
-        num_rejected_samples_removed = num_samples_before - sum(
-            len(split) for split in dataset.values()
-        )
-        logger.info(
-            f"Filtered out {num_rejected_samples_removed:,} samples that were "
-            f"rejected during manual validation."
-        )
+    for split_name, split in dataset.items():
+        num_samples_before = len(split)
+        if "validated" not in dataset.column_names[split_name]:
+            continue
+        if split_name == config.train_split:
+            dataset[split_name] = split.filter(
+                lambda samples: [
+                    validated != "rejected" for validated in samples["validated"]
+                ],
+                batched=True,
+                num_proc=mp.cpu_count(),
+            )
+            msg = (
+                "Filtered out {num_samples_removed:,} samples with a 'rejected' "
+                f"validation status from the {split_name} split."
+            )
+        else:
+            dataset[split_name] = split.filter(
+                lambda samples: [
+                    validated != "rejected" and validated != "maybe"
+                    for validated in samples["validated"]
+                ],
+                batched=True,
+                num_proc=mp.cpu_count(),
+            )
+            msg = (
+                "Filtered out {num_samples_removed:,} samples with a 'rejected' or "
+                f"'maybe' validation status from the {split_name} split."
+            )
+        num_samples_removed = num_samples_before - len(dataset[split_name])
+        logger.info(msg.format(num_samples_removed=num_samples_removed))
 
     # This contains all the punctuation characters that will be removed from the
     # transcriptions, as they do not have an influence on the pronunciation of the

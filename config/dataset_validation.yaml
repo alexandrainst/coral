@@ -1,13 +1,14 @@
 model_id: alexandrainst/coral-asr-bootstrap
 dataset_id: alexandrainst/coral
 dataset_subset: read_aloud
-dataset_split: null
+train_split: train
+val_split: val
+test_split: test
 dataset_revision: null
 text_column: text
 audio_column: audio
 output_dataset_id: alexandrainst/coral
 output_dataset_subset: read_aloud
-output_dataset_split: null
 batch_size: 16
 cache_dir: null
 characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
