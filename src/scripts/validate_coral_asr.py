@@ -5,6 +5,7 @@ Usage:
 """
 
 import logging
+import multiprocessing as mp
 import re
 import warnings
 from functools import partial
@@ -62,6 +63,7 @@ def main(config: DictConfig) -> None:
             for audio_dct in samples[config.audio_column]
         ],
         batched=True,
+        num_proc=mp.cpu_count(),
     ).filter(
         lambda samples: [
             audio_dct["array"].shape[0]
@@ -69,6 +71,7 @@ def main(config: DictConfig) -> None:
             for audio_dct in samples[config.audio_column]
         ],
         batched=True,
+        num_proc=mp.cpu_count(),
     )
 
     for split_name, split in dataset.items():
@@ -78,6 +81,7 @@ def main(config: DictConfig) -> None:
                     validated != "rejected" for validated in samples["validated"]
                 ],
                 batched=True,
+                num_proc=mp.cpu_count(),
             )
         else:
             dataset[split_name] = split.filter(
@@ -86,6 +90,7 @@ def main(config: DictConfig) -> None:
                     for validated in samples["validated"]
                 ],
                 batched=True,
+                num_proc=mp.cpu_count(),
             )
 
     # This contains all the punctuation characters that will be removed from the
@@ -265,7 +270,7 @@ def process_dataset(
         ]
         return examples
 
-    return dataset.map(clean_examples, batched=True)
+    return dataset.map(clean_examples, batched=True, num_proc=mp.cpu_count())
 
 
 def compute_metrics(
