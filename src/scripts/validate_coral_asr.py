@@ -15,7 +15,6 @@ import hydra
 import torch
 from coral.data import clean_example
 from datasets import (
-    Audio,
     Dataset,
     DatasetDict,
     IterableDataset,
@@ -283,10 +282,8 @@ def process_dataset(
         The processed dataset.
     """
     breakpoint()
-    logger.info("Casting the audio to the correct sampling rate...")
-    processed_dataset = dataset.cast_column(
-        column=audio_column, feature=Audio(sampling_rate=sample_rate)
-    )
+    # logger.info("Casting the audio to the correct sampling rate...")
+    # processed_dataset = dataset.cast_column( column=audio_column, feature=Audio(sampling_rate=sample_rate))
 
     # Dictionary that contains characters to be converted (from the key to the value).
     # Some values contain spaces to ensure that they're separated from other
@@ -404,6 +401,7 @@ def compute_metrics(
                 repl="",
                 string=out["text"].strip().lower(),
             )
+            breakpoint()
             predictions.append(prediction.strip())
             pbar.update()
 
