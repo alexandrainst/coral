@@ -94,6 +94,22 @@ def main(config: DictConfig) -> None:
         f"(< {config.min_seconds_per_example} seconds) and {num_long_samples_removed:,} "
         f"samples with too long audio (> {config.max_seconds_per_example} seconds)."
     )
+
+    if "validated" in dataset.column_names:
+        num_samples_before = sum(len(split) for split in dataset.values())
+        dataset = dataset.filter(
+            lambda samples: [sample["validated"] != "rejected" for sample in samples],
+            batched=True,
+            num_proc=mp.cpu_count(),
+        )
+        num_rejected_samples_removed = num_samples_before - sum(
+            len(split) for split in dataset.values()
+        )
+        logger.info(
+            f"Filtered out {num_rejected_samples_removed:,} samples that were "
+            f"rejected during manual validation."
+        )
+
     breakpoint()
 
     # This contains all the punctuation characters that will be removed from the
@@ -128,7 +144,6 @@ def main(config: DictConfig) -> None:
     metric_names = [metric.name.lower() for metric in config.metrics]
     for split_name, split in processed_dataset.items():
         logger.info(f"Validating the {split_name} split of the dataset...")
-
         predictions, labels, score_dict = compute_metrics(
             dataset=split,
             transcriber=transcriber,
@@ -137,6 +152,8 @@ def main(config: DictConfig) -> None:
             text_column=config.text_column,
             batch_size=config.batch_size,
         )
+
+        # Create a new split with the predictions, labels, and scores
         new_split = (
             dataset[split_name]
             .add_column(
@@ -159,38 +176,41 @@ def main(config: DictConfig) -> None:
                 column=scores,
                 new_fingerprint=split._fingerprint,
             )
-        if "validated" in new_split.column_names:
-            new_split = new_split.filter(
+        new_data_dict[split_name] = new_split
+
+    # Filter the dataset based on the metrics from the validation model
+    new_dataset = DatasetDict(new_data_dict)
+    for metric in config.metrics:
+        num_samples_before = sum(len(split) for split in new_dataset.values())
+        if "max" in metric:
+            new_dataset = new_dataset.filter(
                 lambda samples: [
-                    sample["validated"] != "rejected" for sample in samples
+                    sample[f"asr_{metric.name.lower()}"] < metric.max
+                    for sample in samples
                 ],
                 batched=True,
                 num_proc=mp.cpu_count(),
             )
-        for metric in config.metrics:
-            if "max" in metric:
-                new_split = new_split.filter(
-                    lambda samples: [
-                        sample[f"asr_{metric.name.lower()}"] < metric.max
-                        for sample in samples
-                    ],
-                    batched=True,
-                    num_proc=mp.cpu_count(),
-                )
-            elif "min" in metric:
-                new_split = new_split.filter(
-                    lambda samples: [
-                        sample[f"asr_{metric.name.lower()}"] > metric.min
-                        for sample in samples
-                    ],
-                    batched=True,
-                    num_proc=mp.cpu_count(),
-                )
-        new_data_dict[split_name] = new_split
+        elif "min" in metric:
+            new_dataset = new_dataset.filter(
+                lambda samples: [
+                    sample[f"asr_{metric.name.lower()}"] > metric.min
+                    for sample in samples
+                ],
+                batched=True,
+                num_proc=mp.cpu_count(),
+            )
+        num_samples_removed = num_samples_before - sum(
+            len(split) for split in new_dataset.values()
+        )
+        greater_or_lower = "greater" if "max" in metric else "lower"
+        logger.info(
+            f"Filtered out {num_samples_removed:,} samples with a {metric.name.lower()} "
+            f"score {greater_or_lower} than {metric[greater_or_lower]:.2f}."
+        )
 
-    logger.info(f"Uploading the validated dataset to {config.output_dataset_id!r}...")
-    new_dataset = DatasetDict(new_data_dict)
     breakpoint()
+    logger.info(f"Uploading the validated dataset to {config.output_dataset_id!r}...")
     for _ in range(60):
         try:
             new_dataset.push_to_hub(
