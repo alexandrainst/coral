@@ -391,7 +391,8 @@ def compute_metrics(
                 The word error rates for each sample.
     """
     predictions: list[str] = list()
-    labels = [lbl.lower().strip() for lbl in dataset[text_column]]
+    # labels = [lbl.lower().strip() for lbl in dataset[text_column]]
+    labels: list[str] = []
 
     with tqdm(total=len(dataset), desc="Transcribing") as pbar:
         for out in transcriber(KeyDataset(dataset, "audio"), batch_size=batch_size):
