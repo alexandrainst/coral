@@ -82,10 +82,7 @@ def main(config: DictConfig) -> None:
     else:
         device = torch.device("cpu")
     transcriber = pipeline(
-        task="automatic-speech-recognition",
-        model=config.model_id,
-        device=device,
-        batch_size=config.batch_size,
+        task="automatic-speech-recognition", model=config.model_id, device=device
     )
     assert isinstance(transcriber, AutomaticSpeechRecognitionPipeline)
 
@@ -99,7 +96,10 @@ def main(config: DictConfig) -> None:
             transcriber=transcriber,
             metric_names=metric_names,
             non_standard_characters_regex=non_standard_characters_regex,
+            text_column=config.text_column,
+            batch_size=config.batch_size,
         )
+        breakpoint()
         new_split = (
             dataset[split_name]
             .add_column(
@@ -252,6 +252,8 @@ def compute_metrics(
     transcriber: AutomaticSpeechRecognitionPipeline,
     metric_names: list[str],
     non_standard_characters_regex: re.Pattern[str],
+    text_column: str,
+    batch_size: int,
 ) -> tuple[list[str], list[str], dict[str, list[float]]]:
     """Compute the metrics for the dataset.
 
@@ -266,6 +268,10 @@ def compute_metrics(
         non_standard_characters_regex:
             Regular expression that matches all characters that should be removed from
             the transcriptions.
+        text_column:
+            The name of the column containing the transcriptions.
+        batch_size:
+            The batch size to use for transcribing the audio.
 
     Returns:
         A triple (predictions, labels, cers, wers) where:
@@ -280,20 +286,11 @@ def compute_metrics(
     """
     predictions: list[str] = list()
 
-    def prediction_itr():
-        key_dataset = KeyDataset(dataset=dataset, key="audio")
-        itr = iter(transcriber(key_dataset))
-        while True:
-            try:
-                yield next(itr)
-            except ValueError:
-                yield dict(text="")
-            except StopIteration:
-                break
+    labels = [lbl.lower().strip() for lbl in dataset[text_column]]
+    key_dataset = KeyDataset(dataset=dataset, key="audio")
 
     with tqdm(total=len(dataset), desc="Transcribing") as pbar:
-        for out in prediction_itr():
-            assert isinstance(out, dict) and isinstance(out.get("text"), str)
+        for out in transcriber(key_dataset, batch_size=batch_size):
             prediction = re.sub(
                 pattern=non_standard_characters_regex,
                 repl="",
@@ -301,8 +298,6 @@ def compute_metrics(
             )
             predictions.append(prediction.strip())
             pbar.update()
-
-    labels = [lbl.lower().strip() for lbl in dataset["text"]]
 
     all_scores: dict[str, list[float]] = dict()
     for metric_name in metric_names:
