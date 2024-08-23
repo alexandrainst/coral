@@ -26,7 +26,6 @@ from omegaconf import DictConfig
 from requests import HTTPError
 from tqdm.auto import tqdm
 from transformers import AutomaticSpeechRecognitionPipeline, pipeline
-from transformers.pipelines.pt_utils import KeyDataset
 
 logging.basicConfig(
     level=logging.INFO,
@@ -395,7 +394,9 @@ def compute_metrics(
     labels: list[str] = []
 
     with tqdm(desc="Transcribing") as pbar:
-        for out in transcriber(KeyDataset(dataset, "audio"), batch_size=batch_size):
+        for sample in dataset:
+            audio = sample["audio"]
+            out = transcriber(audio)
             prediction = re.sub(
                 pattern=non_standard_characters_regex,
                 repl="",
