@@ -54,11 +54,6 @@ def main(config: DictConfig) -> None:
         dataset = DatasetDict({config.dataset_split: dataset})
     assert isinstance(dataset, DatasetDict)
 
-    logger.info("Resampling audio to 16kHz...")
-    processed_dataset = dataset.cast_column(
-        column=config.audio_column, feature=Audio(sampling_rate=16_000)
-    )
-
     # This contains all the punctuation characters that will be removed from the
     # transcriptions, as they do not have an influence on the pronunciation of the
     # words.
@@ -68,9 +63,11 @@ def main(config: DictConfig) -> None:
 
     logger.info("Processing the dataset...")
     processed_dataset = process_dataset(
-        dataset=processed_dataset,
+        dataset=dataset,
         non_standard_characters_regex=non_standard_characters_regex,
         text_column=config.text_column,
+        audio_column=config.audio_column,
+        sample_rate=16_000,
     )
     assert isinstance(processed_dataset, DatasetDict)
 
@@ -163,6 +160,8 @@ def process_dataset(
     dataset: DatasetDict,
     non_standard_characters_regex: re.Pattern[str],
     text_column: str,
+    audio_column: str,
+    sample_rate: int,
 ) -> DatasetDict:
     """Process a dataset for ASR.
 
@@ -174,10 +173,18 @@ def process_dataset(
             the transcriptions.
         text_column:
             The name of the column containing the transcriptions.
+        audio_column:
+            The name of the column containing the audio.
+        sample_rate:
+            The desired sampling rate of the audio.
 
     Returns:
         The processed dataset.
     """
+    processed_dataset = dataset.cast_column(
+        column=audio_column, feature=Audio(sampling_rate=sample_rate)
+    )
+
     # Dictionary that contains characters to be converted (from the key to the value).
     # Some values contain spaces to ensure that they're separated from other
     # characters, and superfluous spaces are removed later. Note also that these are
@@ -247,6 +254,13 @@ def process_dataset(
         desc="Processing dataset",
         num_proc=mp.cpu_count(),
     )
+
+    ten_seconds = sample_rate * 10
+    processed_dataset = processed_dataset.filter(
+        lambda sample: len(sample[audio_column]["array"]) < ten_seconds,
+        num_proc=mp.cpu_count(),
+    )
+
     return processed_dataset
 
 
