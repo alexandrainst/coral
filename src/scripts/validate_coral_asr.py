@@ -195,8 +195,8 @@ def main(config: DictConfig) -> None:
                 num_proc=mp.cpu_count(),
             )
             msg = (
-                "Filtered out {num_samples_removed:,} samples with a "
-                f"{metric.name.lower()} score greater than {metric.max:.2f}."
+                f"Filtered out {{num_samples_removed:,}} samples with a {metric.name} "
+                f"score greater than {metric.max:.2f}."
             )
         else:
             new_dataset = new_dataset.filter(
@@ -208,8 +208,8 @@ def main(config: DictConfig) -> None:
                 num_proc=mp.cpu_count(),
             )
             msg = (
-                "Filtered out {num_samples_removed:,} samples with a "
-                f"{metric.name.lower()} score lower than {metric.min:.2f}."
+                f"Filtered out {{num_samples_removed:,}} samples with a {metric.name} "
+                f"score lower than {metric.min:.2f}."
             )
         num_samples_removed = num_samples_before - sum(
             len(split) for split in new_dataset.values()
