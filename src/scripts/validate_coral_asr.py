@@ -287,9 +287,7 @@ def compute_metrics(
             wers:
                 The word error rates for each sample.
     """
-    breakpoint()
     dataset = dataset.select(range(len(dataset) - 1000, len(dataset)))
-    breakpoint()
 
     predictions: list[str] = list()
     labels = [lbl.lower().strip() for lbl in dataset[text_column]]
