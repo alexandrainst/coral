@@ -56,6 +56,10 @@ def main(config: DictConfig) -> None:
         dataset = DatasetDict(dict(train=dataset))
     assert isinstance(dataset, DatasetDict)
 
+    # TEMP
+    for split_name, split in dataset.items():
+        dataset[split_name] = split.select(range(100))
+
     logger.info("Filtering the dataset...")
     dataset = filter_dataset(
         dataset=dataset,
