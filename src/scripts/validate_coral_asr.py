@@ -346,7 +346,8 @@ def process_dataset(
         return examples
 
     processed_dataset = dataset.map(
-        clean_examples, batched=True, desc="Cleaning dataset", num_proc=mp.cpu_count()
+        clean_examples,
+        batched=True,  # , desc="Cleaning dataset", num_proc=mp.cpu_count()
     )
 
     return processed_dataset
