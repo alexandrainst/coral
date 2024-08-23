@@ -104,6 +104,7 @@ def main(config: DictConfig) -> None:
             metric_names=metric_names,
             non_standard_characters_regex=non_standard_characters_regex,
             text_column=config.text_column,
+            batch_size=config.batch_size,
         )
 
         # Create a new split with the predictions, labels, and scores
@@ -343,6 +344,7 @@ def compute_metrics(
     metric_names: list[str],
     non_standard_characters_regex: re.Pattern[str],
     text_column: str,
+    batch_size: int,
 ) -> tuple[list[str], list[str], dict[str, list[float]]]:
     """Compute the metrics for the dataset.
 
@@ -377,7 +379,7 @@ def compute_metrics(
     predictions: list[str] = list()
 
     with tqdm(total=len(dataset), desc="Transcribing") as pbar:
-        for out in transcriber(KeyDataset(dataset, "audio")):
+        for out in transcriber(KeyDataset(dataset, "audio"), batch_size=batch_size):
             prediction = re.sub(
                 pattern=non_standard_characters_regex,
                 repl="",
