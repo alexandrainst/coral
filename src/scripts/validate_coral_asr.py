@@ -70,7 +70,6 @@ def main(config: DictConfig) -> None:
         max_seconds_per_example=config.max_seconds_per_example,
         sample_rate=config.sample_rate,
     )
-    assert isinstance(processed_dataset, DatasetDict)
 
     logger.info(f"Loading the {config.model_id!r} ASR model...")
     if torch.cuda.is_available():
@@ -270,10 +269,11 @@ def process_dataset(
         clean_examples, batched=True, desc="Cleaning dataset", num_proc=mp.cpu_count()
     )
 
-    max_seconds = sample_rate * max_seconds_per_example
+    max_audio_length = sample_rate * max_seconds_per_example
     processed_dataset = processed_dataset.filter(
         lambda samples: [
-            0 < len(sample[audio_column]["array"]) < max_seconds for sample in samples
+            0 < len(sample[audio_column]["array"]) < max_audio_length
+            for sample in samples
         ],
         batched=True,
         num_proc=mp.cpu_count(),
