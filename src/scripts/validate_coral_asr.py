@@ -198,6 +198,8 @@ def process_dataset(
     Returns:
         The processed dataset.
     """
+    enable_progress_bar()
+
     logger.info("Casting the audio to the correct sampling rate...")
     processed_dataset = dataset.cast_column(
         column=audio_column, feature=Audio(sampling_rate=sample_rate)
@@ -276,7 +278,6 @@ def process_dataset(
         ]
         return examples
 
-    enable_progress_bar()
     processed_dataset = dataset.map(
         clean_examples, batched=True, desc="Cleaning dataset", num_proc=mp.cpu_count()
     )
