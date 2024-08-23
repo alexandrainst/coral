@@ -224,6 +224,7 @@ def filter_dataset(
         ]
 
     for split_name, split in dataset.items():
+        num_samples_before = len(split)
         filter_fn = partial(
             filter_samples, remove_maybe_validated=not split_name == train_split
         )
@@ -232,6 +233,10 @@ def filter_dataset(
             batched=True,
             num_proc=mp.cpu_count(),
             desc=f"Filtering {split_name} split",
+        )
+        num_samples_removed = num_samples_before - len(dataset[split_name])
+        logger.info(
+            f"Removed {num_samples_removed:,} samples from the {split_name} split."
         )
 
     return dataset
