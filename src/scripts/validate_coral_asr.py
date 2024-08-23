@@ -112,8 +112,6 @@ def main(config: DictConfig) -> None:
             f"rejected during manual validation."
         )
 
-    breakpoint()
-
     # This contains all the punctuation characters that will be removed from the
     # transcriptions, as they do not have an influence on the pronunciation of the
     # words.
@@ -187,8 +185,8 @@ def main(config: DictConfig) -> None:
         if "max" in metric:
             new_dataset = new_dataset.filter(
                 lambda samples: [
-                    sample[f"asr_{metric.name.lower()}"] < metric.max
-                    for sample in samples
+                    score < metric.max
+                    for score in samples[f"asr_{metric.name.lower()}"]
                 ],
                 batched=True,
                 num_proc=mp.cpu_count(),
@@ -196,8 +194,8 @@ def main(config: DictConfig) -> None:
         elif "min" in metric:
             new_dataset = new_dataset.filter(
                 lambda samples: [
-                    sample[f"asr_{metric.name.lower()}"] > metric.min
-                    for sample in samples
+                    score > metric.min
+                    for score in samples[f"asr_{metric.name.lower()}"]
                 ],
                 batched=True,
                 num_proc=mp.cpu_count(),
