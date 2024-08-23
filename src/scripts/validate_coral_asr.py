@@ -41,6 +41,8 @@ def main(config: DictConfig) -> None:
         config:
             The Hydra configuration object.
     """
+    enable_progress_bar()
+
     logger.info(f"Loading the {config.dataset_id!r} dataset...")
     dataset = load_dataset(
         path=config.dataset_id,
@@ -53,6 +55,25 @@ def main(config: DictConfig) -> None:
     if isinstance(dataset, Dataset):
         dataset = DatasetDict({config.dataset_split: dataset})
     assert isinstance(dataset, DatasetDict)
+
+    num_samples_before = sum(len(split) for split in dataset.values())
+    max_audio_length = config.sample_rate * config.max_seconds_per_example
+    dataset = dataset.filter(
+        lambda samples: [
+            0 < len(audio_dct["array"]) < max_audio_length
+            for audio_dct in samples[config.audio_column]
+        ],
+        batched=True,
+        num_proc=mp.cpu_count(),
+        desc="Filtering out samples with too long or too short audio",
+    )
+    num_samples_removed = (
+        sum(len(split) for split in dataset.values()) - num_samples_before
+    )
+    logger.info(
+        f"Filtered out {num_samples_removed:,} samples with audio that was too long "
+        "or too short."
+    )
 
     # This contains all the punctuation characters that will be removed from the
     # transcriptions, as they do not have an influence on the pronunciation of the
@@ -67,7 +88,6 @@ def main(config: DictConfig) -> None:
         non_standard_characters_regex=non_standard_characters_regex,
         text_column=config.text_column,
         audio_column=config.audio_column,
-        max_seconds_per_example=config.max_seconds_per_example,
         sample_rate=config.sample_rate,
     )
 
@@ -175,7 +195,6 @@ def process_dataset(
     non_standard_characters_regex: re.Pattern[str],
     text_column: str,
     audio_column: str,
-    max_seconds_per_example: int,
     sample_rate: int,
 ) -> DatasetDict:
     """Process a dataset for ASR.
@@ -203,25 +222,6 @@ def process_dataset(
     logger.info("Casting the audio to the correct sampling rate...")
     processed_dataset = dataset.cast_column(
         column=audio_column, feature=Audio(sampling_rate=sample_rate)
-    )
-
-    num_samples_before = sum(len(split) for split in dataset.values())
-    max_audio_length = sample_rate * max_seconds_per_example
-    processed_dataset = processed_dataset.filter(
-        lambda samples: [
-            0 < len(audio_dct["array"]) < max_audio_length
-            for audio_dct in samples[audio_column]
-        ],
-        batched=True,
-        num_proc=mp.cpu_count(),
-        desc="Filtering out samples with too long or too short audio",
-    )
-    num_samples_removed = (
-        sum(len(split) for split in processed_dataset.values()) - num_samples_before
-    )
-    logger.info(
-        f"Filtered out {num_samples_removed:,} samples with audio that was too long "
-        "or too short."
     )
 
     # Dictionary that contains characters to be converted (from the key to the value).
