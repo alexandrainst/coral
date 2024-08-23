@@ -63,7 +63,8 @@ def main(config: DictConfig) -> None:
     num_samples_before = sum(len(split) for split in dataset.values())
     dataset = dataset.filter(
         lambda samples: [
-            audio_dct["array"].shape[0] > 0
+            audio_dct["array"].shape[0]
+            > audio_dct["sampling_rate"] * config.min_seconds_per_example
             for audio_dct in samples[config.audio_column]
         ],
         batched=True,
