@@ -21,6 +21,7 @@ from omegaconf import DictConfig
 from requests import HTTPError
 from tqdm.auto import tqdm
 from transformers import AutomaticSpeechRecognitionPipeline, pipeline
+from transformers.pipelines.base import KeyDataset
 
 logging.basicConfig(
     level=logging.INFO,
@@ -372,20 +373,17 @@ def compute_metrics(
             wers:
                 The word error rates for each sample.
     """
+    labels: list[str] = [lbl.strip().lower() for lbl in dataset[text_column]]
     predictions: list[str] = list()
-    labels: list[str] = list()
 
-    with tqdm(desc="Transcribing") as pbar:
-        for sample in dataset:
-            audio = sample["audio"]
-            out = transcriber(audio)
+    with tqdm(total=len(dataset), desc="Transcribing") as pbar:
+        for out in transcriber(KeyDataset(dataset, "audio")):
             prediction = re.sub(
                 pattern=non_standard_characters_regex,
                 repl="",
                 string=out["text"].strip().lower(),
             )
             predictions.append(prediction.strip())
-            labels.append(sample[text_column].strip().lower())
             pbar.update()
 
     all_scores: dict[str, list[float]] = dict()
