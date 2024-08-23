@@ -394,7 +394,7 @@ def compute_metrics(
     # labels = [lbl.lower().strip() for lbl in dataset[text_column]]
     labels: list[str] = []
 
-    with tqdm(total=len(dataset), desc="Transcribing") as pbar:
+    with tqdm(desc="Transcribing") as pbar:
         for out in transcriber(KeyDataset(dataset, "audio"), batch_size=batch_size):
             prediction = re.sub(
                 pattern=non_standard_characters_regex,
