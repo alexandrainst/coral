@@ -16,7 +16,13 @@ import evaluate
 import hydra
 import torch
 from coral.data import clean_example
-from datasets import Dataset, DatasetDict, enable_progress_bar, load_dataset
+from datasets import (
+    Dataset,
+    DatasetDict,
+    disable_caching,
+    enable_progress_bar,
+    load_dataset,
+)
 from omegaconf import DictConfig
 from requests import HTTPError
 from tqdm.auto import tqdm
@@ -44,6 +50,7 @@ def main(config: DictConfig) -> None:
             The Hydra configuration object.
     """
     enable_progress_bar()
+    disable_caching()
 
     logger.info(f"Loading the {config.dataset_id!r} dataset...")
     dataset = load_dataset(
@@ -137,7 +144,6 @@ def main(config: DictConfig) -> None:
         f"Removed {num_samples_removed:,} samples based on the validation model."
     )
 
-    breakpoint()
     logger.info(f"Uploading the validated dataset to {config.output_dataset_id!r}...")
     for _ in range(60):
         try:
@@ -410,26 +416,6 @@ def compute_metrics(
         all_scores[metric_name] = scores
 
     return predictions, labels, all_scores
-
-
-def preprocess_logits_for_metrics(
-    logits: torch.Tensor, _: torch.Tensor
-) -> torch.Tensor:
-    """Workaround to avoid storing too many tensors that are not needed.
-
-    Args:
-        logits:
-            The logits from the model, of shape (batch_size, seq_len, num_labels).
-        labels:
-            The labels for the logits - not used here.
-
-    Returns:
-        The prediction token IDs to use for computing the metrics.
-    """
-    assert isinstance(logits, torch.Tensor)
-    assert logits.ndim == 3
-    pred_ids = torch.argmax(logits, dim=-1)
-    return pred_ids
 
 
 def filter_sample_by_metrics(
