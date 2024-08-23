@@ -56,42 +56,13 @@ def main(config: DictConfig) -> None:
         dataset = DatasetDict(dict(train=dataset))
     assert isinstance(dataset, DatasetDict)
 
-    dataset = dataset.filter(
-        lambda samples: [
-            audio_dct["array"].shape[0]
-            > audio_dct["sampling_rate"] * config.min_seconds_per_example
-            for audio_dct in samples[config.audio_column]
-        ],
-        batched=True,
-        num_proc=mp.cpu_count(),
-    ).filter(
-        lambda samples: [
-            audio_dct["array"].shape[0]
-            < audio_dct["sampling_rate"] * config.max_seconds_per_example
-            for audio_dct in samples[config.audio_column]
-        ],
-        batched=True,
-        num_proc=mp.cpu_count(),
+    logger.info("Filtering the dataset...")
+    dataset = filter_dataset(
+        dataset=dataset,
+        audio_column=config.audio_column,
+        min_seconds_per_example=config.min_seconds_per_example,
+        max_seconds_per_example=config.max_seconds_per_example,
     )
-
-    for split_name, split in dataset.items():
-        if split_name == config.train_split:
-            dataset[split_name] = split.filter(
-                lambda samples: [
-                    validated != "rejected" for validated in samples["validated"]
-                ],
-                batched=True,
-                num_proc=mp.cpu_count(),
-            )
-        else:
-            dataset[split_name] = split.filter(
-                lambda samples: [
-                    validated != "rejected" and validated != "maybe"
-                    for validated in samples["validated"]
-                ],
-                batched=True,
-                num_proc=mp.cpu_count(),
-            )
 
     # This contains all the punctuation characters that will be removed from the
     # transcriptions, as they do not have an influence on the pronunciation of the
@@ -183,12 +154,81 @@ def main(config: DictConfig) -> None:
         logger.error("Failed to upload the dataset to the Hugging Face Hub.")
 
 
+def filter_dataset(
+    dataset: DatasetDict,
+    audio_column: str,
+    min_seconds_per_example: int,
+    max_seconds_per_example: int,
+) -> DatasetDict:
+    """Filter the dataset based on the validation status.
+
+    Note that this removes samples from the dataset.
+
+    Args:
+        dataset:
+            The dataset to filter.
+        audio_column:
+            The name of the column containing the audio.
+        min_seconds_per_example:
+            The minimum number of seconds that an example can have.
+        max_seconds_per_example:
+            The maximum number of seconds that an example can have.
+
+    Returns:
+        The filtered dataset.
+    """
+
+    def filter_samples(
+        samples: dict[str, Any], remove_maybe_validated: bool
+    ) -> list[bool]:
+        """Filter samples based on the validation status.
+
+        Args:
+            samples:
+                The samples to filter.
+            remove_maybe_validated:
+                Whether to remove samples that are validated as "maybe".
+
+        Returns:
+            A list of booleans indicating whether the samples should be kept.
+        """
+        idxs_too_short = [
+            audio_dct["array"].shape[0]
+            < audio_dct["sampling_rate"] * min_seconds_per_example
+            for audio_dct in samples[audio_column]
+        ]
+        idxs_too_long = [
+            audio_dct["array"].shape[0]
+            > audio_dct["sampling_rate"] * max_seconds_per_example
+            for audio_dct in samples[audio_column]
+        ]
+        idxs_rejected = [
+            validated in {"rejected", "maybe"}
+            if remove_maybe_validated
+            else validated == "rejected"
+            for validated in samples["validated"]
+        ]
+        return [
+            not (too_short or too_long or rejected)
+            for too_short, too_long, rejected in zip(
+                idxs_too_short, idxs_too_long, idxs_rejected
+            )
+        ]
+
+    return dataset.filter(
+        filter_samples, batched=True, num_proc=mp.cpu_count(), desc="Filtering dataset"
+    )
+
+
 def process_dataset(
     dataset: DatasetDict,
     non_standard_characters_regex: re.Pattern[str],
     text_column: str,
 ) -> DatasetDict:
     """Process a dataset for ASR.
+
+    Note that this does not remove any samples from the dataset, but only processes the
+    existing samples.
 
     Args:
         dataset:
