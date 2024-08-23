@@ -136,7 +136,6 @@ def main(config: DictConfig) -> None:
     )
 
     logger.info("Processing the dataset...")
-    breakpoint()
     processed_dataset = process_dataset(
         dataset=dataset,
         non_standard_characters_regex=non_standard_characters_regex,
@@ -281,7 +280,6 @@ def process_dataset(
     Returns:
         The processed dataset.
     """
-    breakpoint()
     # logger.info("Casting the audio to the correct sampling rate...")
     # processed_dataset = dataset.cast_column( column=audio_column, feature=Audio(sampling_rate=sample_rate))
 
