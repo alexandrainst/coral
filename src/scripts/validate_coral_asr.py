@@ -67,7 +67,8 @@ def main(config: DictConfig) -> None:
         non_standard_characters_regex=non_standard_characters_regex,
         text_column=config.text_column,
         audio_column=config.audio_column,
-        sample_rate=16_000,
+        max_seconds_per_example=config.max_seconds_per_example,
+        sample_rate=config.sample_rate,
     )
     assert isinstance(processed_dataset, DatasetDict)
 
@@ -161,6 +162,7 @@ def process_dataset(
     non_standard_characters_regex: re.Pattern[str],
     text_column: str,
     audio_column: str,
+    max_seconds_per_example: int,
     sample_rate: int,
 ) -> DatasetDict:
     """Process a dataset for ASR.
@@ -175,6 +177,8 @@ def process_dataset(
             The name of the column containing the transcriptions.
         audio_column:
             The name of the column containing the audio.
+        max_seconds_per_example:
+            The maximum number of seconds that an example can have.
         sample_rate:
             The desired sampling rate of the audio.
 
@@ -255,9 +259,9 @@ def process_dataset(
         num_proc=mp.cpu_count(),
     )
 
-    ten_seconds = sample_rate * 10
+    max_seconds = sample_rate * max_seconds_per_example
     processed_dataset = processed_dataset.filter(
-        lambda sample: len(sample[audio_column]["array"]) < ten_seconds,
+        lambda sample: 0 < len(sample[audio_column]["array"]) < max_seconds,
         num_proc=mp.cpu_count(),
     )
 

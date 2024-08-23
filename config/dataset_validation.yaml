@@ -11,6 +11,8 @@ output_dataset_split: null
 batch_size: 16
 cache_dir: null
 characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
+max_seconds_per_example: 10
+sample_rate: 16_000
 metrics:
   - name: wer
     max: 1.0
