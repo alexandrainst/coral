@@ -1,4 +1,4 @@
-model_id: openai/whisper-large-v3
+model_id: alexandrainst/coral-asr-bootstrap
 dataset_id: alexandrainst/coral
 dataset_subset: read_aloud
 dataset_split: null
