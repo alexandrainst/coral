@@ -16,13 +16,7 @@ import evaluate
 import hydra
 import torch
 from coral.data import clean_example
-from datasets import (
-    Dataset,
-    DatasetDict,
-    disable_caching,
-    enable_progress_bar,
-    load_dataset,
-)
+from datasets import Dataset, DatasetDict, enable_progress_bar, load_dataset
 from omegaconf import DictConfig
 from requests import HTTPError
 from tqdm.auto import tqdm
@@ -50,7 +44,6 @@ def main(config: DictConfig) -> None:
             The Hydra configuration object.
     """
     enable_progress_bar()
-    disable_caching()
 
     logger.info(f"Loading the {config.dataset_id!r} dataset...")
     dataset = load_dataset(
