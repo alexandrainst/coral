@@ -74,6 +74,7 @@ def main(config: DictConfig) -> None:
         f"Filtered out {num_samples_removed:,} samples with audio that was too long "
         "or too short."
     )
+    breakpoint()
 
     # This contains all the punctuation characters that will be removed from the
     # transcriptions, as they do not have an influence on the pronunciation of the
