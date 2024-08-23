@@ -279,8 +279,6 @@ def process_dataset(
     Returns:
         The processed dataset.
     """
-    enable_progress_bar()
-
     logger.info("Casting the audio to the correct sampling rate...")
     processed_dataset = dataset.cast_column(
         column=audio_column, feature=Audio(sampling_rate=sample_rate)
