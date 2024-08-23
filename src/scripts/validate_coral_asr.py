@@ -121,16 +121,30 @@ def main(config: DictConfig) -> None:
             )
         if "validated" in new_split.column_names:
             new_split = new_split.filter(
-                lambda sample: sample["validated"] != "rejected"
+                lambda samples: [
+                    sample["validated"] != "rejected" for sample in samples
+                ],
+                batched=True,
+                num_proc=mp.cpu_count(),
             )
         for metric in config.metrics:
             if "max" in metric:
                 new_split = new_split.filter(
-                    lambda sample: sample[f"asr_{metric.name.lower()}"] < metric.max
+                    lambda samples: [
+                        sample[f"asr_{metric.name.lower()}"] < metric.max
+                        for sample in samples
+                    ],
+                    batched=True,
+                    num_proc=mp.cpu_count(),
                 )
             elif "min" in metric:
                 new_split = new_split.filter(
-                    lambda sample: sample[f"asr_{metric.name.lower()}"] > metric.min
+                    lambda samples: [
+                        sample[f"asr_{metric.name.lower()}"] > metric.min
+                        for sample in samples
+                    ],
+                    batched=True,
+                    num_proc=mp.cpu_count(),
                 )
         new_data_dict[split_name] = new_split
 
