@@ -55,10 +55,6 @@ def main(config: DictConfig) -> None:
         dataset = DatasetDict(dict(train=dataset))
     assert isinstance(dataset, DatasetDict)
 
-    # TEMP
-    for split_name, split in dataset.items():
-        dataset[split_name] = split.select(range(1000))
-
     num_samples_before = sum(len(split) for split in dataset.values())
     dataset = dataset.filter(
         lambda samples: [
@@ -230,7 +226,6 @@ def main(config: DictConfig) -> None:
         )
         logger.info(msg.format(num_samples_removed=num_samples_removed))
 
-    breakpoint()
     logger.info(f"Uploading the validated dataset to {config.output_dataset_id!r}...")
     for _ in range(60):
         try:
