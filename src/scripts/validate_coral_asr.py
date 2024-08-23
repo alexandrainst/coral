@@ -98,7 +98,9 @@ def main(config: DictConfig) -> None:
     if "validated" in dataset.column_names:
         num_samples_before = sum(len(split) for split in dataset.values())
         dataset = dataset.filter(
-            lambda samples: [sample["validated"] != "rejected" for sample in samples],
+            lambda samples: [
+                validated != "rejected" for validated in samples["validated"]
+            ],
             batched=True,
             num_proc=mp.cpu_count(),
         )
