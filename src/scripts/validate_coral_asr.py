@@ -90,7 +90,6 @@ def main(config: DictConfig) -> None:
     )
     assert isinstance(transcriber, AutomaticSpeechRecognitionPipeline)
 
-    new_data_dict: dict[str, Dataset] = dict()
     metric_names = [metric.name.lower() for metric in config.metrics]
     for split_name, split in dataset.items():
         logger.info(f"Validating the {split_name} split of the dataset...")
@@ -104,7 +103,7 @@ def main(config: DictConfig) -> None:
         )
 
         # Create a new split with the predictions, labels, and scores
-        new_split = (
+        dataset[split_name] = (
             dataset[split_name]
             .add_column(name="asr_prediction", column=predictions)
             .add_column(name="asr_label", column=labels)
@@ -113,21 +112,19 @@ def main(config: DictConfig) -> None:
             )
         )
         for metric_name, scores in score_dict.items():
-            new_split = new_split.add_column(
-                name=f"asr_{metric_name.lower()}",
-                column=scores,
-                new_fingerprint=split._fingerprint,
+            dataset[split_name] = dataset[split_name].add_column(
+                name=f"asr_{metric_name.lower()}", column=scores
             )
-        new_data_dict[split_name] = new_split
 
     # Filter the dataset based on the metrics from the validation model
-    new_dataset = DatasetDict(new_data_dict)
-    num_samples_before = sum(len(split) for split in new_dataset.values())
-    new_dataset = new_dataset.filter(
-        partial(filter_sample_by_metrics, metric_contraints=config.metrics)
+    num_samples_before = sum(len(split) for split in dataset.values())
+    dataset = dataset.filter(
+        partial(filter_sample_by_metrics, metric_contraints=config.metrics),
+        num_proc=mp.cpu_count(),
+        desc="Filtering samples based on the validation model metrics",
     )
     num_samples_removed = num_samples_before - sum(
-        len(split) for split in new_dataset.values()
+        len(split) for split in dataset.values()
     )
     logger.info(
         f"Removed {num_samples_removed:,} samples based on the validation model."
@@ -136,7 +133,7 @@ def main(config: DictConfig) -> None:
     logger.info(f"Uploading the validated dataset to {config.output_dataset_id!r}...")
     for _ in range(60):
         try:
-            new_dataset.push_to_hub(
+            dataset.push_to_hub(
                 repo_id=config.output_dataset_id,
                 config_name=config.output_dataset_subset,
                 max_shard_size="500MB",
