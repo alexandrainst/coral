@@ -117,18 +117,18 @@ def main(config: DictConfig) -> None:
             )
 
     # Filter the dataset based on the metrics from the validation model
-    num_samples_before = sum(len(split) for split in dataset.values())
-    dataset = dataset.filter(
-        partial(filter_sample_by_metrics, metric_contraints=config.metrics),
-        # num_proc=mp.cpu_count(),
-        desc="Filtering samples based on the validation model metrics",
-    )
-    num_samples_removed = num_samples_before - sum(
-        len(split) for split in dataset.values()
-    )
-    logger.info(
-        f"Removed {num_samples_removed:,} samples based on the validation model."
-    )
+    # num_samples_before = sum(len(split) for split in dataset.values())
+    # dataset = dataset.filter(
+    #     partial(filter_sample_by_metrics, metric_contraints=config.metrics),
+    #     num_proc=mp.cpu_count(),
+    #     desc="Filtering samples based on the validation model metrics",
+    # )
+    # num_samples_removed = num_samples_before - sum(
+    #     len(split) for split in dataset.values()
+    # )
+    # logger.info(
+    #     f"Removed {num_samples_removed:,} samples based on the validation model."
+    # )
 
     logger.info(f"Uploading the validated dataset to {config.output_dataset_id!r}...")
     for _ in range(60):
