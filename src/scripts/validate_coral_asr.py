@@ -120,7 +120,7 @@ def main(config: DictConfig) -> None:
     num_samples_before = sum(len(split) for split in dataset.values())
     dataset = dataset.filter(
         partial(filter_sample_by_metrics, metric_contraints=config.metrics),
-        num_proc=mp.cpu_count(),
+        # num_proc=mp.cpu_count(),
         desc="Filtering samples based on the validation model metrics",
     )
     num_samples_removed = num_samples_before - sum(
