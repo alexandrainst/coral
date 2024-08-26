@@ -116,6 +116,7 @@ def main(config: DictConfig) -> None:
                 name=f"asr_{metric_name.lower()}", column=scores
             )
 
+    # TODO: This runs out of memory when run for some reason - investigate
     # Filter the dataset based on the metrics from the validation model
     # num_samples_before = sum(len(split) for split in dataset.values())
     # dataset = dataset.filter(
