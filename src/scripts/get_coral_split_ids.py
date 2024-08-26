@@ -58,6 +58,7 @@ def main(config: DictConfig) -> None:
     df = load_coral_metadata_df(
         sub_dialect_to_dialect=config.sub_dialect_to_dialect,
         age_groups=config.age_groups,
+        max_cer=config.requirements.max_cer,
         streaming=config.streaming,
     )
     logger.info(f"Loaded processed CoRal metadata with {len(df):,} samples.")
@@ -396,6 +397,7 @@ def age_to_group(age: int, age_groups: list[AgeGroup]) -> str:
 def load_coral_metadata_df(
     sub_dialect_to_dialect: dict[str, str],
     age_groups: list[tuple[int, int]],
+    max_cer: float,
     streaming: bool = False,
 ) -> pd.DataFrame:
     """Load the metadata of the CoRal dataset.
@@ -407,6 +409,8 @@ def load_coral_metadata_df(
             A mapping from sub-dialect to dialect.
         age_groups:
             The age groups to use for splitting.
+        max_cer:
+            The maximum CER of a sample.
         streaming:
             Whether to load the dataset in streaming mode. Only relevant if `dataset` is
             None.
@@ -485,6 +489,12 @@ def load_coral_metadata_df(
     df = df.query("validated != 'rejected' and validated != 'maybe'")
     samples_removed = samples_before - len(df)
     logger.info(f"Removed {samples_removed:,} manually rejected samples.")
+
+    # Remove the automatically rejected samples
+    samples_before = len(df)
+    df = df.query("asr_cer < @max_cer")
+    samples_removed = samples_before - len(df)
+    logger.info(f"Removed {samples_removed:,} samples with CER > {max_cer}.")
 
     # Store the metadata for future use
     df.to_csv("coral-metadata.csv", index=False)
