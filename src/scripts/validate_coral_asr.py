@@ -116,21 +116,8 @@ def main(config: DictConfig) -> None:
                 name=f"asr_{metric_name.lower()}", column=scores
             )
 
-    # TODO: This runs out of memory when run for some reason - investigate
-    # Filter the dataset based on the metrics from the validation model
-    # num_samples_before = sum(len(split) for split in dataset.values())
-    # dataset = dataset.filter(
-    #     partial(filter_sample_by_metrics, metric_contraints=config.metrics),
-    #     num_proc=mp.cpu_count(),
-    #     desc="Filtering samples based on the validation model metrics",
-    # )
-    # num_samples_removed = num_samples_before - sum(
-    #     len(split) for split in dataset.values()
-    # )
-    # logger.info(
-    #     f"Removed {num_samples_removed:,} samples based on the validation model."
-    # )
-
+    # We upload here as well as at the end in case we run into an error during the final
+    # filtering step
     logger.info(f"Uploading the validated dataset to {config.output_dataset_id!r}...")
     for _ in range(60):
         try:
@@ -150,6 +137,43 @@ def main(config: DictConfig) -> None:
             logger.info("Retrying...")
     else:
         logger.error("Failed to upload the dataset to the Hugging Face Hub.")
+
+    # Filter the dataset based on the metrics from the validation model
+    num_samples_before = sum(len(split) for split in dataset.values())
+    dataset = dataset.filter(
+        lambda sample: sample["asr_cer"] < config.max_cer,
+        desc=f"Removing samples with CER >= {config.max_cer}",
+    )
+    num_samples_removed = num_samples_before - sum(
+        len(split) for split in dataset.values()
+    )
+    logger.info(
+        f"Removed {num_samples_removed:,} samples based on the validation model."
+    )
+
+    logger.info(
+        f"Uploading the filtered validated dataset to {config.output_dataset_id!r}..."
+    )
+    for _ in range(60):
+        try:
+            dataset.push_to_hub(
+                repo_id=config.output_dataset_id,
+                config_name=config.output_dataset_subset,
+                max_shard_size="500MB",
+                commit_message="Filter samples based on the validation model",
+                private=True,
+            )
+            logger.info("All done!")
+            break
+        except (RuntimeError, HTTPError) as e:
+            logger.info(f"Error while pushing to hub: {e}")
+            logger.info("Waiting a minute before trying again...")
+            sleep(60)
+            logger.info("Retrying...")
+    else:
+        logger.error("Failed to upload the dataset to the Hugging Face Hub.")
+
+    logger.info("All done!")
 
 
 def filter_dataset(
@@ -403,38 +427,6 @@ def compute_metrics(
         all_scores[metric_name] = scores
 
     return predictions, labels, all_scores
-
-
-def filter_sample_by_metrics(
-    sample: dict[str, Any], metric_contraints: list[dict]
-) -> bool:
-    """Filter samples based on the metrics.
-
-    Args:
-        sample:
-            The sample to filter.
-        metric_contraints:
-            The constraints to apply to the metrics.
-
-    Returns:
-        Whether the sample passes the constraints.
-    """
-    for metric_constraint_dct in metric_contraints:
-        if "max" in metric_constraint_dct:
-            below_max = (
-                sample[f"asr_{metric_constraint_dct['name'].lower()}"]
-                < metric_constraint_dct["max"]
-            )
-            if not below_max:
-                return False
-        if "min" in metric_constraint_dct:
-            above_min = (
-                sample[f"asr_{metric_constraint_dct['name'].lower()}"]
-                > metric_constraint_dct["min"]
-            )
-            if not above_min:
-                return False
-    return True
 
 
 if __name__ == "__main__":

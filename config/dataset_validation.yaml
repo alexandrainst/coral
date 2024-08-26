@@ -13,8 +13,4 @@ characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
 max_seconds_per_example: 10
 min_seconds_per_example: 0.5
 sample_rate: 16_000
-metrics:
-  - name: wer
-    max: 1.0
-  - name: cer
-    max: 0.6
+max_cer: 0.6
