@@ -2,91 +2,77 @@ audio_dir = /Volumes/CoRal/_new_structure/raw
 metadata_database_path = /Volumes/CoRal/_new_structure/raw/CoRal_public.db
 hub_id = alexandrainst/coral
 
-# Estimated number of hours: 7.50
 # Gender distribution:
 # - female: 58%
 # - male: 42%
 # Dialect distribution:
-# - Bornholmsk: 11%
-# - Fynsk: 12%
-# - Københavnsk: 11%
-# - Nordjysk: 10%
-# - Sjællandsk: 10%
-# - Sydømål: 10%
-# - Sønderjysk: 13%
-# - Vestjysk: 10%
-# - Østjysk: 12%
+# - Bornholmsk: 10%
+# - Fynsk: 10%
+# - Københavnsk: 10%
+# - Nordjysk: 11%
+# - Sjællandsk: 11%
+# - Sydømål: 14%
+# - Sønderjysk: 10%
+# - Vestjysk: 12%
+# - Østjysk: 11%
 # Age_group distribution:
-# - 0-24: 34%
-# - 25-49: 33%
-# - 50-: 33%
+# - 0-24: 28%
+# - 25-49: 32%
+# - 50-: 40%
 # Accent distribution:
-# - native: 87%
-# - foreign: 13%
+# - native: 90%
+# - foreign: 10%
 test_speakers:
-  - spe_c3c1fdae39d6bf6e462868f8f52b7e3e
-  - spe_d7da3d62a1a9885c1cb3280668437759
-  - spe_ce5c35bd408b296511ce0b05ecc33de1
-  - spe_e3013f96eed48bacc13dd8253609cf9b
-  - spe_4facb80c94341b25425ec1d8962b1f8d
-  - spe_20b91d51f72ee56930ca778cb16c29da
-  - spe_e33e46611f54ae91ed7b235c11ef2628
-  - spe_6b93da4530e853772df0fc8b2337142c
-  - spe_6617b4c7273b31fc161fc6e07e620743
-  - spe_1c32c35e35670f64d9e1a673c47aabd1
-  - spe_590765d7656376e83a33c54f9c2e3976
-  - spe_066938532ac270d527696f89d81f0de4
-  - spe_545558c5701d956a2c63057cd313ff50
-  - spe_af4e767c077909a95b9bd834ca224833
-  - spe_4b7ba1403d8540b3101c07b9c8a19474
-  - spe_e3742811d83011e22ec2ef5a7af32065
+  - spe_ac145f72d3d37064bfe62d11c58a3cb4
+  - spe_e01017cbabe39aa19980d30b022947dc
+  - spe_046c02b65af055859e0f0a1885b2cc5c
+  - spe_6691832f1f170d2876ec2d99de3d0b8f
+  - spe_bffe31a07537d14e22eef5c5efcd4fe6
+  - spe_e2cfb324371dd8ce3a1038a27eb6fb5b
+  - spe_b440df30591b8175bafbc7a036c538c7
+  - spe_2937b289da4c0a7b9877c56ecead4794
+  - spe_168bc05c7a02a8360343eb5fadbba7ed
+  - spe_c82a8417dd9f495eb70c34235647a1b7
   - spe_fbf3381f525dbe5ddf1a2a1d36e9c4b9
-  - spe_ef7f083c2097793e28388535a81e14ea
-  - spe_b9112f9327f2390093bbc082a1651bad
-  - spe_b788006083ced2efabc75a7907220250
-  - spe_6e7cb65603907f863e06d7a02e00fb67
-  - spe_003c825c9ad2f1496c22cc16a04b1598
-  - spe_935a99ce745c2c042a77f6e4c831fd94
-  - spe_55028d05581a88a8655fa1f74ddfb5a1
-  - spe_6efa16af1112af15ab482171e156d3f3
-  - spe_01fc2b156c7fe429f1b72bd3be5ad3c3
-  - spe_b19c9900784bdf8f8ef3ea3e78002011
-  - spe_02d28146c013111766f18f0d2198785e
-  - spe_3937cb6805e15326b37253d6148babb5
-  - spe_492647a87720047b55f4033d0df8082a
-  - spe_9b8d26599c6b7932dbac00832b73dcf8
-  - spe_6a029298b9eaa3d7e7f8f74510f88e70
-
-# Estimated number of hours: 1.54
-# Gender distribution:
-# - female: 48%
-# - male: 52%
-# Dialect distribution:
-# - Bornholmsk: 5%
-# - Fynsk: 11%
-# - Københavnsk: 17%
-# - Nordjysk: 9%
-# - Sjællandsk: 6%
-# - Sydømål: 18%
-# - Sønderjysk: 5%
-# - Vestjysk: 8%
-# - Østjysk: 19%
-# Age_group distribution:
-# - 0-24: 39%
-# - 25-49: 37%
-# - 50-: 24%
-# Accent distribution:
-# - native: 91%
-# - foreign: 9%
-val_speakers:
-  - spe_a8ffed9a90c0e89338892f23dfaac338
-  - spe_50d0664744aa2a241c084363b04e39c5
-  - spe_003971defa823a2eb98f079cdc91c634
-  - spe_0dd042aee46edc27b2ba0155abdf3d54
-  - spe_cd5174de19523f69dd8613ea311997d4
-  - spe_0cf8566481d05e4ed329e34211a36311
+  - spe_8948a0cc310c6fa8161665d4eda79846
+  - spe_b977ebc0a2ba961cbe158190fce0dc06
+  - spe_6617b4c7273b31fc161fc6e07e620743
   - spe_4aa23a60464a18e3597cdeb3606ac572
-  - spe_647d4e905427d45ab699abe73d80ef1d
-  - spe_bb1d0e9d3f2bca18658975b3073924cb
-  - spe_93f1d99433d997beeec289d60e074ed2
+  - spe_6e7cb65603907f863e06d7a02e00fb67
+  - spe_e08ab8fdf0306e3f0478577b4c5805bc
+  - spe_10b8eb8c3ba5fd8405d1516b7b12f2de
+  - spe_953ed42510a8dd0b33d909d580875241
+  - spe_3a85fdec89b8deb698bba43485b54fd2
+  - spe_4dee2dc8f6fccc98115781683d45acdd
+
+# Gender distribution:
+# - female: 45%
+# - male: 55%
+# Dialect distribution:
+# - Bornholmsk: 7%
+# - Fynsk: 11%
+# - Københavnsk: 9%
+# - Nordjysk: 8%
+# - Sjællandsk: 12%
+# - Sydømål: 23%
+# - Sønderjysk: 13%
+# - Vestjysk: 8%
+# - Østjysk: 9%
+# Age_group distribution:
+# - 0-24: 11%
+# - 25-49: 39%
+# - 50-: 51%
+# Accent distribution:
+# - native: 81%
+# - foreign: 19%
+val_speakers:
+  - spe_92fea6e4419210f4c4219e84ec89837e
   - spe_9c4dc6be57f6c63860331813a71417e5
+  - spe_0dd042aee46edc27b2ba0155abdf3d54
+  - spe_f3a0b2f9a75fcfc793a3109d8fbd6c94
+  - spe_9cc1a2ef1b284863ffe37ed105257843
+  - spe_55028d05581a88a8655fa1f74ddfb5a1
+  - spe_a75a8f0e82dc860942b4cb3129f0af35
+  - spe_9b0f671d81679eac001b2d95729c4dc3
+  - spe_6a029298b9eaa3d7e7f8f74510f88e70
+  - spe_eee793fd109985a678edaba7134f0f3f

@@ -12,7 +12,7 @@ license = "MIT"
 python = ">=3.11,<3.13"
 hydra-core = ">=1.1.1"
 evaluate = ">=0.4.0"
-transformers = ">=4.41.0"
+transformers = ">=4.39.0,<4.42.0"  # Validation does not work with >=4.42.0 onwards
 torch = ">=2.0.0"
 librosa = ">=0.10.0"
 soundfile = ">=0.12.1"
@@ -28,11 +28,9 @@ requests = ">=2.31.0"
 openpyxl = ">=3.1.2"
 pycountry = ">=22.3.5"
 wave = ">=0.0.2"
-kenlm = {url = "https://github.com/kpu/kenlm/archive/master.zip", optional=true}
-matplotlib = ">=3.7.3"
 deepspeed = ">=0.12.3"
 python-dotenv = ">=1.0.1"
-nltk = {version = ">=3.8.1", optional = true}
+kenlm = {url = "https://github.com/kpu/kenlm/archive/master.zip", optional=true}
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.1.1"

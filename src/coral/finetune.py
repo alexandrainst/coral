@@ -74,9 +74,10 @@ def finetune(config: DictConfig) -> None:
     # Note if we're on the main process, if we are running in a distributed setting
     is_main_process = os.getenv("RANK", "0") == "0"
 
+    model_dir = config.model_dir
     model_setup: ModelSetup = load_model_setup(config)
     processor = model_setup.load_processor()
-    processor.save_pretrained(config.model_dir)
+    processor.save_pretrained(model_dir)
     model = model_setup.load_model()
     dataset = load_data(config)
 
@@ -118,7 +119,7 @@ def finetune(config: DictConfig) -> None:
 
     if is_main_process:
         wandb_finish()
-        model.save_pretrained(config.model_dir)
+        model.save_pretrained(model_dir)
         if config.push_to_hub:
             trainer.push_to_hub()
 

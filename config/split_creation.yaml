@@ -63,7 +63,7 @@ sub_dialect_to_dialect:
   fjandbomål: Vestjysk
 
 requirements:
-  max_val_test_wer: 0.4
+  max_cer: 0.6
   test:
     min_hours: 7.5
     max_hours: 20.0

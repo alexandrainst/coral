@@ -5,21 +5,23 @@ Usage:
 """
 
 import logging
+import multiprocessing as mp
 import re
+import warnings
+from functools import partial
 from time import sleep
+from typing import Any
 
 import evaluate
 import hydra
-import numpy as np
 import torch
 from coral.data import clean_example
-from coral.data_collators import DataCollatorCTCWithPadding
-from coral.data_models import Processor
-from datasets import Audio, Dataset, DatasetDict, load_dataset
+from datasets import Dataset, DatasetDict, enable_progress_bar, load_dataset
 from omegaconf import DictConfig
 from requests import HTTPError
 from tqdm.auto import tqdm
-from transformers import AutoModelForCTC, Trainer, TrainingArguments, Wav2Vec2Processor
+from transformers import AutomaticSpeechRecognitionPipeline, pipeline
+from transformers.pipelines.base import KeyDataset
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,6 +29,8 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger("validate_coral_asr")
+
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 @hydra.main(
@@ -39,45 +43,40 @@ def main(config: DictConfig) -> None:
         config:
             The Hydra configuration object.
     """
+    enable_progress_bar()
+
     logger.info(f"Loading the {config.dataset_id!r} dataset...")
     dataset = load_dataset(
         path=config.dataset_id,
         name=config.dataset_subset,
-        split=config.dataset_split,
         revision=config.dataset_revision,
         token=True,
         cache_dir=config.cache_dir,
     )
     if isinstance(dataset, Dataset):
-        dataset = DatasetDict({config.dataset_split: dataset})
+        dataset = DatasetDict(dict(train=dataset))
     assert isinstance(dataset, DatasetDict)
 
-    logger.info(f"Loading the {config.model_id!r} processor...")
-    processor = Wav2Vec2Processor.from_pretrained(
-        config.model_id, cache_dir=config.cache_dir
-    )
-    assert isinstance(processor, Wav2Vec2Processor)
-
-    logger.info("Resampling audio to 16kHz...")
-    processed_dataset = dataset.cast_column(
-        column=config.audio_column, feature=Audio(sampling_rate=16_000)
+    dataset = filter_dataset(
+        dataset=dataset,
+        audio_column=config.audio_column,
+        min_seconds_per_example=config.min_seconds_per_example,
+        max_seconds_per_example=config.max_seconds_per_example,
+        train_split=config.train_split,
     )
 
-    logger.info("Processing the dataset...")
-    characters_to_keep = "".join(
-        [
-            tok
-            for tok in processor.tokenizer.get_vocab().keys()
-            if tok not in processor.tokenizer.all_special_tokens
-        ]
+    # This contains all the punctuation characters that will be removed from the
+    # transcriptions, as they do not have an influence on the pronunciation of the
+    # words.
+    non_standard_characters_regex = re.compile(
+        f"[^{re.escape(config.characters_to_keep + ' |')}]"
     )
-    processed_dataset = process_dataset(
-        dataset=processed_dataset,
-        characters_to_keep=characters_to_keep,
+
+    dataset = process_dataset(
+        dataset=dataset,
+        non_standard_characters_regex=non_standard_characters_regex,
         text_column=config.text_column,
-        processor=processor,
     )
-    assert isinstance(processed_dataset, DatasetDict)
 
     logger.info(f"Loading the {config.model_id!r} ASR model...")
     if torch.cuda.is_available():
@@ -86,64 +85,43 @@ def main(config: DictConfig) -> None:
         device = torch.device("mps")
     else:
         device = torch.device("cpu")
-    model = AutoModelForCTC.from_pretrained(
-        config.model_id, cache_dir=config.cache_dir
-    ).to(device)
-    data_collator = DataCollatorCTCWithPadding(
-        processor=processor, max_seconds_per_example=10, padding="longest"
+    transcriber = pipeline(
+        task="automatic-speech-recognition", model=config.model_id, device=device
     )
+    assert isinstance(transcriber, AutomaticSpeechRecognitionPipeline)
 
-    logger.info("Validating the dataset...")
-    trainer = Trainer(
-        args=TrainingArguments(
-            output_dir=".",
-            remove_unused_columns=False,
-            report_to=[],
-            per_device_eval_batch_size=config.batch_size,
-        ),
-        model=model,
-        data_collator=data_collator,
-        tokenizer=processor.tokenizer,
-        preprocess_logits_for_metrics=preprocess_logits_for_metrics,
-    )
-    new_data_dict: dict[str, Dataset] = dict()
-    for split_name, split in processed_dataset.items():
-        predictions, labels, wers = get_wers(
-            dataset=split, trainer=trainer, processor=processor
+    metric_names = [metric.name.lower() for metric in config.metrics]
+    for split_name, split in dataset.items():
+        logger.info(f"Validating the {split_name} split of the dataset...")
+        predictions, labels, score_dict = compute_metrics(
+            dataset=split,
+            transcriber=transcriber,
+            metric_names=metric_names,
+            non_standard_characters_regex=non_standard_characters_regex,
+            text_column=config.text_column,
+            batch_size=config.batch_size,
         )
-        new_split = (
+
+        # Create a new split with the predictions, labels, and scores
+        dataset[split_name] = (
             dataset[split_name]
+            .add_column(name="asr_prediction", column=predictions)
+            .add_column(name="asr_label", column=labels)
             .add_column(
-                name="asr_prediction",
-                column=predictions,
-                new_fingerprint=split._fingerprint,
+                name="asr_validation_model", column=[config.model_id] * len(split)
             )
-            .add_column(
-                name="asr_label", column=labels, new_fingerprint=split._fingerprint
-            )
-            .add_column(name="asr_wer", column=wers, new_fingerprint=split._fingerprint)
-            .add_column(
-                name="asr_validation_model",
-                column=[config.model_id] * len(split),
-                new_fingerprint=split._fingerprint,
-            )
-            .filter(lambda sample: sample["validated"] != "rejected")
         )
-        if split_name in {"val", "test"}:
-            new_split = new_split.filter(
-                lambda x: x["asr_wer"] < config.max_val_test_wer
+        for metric_name, scores in score_dict.items():
+            dataset[split_name] = dataset[split_name].add_column(
+                name=f"asr_{metric_name.lower()}", column=scores
             )
-        elif split_name == "train":
-            new_split = new_split.filter(lambda x: x["asr_wer"] < config.max_train_wer)
-        else:
-            raise ValueError(f"Unknown split name: {split_name!r}")
-        new_data_dict[split_name] = new_split
 
+    # We upload here as well as at the end in case we run into an error during the final
+    # filtering step
     logger.info(f"Uploading the validated dataset to {config.output_dataset_id!r}...")
-    new_dataset = DatasetDict(new_data_dict)
     for _ in range(60):
         try:
-            new_dataset.push_to_hub(
+            dataset.push_to_hub(
                 repo_id=config.output_dataset_id,
                 config_name=config.output_dataset_subset,
                 max_shard_size="500MB",
@@ -160,28 +138,158 @@ def main(config: DictConfig) -> None:
     else:
         logger.error("Failed to upload the dataset to the Hugging Face Hub.")
 
+    # Filter the dataset based on the metrics from the validation model
+    num_samples_before = sum(len(split) for split in dataset.values())
+    dataset = dataset.filter(
+        lambda sample: sample["asr_cer"] < config.max_cer,
+        desc=f"Removing samples with CER >= {config.max_cer}",
+    )
+    num_samples_removed = num_samples_before - sum(
+        len(split) for split in dataset.values()
+    )
+    logger.info(
+        f"Removed {num_samples_removed:,} samples based on the validation model."
+    )
+
+    logger.info(
+        f"Uploading the filtered validated dataset to {config.output_dataset_id!r}..."
+    )
+    for _ in range(60):
+        try:
+            dataset.push_to_hub(
+                repo_id=config.output_dataset_id,
+                config_name=config.output_dataset_subset,
+                max_shard_size="500MB",
+                commit_message="Filter samples based on the validation model",
+                private=True,
+            )
+            logger.info("All done!")
+            break
+        except (RuntimeError, HTTPError) as e:
+            logger.info(f"Error while pushing to hub: {e}")
+            logger.info("Waiting a minute before trying again...")
+            sleep(60)
+            logger.info("Retrying...")
+    else:
+        logger.error("Failed to upload the dataset to the Hugging Face Hub.")
+
+    logger.info("All done!")
+
+
+def filter_dataset(
+    dataset: DatasetDict,
+    audio_column: str,
+    min_seconds_per_example: int,
+    max_seconds_per_example: int,
+    train_split: str,
+) -> DatasetDict:
+    """Filter the dataset based on the validation status.
+
+    Note that this removes samples from the dataset.
+
+    Args:
+        dataset:
+            The dataset to filter.
+        audio_column:
+            The name of the column containing the audio.
+        min_seconds_per_example:
+            The minimum number of seconds that an example can have.
+        max_seconds_per_example:
+            The maximum number of seconds that an example can have.
+        train_split:
+            The name of the training split.
+
+    Returns:
+        The filtered dataset.
+    """
+    logger.info("Filtering the dataset...")
+
+    def filter_samples(
+        samples: dict[str, Any], remove_maybe_validated: bool
+    ) -> list[bool]:
+        """Filter samples based on the validation status.
+
+        Args:
+            samples:
+                The samples to filter.
+            remove_maybe_validated:
+                Whether to remove samples that are validated as "maybe".
+
+        Returns:
+            A list of booleans indicating whether the samples should be kept.
+        """
+        idxs_too_short = [
+            audio_dct["array"].shape[0]
+            < audio_dct["sampling_rate"] * min_seconds_per_example
+            for audio_dct in samples[audio_column]
+        ]
+        idxs_too_long = [
+            audio_dct["array"].shape[0]
+            > audio_dct["sampling_rate"] * max_seconds_per_example
+            for audio_dct in samples[audio_column]
+        ]
+        idxs_rejected = [
+            validated in {"rejected", "maybe"}
+            if remove_maybe_validated
+            else validated == "rejected"
+            for validated in samples["validated"]
+        ]
+        return [
+            not (too_short or too_long or rejected)
+            for too_short, too_long, rejected in zip(
+                idxs_too_short, idxs_too_long, idxs_rejected
+            )
+        ]
+
+    for split_name, split in dataset.items():
+        num_samples_before = len(split)
+        filter_fn = partial(
+            filter_samples, remove_maybe_validated=not split_name == train_split
+        )
+        dataset[split_name] = split.filter(
+            filter_fn,
+            batched=True,
+            num_proc=mp.cpu_count(),
+            desc=f"Filtering {split_name} split",
+        )
+        num_samples_removed = num_samples_before - len(dataset[split_name])
+        logger.info(
+            f"Removed {num_samples_removed:,} samples from the {split_name} split."
+        )
+
+    return dataset
+
 
 def process_dataset(
     dataset: DatasetDict,
-    characters_to_keep: str,
+    non_standard_characters_regex: re.Pattern[str],
     text_column: str,
-    processor: Processor,
 ) -> DatasetDict:
     """Process a dataset for ASR.
+
+    Note that this does not remove any samples from the dataset, but only processes the
+    existing samples.
 
     Args:
         dataset:
             The dataset to clean.
-        characters_to_keep:
-            The characters to keep in the transcriptions.
+        non_standard_characters_regex:
+            Regular expression that matches all characters that should be removed from
+            the transcriptions.
         text_column:
             The name of the column containing the transcriptions.
-        processor:
-            The processor used for processing the data.
+        audio_column:
+            The name of the column containing the audio.
+        max_seconds_per_example:
+            The maximum number of seconds that an example can have.
+        sample_rate:
+            The desired sampling rate of the audio.
 
     Returns:
         The processed dataset.
     """
+    logger.info("Processing the dataset...")
+
     # Dictionary that contains characters to be converted (from the key to the value).
     # Some values contain spaces to ensure that they're separated from other
     # characters, and superfluous spaces are removed later. Note also that these are
@@ -223,14 +331,7 @@ def process_dataset(
         "\u200b": " ",  # Empty whitespace symbol
     }
 
-    # This contains all the punctuation characters that will be removed from the
-    # transcriptions, as they do not have an influence on the pronunciation of the
-    # words.
-    non_standard_characters_regex = re.compile(
-        f"[^{re.escape(characters_to_keep + ' |')}]"
-    )
-
-    def process_examples(examples: dict[str, list]) -> dict:
+    def clean_examples(examples: dict[str, list]) -> dict:
         """Clean the transcriptions in the examples.
 
         Args:
@@ -249,95 +350,83 @@ def process_dataset(
             )[text_column]
             for sample_text in examples[text_column]
         ]
-        examples["labels"] = processor(
-            text=examples[text_column], truncation=True
-        ).input_ids
         return examples
 
-    processed_dataset = dataset.map(process_examples, batched=True)
-
-    return processed_dataset
+    return dataset.map(clean_examples, batched=True, num_proc=mp.cpu_count())
 
 
-def get_wers(
-    dataset: Dataset, trainer: Trainer, processor: Processor
-) -> tuple[list[str], list[float], list[float]]:
-    """Get the word error rates for each sample in the dataset.
+def compute_metrics(
+    dataset: Dataset,
+    transcriber: AutomaticSpeechRecognitionPipeline,
+    metric_names: list[str],
+    non_standard_characters_regex: re.Pattern[str],
+    text_column: str,
+    batch_size: int,
+) -> tuple[list[str], list[str], dict[str, list[float]]]:
+    """Compute the metrics for the dataset.
 
     Args:
         dataset:
             The dataset to validate.
-        trainer:
-            The trainer to use for validation, which contains the model and data
-            collator.
-        processor:
-            The processor used for processing the data.
+        transcriber:
+            The transcriber used for transcribing the audio.
+        metric_names:
+            The names of the metrics to compute. Needs to be compatible with the name of
+            the metric in the `evaluate` library.
+        non_standard_characters_regex:
+            Regular expression that matches all characters that should be removed from
+            the transcriptions.
+        text_column:
+            The name of the column containing the transcriptions.
+        batch_size:
+            The batch size to use for transcribing the audio.
 
     Returns:
-        A triple (predictions, labels, wers) where:
+        A triple (predictions, labels, cers, wers) where:
             predictions:
                 The transcriptions predicted by the model.
             labels:
                 The ASR-processed ground-truth labels for each sample.
+            cers:
+                The word error rates for each sample.
             wers:
                 The word error rates for each sample.
     """
-    prediction_object = trainer.predict(test_dataset=dataset)
-    predictions = prediction_object.predictions
-    labels = prediction_object.label_ids
-    if isinstance(predictions, tuple) and len(predictions) > 1:
-        predictions = predictions[1]
-    assert isinstance(predictions, np.ndarray)
-    assert isinstance(labels, np.ndarray)
+    labels: list[str] = [lbl.strip().lower() for lbl in dataset[text_column]]
+    predictions: list[str] = list()
 
-    # Replace the -100 tokens with the pad token
-    pad_token = processor.tokenizer.pad_token_id
-    predictions[predictions == -100] = pad_token
-    labels[labels == -100] = pad_token
+    with tqdm(total=len(dataset), desc="Transcribing") as pbar:
+        for out in transcriber(KeyDataset(dataset, "audio"), batch_size=batch_size):
+            prediction = re.sub(
+                pattern=non_standard_characters_regex,
+                repl="",
+                string=out["text"].strip().lower(),
+            )
+            predictions.append(prediction.strip())
+            pbar.update()
 
-    # Decode the predictions to get the transcriptions
-    predictions_str = processor.batch_decode(predictions)
-    assert isinstance(predictions_str, list)
+    all_scores: dict[str, list[float]] = dict()
+    for metric_name in metric_names:
+        metric = evaluate.load(metric_name)
+        scores = [
+            metric.compute(predictions=[pred], references=[ref])
+            for pred, ref in zip(
+                tqdm(predictions, desc=f"Computing {metric_name.upper()}s"), labels
+            )
+        ]
 
-    # Decode the ground truth labels. We set `group_tokens=False` to avoid grouping
-    # identical neighboring tokens together (i.e., "menneske" shouldn't be "meneske").
-    # We need this when decoding the predictions, as in this case there is a special
-    # token to separate the characters.
-    labels_str = processor.batch_decode(labels, group_tokens=False)
+        # Ensure that the scores are indeed floats, as `compute` returns a dictionary for
+        # some metrics
+        scores = [score if isinstance(score, float) else -100.0 for score in scores]
+        assert all(score >= 0 for score in scores), (
+            f"The number of {metric_name.upper()}s should be equal to the number "
+            f"of predictions - found {len(scores):,} {metric_name.upper()}s and "
+            f"{len(predictions):,} predictions."
+        )
 
-    # Compute the word error rates
-    wer_metric = evaluate.load("wer")
-    wers = [
-        wer_metric.compute(predictions=[pred], references=[ref])
-        for pred, ref in zip(tqdm(predictions_str, desc="Computing WERs"), labels_str)
-    ]
-    wers = [wer if isinstance(wer, float) else -100.0 for wer in wers]
-    assert all(wer >= 0 for wer in wers), (
-        "The number of WERs should be equal to the number of predictions - found "
-        f"{len(wers):,} WERs and {len(predictions_str):,} predictions."
-    )
+        all_scores[metric_name] = scores
 
-    return predictions_str, labels_str, wers
-
-
-def preprocess_logits_for_metrics(
-    logits: torch.Tensor, _: torch.Tensor
-) -> torch.Tensor:
-    """Workaround to avoid storing too many tensors that are not needed.
-
-    Args:
-        logits:
-            The logits from the model, of shape (batch_size, seq_len, num_labels).
-        labels:
-            The labels for the logits - not used here.
-
-    Returns:
-        The prediction token IDs to use for computing the metrics.
-    """
-    assert isinstance(logits, torch.Tensor)
-    assert logits.ndim == 3
-    pred_ids = torch.argmax(logits, dim=-1)
-    return pred_ids
+    return predictions, labels, all_scores
 
 
 if __name__ == "__main__":

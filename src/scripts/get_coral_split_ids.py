@@ -58,7 +58,7 @@ def main(config: DictConfig) -> None:
     df = load_coral_metadata_df(
         sub_dialect_to_dialect=config.sub_dialect_to_dialect,
         age_groups=config.age_groups,
-        max_val_test_wer=config.requirements.max_val_test_wer,
+        max_cer=config.requirements.max_cer,
         streaming=config.streaming,
     )
     logger.info(f"Loaded processed CoRal metadata with {len(df):,} samples.")
@@ -397,7 +397,7 @@ def age_to_group(age: int, age_groups: list[AgeGroup]) -> str:
 def load_coral_metadata_df(
     sub_dialect_to_dialect: dict[str, str],
     age_groups: list[tuple[int, int]],
-    max_val_test_wer: float,
+    max_cer: float,
     streaming: bool = False,
 ) -> pd.DataFrame:
     """Load the metadata of the CoRal dataset.
@@ -409,10 +409,11 @@ def load_coral_metadata_df(
             A mapping from sub-dialect to dialect.
         age_groups:
             The age groups to use for splitting.
-        max_val_test_wer:
-            The maximum WER for a sample to be included in the validation and test sets.
+        max_cer:
+            The maximum CER of a sample.
         streaming:
-            Whether to load the dataset in streaming mode.
+            Whether to load the dataset in streaming mode. Only relevant if `dataset` is
+            None.
 
     Returns:
         The metadata of the CoRal dataset.
@@ -420,33 +421,41 @@ def load_coral_metadata_df(
     metadata_path = Path("coral-metadata.csv")
 
     if metadata_path.exists():
-        return pd.read_csv(metadata_path, low_memory=False)
+        df = pd.read_csv(metadata_path, low_memory=False)
 
-    coral = load_dataset(
+        # TEMP: Remove the automatically rejected samples
+        samples_before = len(df)
+        df = df.query("asr_cer < @max_cer")
+        samples_removed = samples_before - len(df)
+        logger.info(f"Removed {samples_removed:,} samples with CER > {max_cer}.")
+
+        return df
+
+    dataset = load_dataset(
         path="alexandrainst/coral", split="train", streaming=streaming
     ).remove_columns("audio")
 
     if streaming:
-        assert isinstance(coral, IterableDataset)
+        assert isinstance(dataset, IterableDataset)
 
-        coral_splits: dict | None = coral.info.splits
-        assert coral_splits is not None, "No splits found in CoRal dataset."
+        dataset_splits: dict | None = dataset.info.splits
+        assert dataset_splits is not None, "No splits found in CoRal dataset."
 
         # This will download the dataset with a progress bar, and remove the audio
         # column along the way, to save memory.
         metadata = [
             sample
             for sample in tqdm(
-                coral,
-                total=coral_splits["train"].num_examples,
+                dataset,
+                total=dataset_splits["train"].num_examples,
                 desc="Downloading CoRal dataset",
             )
         ]
         df = pd.DataFrame(metadata)
 
     else:
-        assert isinstance(coral, Dataset)
-        df = pd.DataFrame(coral.to_pandas())
+        assert isinstance(dataset, Dataset)
+        df = pd.DataFrame(dataset.to_pandas())
 
     logger.info(f"Downloaded CoRal metadata with {len(df):,} raw samples.")
 
@@ -489,21 +498,11 @@ def load_coral_metadata_df(
     samples_removed = samples_before - len(df)
     logger.info(f"Removed {samples_removed:,} manually rejected samples.")
 
-    # Filter the dataframe by auto-validation WER, to ensure that only the
-    # high-quality samples are included in the validation and test sets.
-    if "asr_wer" in df.columns:
-        samples_before = len(df)
-        df = df.query("asr_wer < @max_val_test_wer")
-        samples_removed = samples_before - len(df)
-        logger.info(
-            f"Removed {samples_removed:,} samples with WER >= "
-            f"{max_val_test_wer:.2f}."
-        )
-    else:
-        logger.warning(
-            "No ASR WER column found in CoRal metadata. All samples will be "
-            "included in the validation and test sets."
-        )
+    # Remove the automatically rejected samples
+    samples_before = len(df)
+    df = df.query("asr_cer < @max_cer")
+    samples_removed = samples_before - len(df)
+    logger.info(f"Removed {samples_removed:,} samples with CER > {max_cer}.")
 
     # Store the metadata for future use
     df.to_csv("coral-metadata.csv", index=False)
