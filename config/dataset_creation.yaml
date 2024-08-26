@@ -2,6 +2,7 @@ audio_dir = /Volumes/CoRal/_new_structure/raw
 metadata_database_path = /Volumes/CoRal/_new_structure/raw/CoRal_public.db
 hub_id = alexandrainst/coral
 
+# Number of hours: 7.60
 # Gender distribution:
 # - female: 58%
 # - male: 42%
@@ -45,6 +46,7 @@ test_speakers:
   - spe_3a85fdec89b8deb698bba43485b54fd2
   - spe_4dee2dc8f6fccc98115781683d45acdd
 
+# Number of hours: 2.67
 # Gender distribution:
 # - female: 45%
 # - male: 55%
