@@ -2,8 +2,7 @@
 dataset_id: alexandrainst/coral
 dataset_subset: read_aloud
 dataset_revision: null
-val_name: val
-test_name: test
+eval_split_name: test
 text_column: text
 audio_column: audio
 
@@ -18,4 +17,5 @@ characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
 
 # Evaluation parameters
 model_id: null
+metric: cer
 batch_size: 16

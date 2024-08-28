@@ -4,22 +4,17 @@ import itertools as it
 import logging
 import re
 
-import numpy as np
 import pandas as pd
-from datasets import Dataset, Sequence, Value, load_metric
+import torch
+from datasets import Dataset
 from dotenv import load_dotenv
-from numpy.typing import NDArray
+from evaluate import load as load_metric
 from omegaconf import DictConfig
-from transformers import Trainer, TrainingArguments, Wav2Vec2ProcessorWithLM
+from tqdm.auto import tqdm
+from transformers import AutomaticSpeechRecognitionPipeline, pipeline
+from transformers.pipelines.pt_utils import KeyDataset
 
-from .data import load_data
-from .data_models import Processor
-from .model_setup import load_model_setup
-from .utils import (
-    DIALECT_MAP,
-    convert_iterable_dataset_to_dataset,
-    transformers_output_ignored,
-)
+from .data import load_dataset_for_evaluation
 
 load_dotenv()
 
@@ -37,95 +32,48 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     Returns:
         A DataFrame with the evaluation scores.
     """
-    with transformers_output_ignored():
-        model_data = load_model_setup(config=config).load_saved()
+    assert (
+        config.model_id is not None
+    ), "The `model_id` must be set in the configuration."
 
-    dataset = load_data(config=config)
+    dataset = load_dataset_for_evaluation(config=config)
 
-    trainer = Trainer(
-        args=TrainingArguments(".", remove_unused_columns=False, report_to=[]),
-        model=model_data.model,
-        data_collator=model_data.data_collator,
-        tokenizer=model_data.processor.tokenizer,
+    logger.info(f"Loading the {config.model_id!r} ASR model...")
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
+    transcriber = pipeline(
+        task="automatic-speech-recognition", model=config.model_id, device=device
+    )
+    assert isinstance(transcriber, AutomaticSpeechRecognitionPipeline)
+
+    # Get metrics
+    _, _, all_scores = compute_metrics(
+        dataset=dataset,
+        transcriber=transcriber,
+        metric_names=[config.metric],
+        characters_to_keep=config.characters_to_keep,
+        text_column=config.text_column,
+        audio_column=config.audio_column,
+        batch_size=config.batch_size,
     )
 
-    split = config.evaluation_dataset.split
-
-    logger.info(f"Converting iterable {split} dataset to a regular dataset.")
-    test_dataset = convert_iterable_dataset_to_dataset(
-        iterable_dataset=dataset[split], dataset_id=f"coral-{split}"
-    )
-
-    logger.info(f"Preprocessing the {split} split of the CoRal dataset.")
-    test_dataset = preprocess_transcriptions(
-        dataset=test_dataset, processor=model_data.processor
-    )
-
-    df = test_dataset.to_pandas()
+    df = dataset.to_pandas()
     assert isinstance(df, pd.DataFrame)
 
-    # Make a new binary feature of whether the native language is Danish
-    df["native_1"] = df.native_language_1.isin(["Danmark", "Denmark", "Dansk"])
+    df["score"] = all_scores[config.metric]
 
-    # Fix dialects
-    df.dialect_1 = [
-        re.sub(r"\(.*\)", "", dialect.lower()).strip() for dialect in df.dialect_1
-    ]
-    df.dialect_1 = [DIALECT_MAP.get(dialect, dialect) for dialect in df.dialect_1]
+    # Make a new binary feature of whether the native language is Danish
+    df["accent"] = "native" if df.country_birth == "DK" else "foreign"
 
     # Get unique values for each category
     categories = ["age", "gender", "dialect", "native"]
     unique_category_values = [
         df[f"{category}_1"].unique().tolist() + [None] for category in categories
     ]
-
-    # Get predictions
-    prediction_object = trainer.predict(test_dataset=test_dataset)
-    predictions = prediction_object.predictions
-    labels = prediction_object.label_ids
-    assert isinstance(predictions, np.ndarray)
-    assert isinstance(labels, np.ndarray)
-
-    # If all the logits are -100 for a token, then we set the logit for the padding
-    # token for that token to 0. This is to ensure that this token gets decoded to a
-    # padding token, and are therefore ignored
-    pad_token = model_data.processor.tokenizer.pad_token_id
-    predictions[np.all(predictions == -100, axis=-1), pad_token] = 0
-
-    logger.info("Decoding the predictions to get the transcriptions.")
-
-    # Decode the predictions to get the transcriptions. When a language model is
-    # attached to the processor then we get the predicted string directly from the
-    # logits. If the vocabulary dimension of the predictions is too small then we pad
-    # with zeros to match the size of the vocabulary
-    if isinstance(model_data.processor, Wav2Vec2ProcessorWithLM):
-        vocab_size = model_data.processor.tokenizer.get_vocab()
-        mismatch_dim = len(vocab_size) - predictions.shape[-1]
-        predictions = np.pad(
-            array=predictions,
-            pad_width=((0, 0), (0, 0), (0, mismatch_dim)),
-            mode="constant",
-            constant_values=pad_token,
-        )
-        predictions_str = model_data.processor.batch_decode(predictions).text
-
-    # Otherwise, if we are not using a language model, we need to convert the logits to
-    # token IDs and then decode the token IDs to get the predicted string
-    else:
-        pred_ids: NDArray[np.int_] = np.argmax(predictions, axis=-1)
-        predictions_str = model_data.processor.batch_decode(pred_ids)
-
-    # Decode the ground truth labels
-    labels[labels == -100] = pad_token
-    labels_str = model_data.processor.tokenizer.batch_decode(
-        sequences=labels, group_tokens=False
-    )
-
-    # Load metrics
-    wer_metric = load_metric("wer", trust_remote_code=True)
-    cer_metric = load_metric("cer", trust_remote_code=True)
-    assert wer_metric is not None
-    assert cer_metric is not None
 
     # Iterate over all combinations of categories
     records = list()
@@ -134,33 +82,19 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
         df_filtered = df.copy()
         skip_combination = False
         for key, value in zip(categories, combination):
-            if value is not None:
-                new_df_filtered = df_filtered.query(f"{key}_1 == @value")
-                if (
-                    len(new_df_filtered) == len(df_filtered)
-                    or len(new_df_filtered) == 0
-                ):
-                    skip_combination = True
-                df_filtered = new_df_filtered
+            if value is None:
+                continue
+            new_df_filtered = df_filtered.query(f"{key}_1 == @value")
+            if len(new_df_filtered) == len(df_filtered) or len(new_df_filtered) == 0:
+                skip_combination = True
+            df_filtered = new_df_filtered
 
         if skip_combination:
             continue
 
-        # Compute the scores
-        idxs = df_filtered.index.tolist()
-        predictions_filtered = [predictions_str[idx] for idx in idxs]
-        labels_filtered = [labels_str[idx] for idx in idxs]
-        wer_computed = wer_metric.compute(
-            predictions=predictions_filtered, references=labels_filtered
-        )
-        cer_computed = cer_metric.compute(
-            predictions=predictions_filtered, references=labels_filtered
-        )
-        combination_scores = dict(wer=wer_computed, cer=cer_computed)
-
         # Add the combination to the records
         named_combination = dict(zip(categories, combination))
-        records.append(named_combination | combination_scores)
+        records.append(named_combination | {"score": df_filtered.score.mean()})
 
         # Log the scores
         combination_str = ", ".join(
@@ -169,41 +103,92 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
             if value is not None
         )
         if combination_str == "":
-            combination_str = f"entire {split} set"
-        scores_str = ", ".join(
-            f"{key}={value:.0%}" for key, value in combination_scores.items()
-        )
-        logger.info(f"Scores for {combination_str}: {scores_str}")
+            combination_str = "entire dataset"
+        score_str = f"{config.metric}={df_filtered.score.mean():.2f}"
+        logger.info(f"Scores for {combination_str}: {score_str}")
 
     score_df = pd.DataFrame.from_records(data=records)
     return score_df
 
 
-def preprocess_transcriptions(dataset: Dataset, processor: Processor) -> Dataset:
-    """Preprocess the transcriptions in the dataset.
+def compute_metrics(
+    dataset: Dataset,
+    transcriber: AutomaticSpeechRecognitionPipeline,
+    metric_names: list[str],
+    characters_to_keep: str,
+    text_column: str,
+    audio_column: str,
+    batch_size: int,
+) -> tuple[list[str], list[str], dict[str, list[float]]]:
+    """Compute the metrics for the dataset.
 
     Args:
         dataset:
-            The dataset to preprocess.
-        processor:
-            The processor to use for tokenization.
+            The dataset to validate.
+        transcriber:
+            The transcriber used for transcribing the audio.
+        metric_names:
+            The names of the metrics to compute. Needs to be compatible with the name of
+            the metric in the `evaluate` library.
+        characters_to_keep:
+            The characters to keep in the transcriptions.
+        text_column:
+            The name of the column containing the transcriptions.
+        audio_column:
+            The name of the column containing the audio samples.
+        batch_size:
+            The batch size to use for transcribing the audio.
 
     Returns:
-        The preprocessed dataset.
+        A triple (predictions, labels, all_scores) where:
+            predictions:
+                The transcriptions predicted by the model.
+            labels:
+                The ASR-processed ground-truth labels for each sample.
+            all_scores:
+                A dictionary containing the computed scores for each metric.
     """
+    # This contains all the punctuation characters that will be removed from the
+    # transcriptions, as they do not have an influence on the pronunciation of the
+    # words.
+    non_standard_characters_regex = re.compile(
+        f"[^{re.escape(characters_to_keep + ' |')}]"
+    )
 
-    def tokenize_examples(example: dict) -> dict:
-        example["labels"] = processor(text=example["text"], truncation=True).input_ids
-        example["input_length"] = len(example["labels"])
-        return example
+    labels: list[str] = [lbl.strip().lower() for lbl in dataset[text_column]]
+    predictions: list[str] = list()
 
-    mapped = dataset.map(tokenize_examples)
-    assert isinstance(mapped, Dataset)
+    with tqdm(total=len(dataset), desc="Transcribing") as pbar:
+        for out in transcriber(
+            KeyDataset(dataset=dataset, key=audio_column), batch_size=batch_size
+        ):
+            prediction = re.sub(
+                pattern=non_standard_characters_regex,
+                repl="",
+                string=out["text"].strip().lower(),
+            )
+            predictions.append(prediction.strip())
+            pbar.update()
 
-    # After calling `map` the DatasetInfo is lost, so we need to add it back in
-    mapped._info = dataset._info
-    mapped._info.features["labels"] = Sequence(feature=Value(dtype="int64"), length=-1)
-    mapped._info.features["input_length"] = Value(dtype="int64")
-    mapped._info = dataset._info
+    all_scores: dict[str, list[float]] = dict()
+    for metric_name in metric_names:
+        metric = load_metric(metric_name)
+        scores = [
+            metric.compute(predictions=[pred], references=[ref])
+            for pred, ref in zip(
+                tqdm(predictions, desc=f"Computing {metric_name.upper()}s"), labels
+            )
+        ]
 
-    return mapped
+        # Ensure that the scores are indeed floats, as `compute` returns a dictionary
+        # for some metrics
+        scores = [score if isinstance(score, float) else -100.0 for score in scores]
+        assert all(score >= 0 for score in scores), (
+            f"The number of {metric_name.upper()}s should be equal to the number "
+            f"of predictions - found {len(scores):,} {metric_name.upper()}s and "
+            f"{len(predictions):,} predictions."
+        )
+
+        all_scores[metric_name] = scores
+
+    return predictions, labels, all_scores

@@ -5,20 +5,17 @@ Usage:
 """
 
 import logging
-import re
 import warnings
 from time import sleep
 
-import evaluate
 import hydra
 import torch
 from coral.data import filter_dataset, process_dataset
+from coral.evaluate import compute_metrics
 from datasets import Dataset, DatasetDict, enable_progress_bar, load_dataset
 from omegaconf import DictConfig
 from requests import HTTPError
-from tqdm.auto import tqdm
 from transformers import AutomaticSpeechRecognitionPipeline, pipeline
-from transformers.pipelines.base import KeyDataset
 
 logging.basicConfig(
     level=logging.INFO,
@@ -63,13 +60,6 @@ def main(config: DictConfig) -> None:
             train_name=config.train_name,
         )
 
-    # This contains all the punctuation characters that will be removed from the
-    # transcriptions, as they do not have an influence on the pronunciation of the
-    # words.
-    non_standard_characters_regex = re.compile(
-        f"[^{re.escape(config.characters_to_keep + ' |')}]"
-    )
-
     if config.process_dataset:
         dataset = process_dataset(
             dataset=dataset,
@@ -99,7 +89,7 @@ def main(config: DictConfig) -> None:
             dataset=split,
             transcriber=transcriber,
             metric_names=metric_names,
-            non_standard_characters_regex=non_standard_characters_regex,
+            characters_to_keep=config.characters_to_keep,
             text_column=config.text_column,
             audio_column=config.audio_column,
             batch_size=config.batch_size,
@@ -177,85 +167,6 @@ def main(config: DictConfig) -> None:
         logger.error("Failed to upload the dataset to the Hugging Face Hub.")
 
     logger.info("All done!")
-
-
-def compute_metrics(
-    dataset: Dataset,
-    transcriber: AutomaticSpeechRecognitionPipeline,
-    metric_names: list[str],
-    non_standard_characters_regex: re.Pattern[str],
-    text_column: str,
-    audio_column: str,
-    batch_size: int,
-) -> tuple[list[str], list[str], dict[str, list[float]]]:
-    """Compute the metrics for the dataset.
-
-    Args:
-        dataset:
-            The dataset to validate.
-        transcriber:
-            The transcriber used for transcribing the audio.
-        metric_names:
-            The names of the metrics to compute. Needs to be compatible with the name of
-            the metric in the `evaluate` library.
-        non_standard_characters_regex:
-            Regular expression that matches all characters that should be removed from
-            the transcriptions.
-        text_column:
-            The name of the column containing the transcriptions.
-        audio_column:
-            The name of the column containing the audio samples.
-        batch_size:
-            The batch size to use for transcribing the audio.
-
-    Returns:
-        A triple (predictions, labels, cers, wers) where:
-            predictions:
-                The transcriptions predicted by the model.
-            labels:
-                The ASR-processed ground-truth labels for each sample.
-            cers:
-                The word error rates for each sample.
-            wers:
-                The word error rates for each sample.
-    """
-    labels: list[str] = [lbl.strip().lower() for lbl in dataset[text_column]]
-    predictions: list[str] = list()
-
-    with tqdm(total=len(dataset), desc="Transcribing") as pbar:
-        for out in transcriber(
-            KeyDataset(dataset, audio_column), batch_size=batch_size
-        ):
-            prediction = re.sub(
-                pattern=non_standard_characters_regex,
-                repl="",
-                string=out["text"].strip().lower(),
-            )
-            predictions.append(prediction.strip())
-            pbar.update()
-
-    all_scores: dict[str, list[float]] = dict()
-    for metric_name in metric_names:
-        metric = evaluate.load(metric_name)
-        scores = [
-            metric.compute(predictions=[pred], references=[ref])
-            for pred, ref in zip(
-                tqdm(predictions, desc=f"Computing {metric_name.upper()}s"), labels
-            )
-        ]
-
-        # Ensure that the scores are indeed floats, as `compute` returns a dictionary
-        # for some metrics
-        scores = [score if isinstance(score, float) else -100.0 for score in scores]
-        assert all(score >= 0 for score in scores), (
-            f"The number of {metric_name.upper()}s should be equal to the number "
-            f"of predictions - found {len(scores):,} {metric_name.upper()}s and "
-            f"{len(predictions):,} predictions."
-        )
-
-        all_scores[metric_name] = scores
-
-    return predictions, labels, all_scores
 
 
 if __name__ == "__main__":

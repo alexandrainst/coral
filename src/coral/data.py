@@ -181,7 +181,7 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
     return dataset
 
 
-def load_dataset_for_evaluation(config: DictConfig) -> DatasetDict:
+def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     """Load the evaluation dataset.
 
     Args:
@@ -191,29 +191,34 @@ def load_dataset_for_evaluation(config: DictConfig) -> DatasetDict:
     Returns:
         A DatasetDict containing the validation and test datasets.
     """
-    dataset = DatasetDict()
-    split_names = dict(val=config.val_name, test=config.test_name)
-    for new_split_name, old_split_name in split_names.items():
-        split = (
-            load_dataset(
-                path=config.dataset_id,
-                split=old_split_name,
-                token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-                trust_remote_code=True,
-            )
-            .rename_column(config.text_column, "text")
-            .rename_column(config.audio_column, "audio")
+    dataset = (
+        load_dataset(
+            path=config.dataset_id,
+            split=config.eval_split_name,
+            token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+            trust_remote_code=True,
         )
-
-        split = process_dataset(
-            dataset=split,
+        .rename_column(config.text_column, "text")
+        .rename_column(config.audio_column, "audio")
+    )
+    assert isinstance(dataset, Dataset)
+    if config.filter_dataset:
+        dataset = filter_dataset(
+            dataset=dataset,
+            audio_column="audio",
+            min_seconds_per_example=config.min_seconds_per_example,
+            max_seconds_per_example=config.max_seconds_per_example,
+            remove_maybe_validated=True,
+        )
+    if config.process_dataset:
+        dataset = process_dataset(
+            dataset=dataset,
             characters_to_keep=config.characters_to_keep,
             text_column="text",
             audio_column="audio",
             lower_case=True,
             cast_to_sampling_rate=config.cast_to_sampling_rate,
         )
-        dataset[new_split_name] = split
     return dataset
 
 
@@ -222,7 +227,7 @@ def filter_dataset(
     audio_column: str,
     min_seconds_per_example: int,
     max_seconds_per_example: int,
-    train_name: str,
+    train_name: str | None = None,
     remove_maybe_validated: bool | None = None,
 ) -> Data:
     """Filter the dataset based on the validation status.
@@ -239,7 +244,9 @@ def filter_dataset(
         max_seconds_per_example:
             The maximum number of seconds that an example can have.
         train_name:
-            The name of the training split.
+            The name of the training split. This is only relevant if `dataset` is a
+            DatasetDict or IterableDatasetDict. If `None`, then we assume this is not
+            needed. Defaults to `None`.
         remove_maybe_validated:
             Whether to remove samples that are validated as "maybe". This is only
             relevant if `dataset` is a Dataset or IterableDataset. If `None`, then
@@ -253,6 +260,14 @@ def filter_dataset(
             If `remove_maybe_validated` is not `None` and `dataset` is not a
             Dataset or IterableDataset.
     """
+    assert (
+        not isinstance(dataset, DatasetDict | IterableDatasetDict)
+        or train_name is not None
+    ), (
+        "The `train_name` argument needs to be specified if the dataset is a "
+        "DatasetDict."
+    )
+
     assert (
         not isinstance(dataset, Dataset | IterableDataset)
         or remove_maybe_validated is not None
