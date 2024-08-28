@@ -193,6 +193,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         split=config.eval_split_name,
         token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
         trust_remote_code=True,
+        cache_dir=config.cache_dir,
     )
 
     assert isinstance(dataset, Dataset)

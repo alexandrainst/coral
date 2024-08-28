@@ -2,6 +2,7 @@
 dataset_subset: read_aloud
 dataset_revision: null
 eval_split_name: test
+cache_dir: null
 
 # Filtering of the dataset
 filter_dataset: true
