@@ -9,7 +9,7 @@ from coral.ngram import train_ngram_model
 from omegaconf import DictConfig
 
 
-@hydra.main(config_path="../../config", config_name="config", version_base=None)
+@hydra.main(config_path="../../config", config_name="finetuning", version_base=None)
 def main(config: DictConfig) -> None:
     """Trains an ngram language model.
 

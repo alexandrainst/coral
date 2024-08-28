@@ -5,11 +5,13 @@ import os
 import re
 from functools import partial
 from pathlib import Path
+from typing import TypeVar
 from unicodedata import normalize
 
 from datasets import (
     Audio,
     Dataset,
+    DatasetDict,
     IterableDataset,
     IterableDatasetDict,
     NamedSplit,
@@ -21,8 +23,13 @@ from omegaconf import DictConfig
 logger = logging.getLogger(__package__)
 
 
-def load_data(config: DictConfig) -> IterableDatasetDict:
-    """Load an audio dataset for training.
+Data = TypeVar(
+    "Data", bound=Dataset | IterableDataset | DatasetDict | IterableDatasetDict
+)
+
+
+def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
+    """Load an audio dataset for finetuning.
 
     Args:
         config:
@@ -38,7 +45,7 @@ def load_data(config: DictConfig) -> IterableDatasetDict:
     # Note if we're on the main process, if we are running in a distributed setting
     is_main_process = os.getenv("RANK", "0") == "0"
 
-    all_datasets: list[Dataset | IterableDataset] = list()
+    all_datasets: list[IterableDataset] = list()
     for dataset_name, dataset_config in config.datasets.items():
         if is_main_process:
             logger.info(f"Loading dataset {dataset_name!r}")
@@ -78,9 +85,7 @@ def load_data(config: DictConfig) -> IterableDatasetDict:
                 trust_remote_code=True,
             )
 
-        assert isinstance(ds, Dataset) or isinstance(
-            ds, IterableDataset
-        ), f"Unsupported dataset type: {type(ds)}"
+        assert isinstance(ds, IterableDataset), f"Unsupported dataset type: {type(ds)}"
 
         if dataset_config.text_column != "text":
             ds = ds.rename_column(dataset_config.text_column, "text")
@@ -92,12 +97,16 @@ def load_data(config: DictConfig) -> IterableDatasetDict:
             column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
         )
         ds = ds.remove_columns(
-            [column for column in ds.column_names if column not in ["audio", "text"]]
+            column_names=[
+                column
+                for column in ds.column_names or list()
+                if column not in ["audio", "text"]
+            ]
         )
         ds = ds.shuffle(seed=config.seed)
 
         if config.model.clean_dataset:
-            ds = clean_dataset(config, dataset=ds)
+            ds = clean_dataset(dataset=ds, characters_to_keep=config.characters_to_keep)
 
         all_datasets.append(ds)
 
@@ -162,22 +171,58 @@ def load_data(config: DictConfig) -> IterableDatasetDict:
         )
         assert isinstance(split, IterableDataset)
         if config.model.clean_dataset:
-            split = clean_dataset(config=config, dataset=split)
+            split = clean_dataset(
+                dataset=split, characters_to_keep=config.characters_to_keep
+            )
         dataset[new_split_name] = split
 
     return dataset
 
 
-def clean_dataset(
-    config: DictConfig, dataset: Dataset | IterableDataset
-) -> Dataset | IterableDataset:
-    """Clean the transcriptions in a dataset.
+def load_dataset_for_evaluation(config: DictConfig) -> DatasetDict:
+    """Load the evaluation dataset.
 
     Args:
         config:
-            The Hydra configuration object
+            The Hydra configuration object.
+
+    Returns:
+        A DatasetDict containing the validation and test datasets.
+    """
+    dataset = DatasetDict()
+    split_names = dict(val=config.val_name, test=config.test_name)
+    for new_split_name, old_split_name in split_names.items():
+        split = load_dataset(
+            path=config.dataset_id,
+            split=old_split_name,
+            token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+            trust_remote_code=True,
+        )
+        if config.text_column != "text":
+            split = split.rename_column(config.text_column, "text")
+
+        if config.audio_column != "audio":
+            split = split.rename_column(config.audio_column, "audio")
+
+        split = split.cast_column(
+            column="audio", feature=Audio(sampling_rate=config.cast_to_sampling_rate)
+        )
+        split = clean_dataset(
+            dataset=split, characters_to_keep=config.characters_to_keep
+        )
+        dataset[new_split_name] = split
+    return dataset
+
+
+def clean_dataset(dataset: Data, characters_to_keep: str) -> Data:
+    """Clean the transcriptions in a dataset.
+
+    Args:
         dataset:
             The dataset to be cleaned.
+        characters_to_keep:
+            A string containing all the characters that should be kept in the
+            transcriptions.
 
     Returns:
         The cleaned dataset.
@@ -227,7 +272,7 @@ def clean_dataset(
     # transcriptions, as they do not have an influence on the pronunciation of the
     # words.
     non_standard_characters_regex = re.compile(
-        f"[^{re.escape(config.characters_to_keep + ' |')}]"
+        f"[^{re.escape(characters_to_keep + ' |')}]"
     )
 
     mapped = dataset.map(
@@ -239,7 +284,17 @@ def clean_dataset(
     )
 
     # After calling `map` the DatasetInfo is lost, so we need to add it back in
-    mapped._info = dataset._info
+    if (isinstance(dataset, Dataset) and isinstance(mapped, Dataset)) or (
+        isinstance(dataset, IterableDataset) and isinstance(mapped, IterableDataset)
+    ):
+        mapped._info = dataset._info
+    elif (isinstance(dataset, DatasetDict) and isinstance(mapped, DatasetDict)) or (
+        isinstance(dataset, IterableDatasetDict)
+        and isinstance(mapped, IterableDatasetDict)
+    ):
+        for key, value in dataset.items():
+            if key in mapped:
+                mapped[key]._info = value._info
 
     return mapped
 

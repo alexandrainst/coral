@@ -1,11 +1,10 @@
-evaluation_dataset:
-  id: alexandrainst/coral
-  subset: read_aloud
-  split: test
-  val_name: val
-  test_name: test
-  text_column: text
-  audio_column: audio
+# Evaluation dataset parameters
+dataset_id: alexandrainst/coral
+subset: read_aloud
+val_name: val
+test_name: test
+text_column: text
+audio_column: audio
 
 # Dataset parameters
 characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'

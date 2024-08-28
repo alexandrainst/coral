@@ -55,7 +55,9 @@ def train_ngram_model(config: DictConfig) -> None:
             assert isinstance(dataset, Dataset)
 
             enable_progress_bar()
-            dataset = clean_dataset(dataset=dataset, config=config)
+            dataset = clean_dataset(
+                dataset=dataset, characters_to_keep=config.characters_to_keep
+            )
             assert isinstance(dataset, Dataset)
 
             # Deduplicating the sentences in the dataset is required when training the
