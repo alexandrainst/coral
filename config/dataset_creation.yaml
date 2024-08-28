@@ -1,6 +1,9 @@
-audio_dir = /Volumes/CoRal/_new_structure/raw
-metadata_database_path = /Volumes/CoRal/_new_structure/raw/CoRal_public.db
-hub_id = alexandrainst/coral
+# Input raw data
+audio_dir: /Volumes/CoRal/_new_structure/raw
+metadata_database_path: /Volumes/CoRal/_new_structure/raw/CoRal_public.db
+
+# Hugging Face Hub ID of output dataset
+hub_id: alexandrainst/coral
 
 # Number of hours: 7.60
 # Gender distribution:

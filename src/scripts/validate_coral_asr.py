@@ -37,7 +37,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
     config_path="../../config", config_name="dataset_validation", version_base=None
 )
 def main(config: DictConfig) -> None:
-    """Validate the samples of the CoRal ASR dataset using an ASR model.
+    """Validate the samples of an ASR dataset using an ASR model.
 
     Args:
         config:
@@ -57,13 +57,14 @@ def main(config: DictConfig) -> None:
         dataset = DatasetDict(dict(train=dataset))
     assert isinstance(dataset, DatasetDict)
 
-    dataset = filter_dataset(
-        dataset=dataset,
-        audio_column=config.audio_column,
-        min_seconds_per_example=config.min_seconds_per_example,
-        max_seconds_per_example=config.max_seconds_per_example,
-        train_split=config.train_split,
-    )
+    if config.filter_dataset:
+        dataset = filter_dataset(
+            dataset=dataset,
+            audio_column=config.audio_column,
+            min_seconds_per_example=config.min_seconds_per_example,
+            max_seconds_per_example=config.max_seconds_per_example,
+            train_split=config.train_split,
+        )
 
     # This contains all the punctuation characters that will be removed from the
     # transcriptions, as they do not have an influence on the pronunciation of the
@@ -72,11 +73,12 @@ def main(config: DictConfig) -> None:
         f"[^{re.escape(config.characters_to_keep + ' |')}]"
     )
 
-    dataset = process_dataset(
-        dataset=dataset,
-        non_standard_characters_regex=non_standard_characters_regex,
-        text_column=config.text_column,
-    )
+    if config.process_dataset:
+        dataset = process_dataset(
+            dataset=dataset,
+            non_standard_characters_regex=non_standard_characters_regex,
+            text_column=config.text_column,
+        )
 
     logger.info(f"Loading the {config.model_id!r} ASR model...")
     if torch.cuda.is_available():
@@ -228,12 +230,15 @@ def filter_dataset(
             > audio_dct["sampling_rate"] * max_seconds_per_example
             for audio_dct in samples[audio_column]
         ]
-        idxs_rejected = [
-            validated in {"rejected", "maybe"}
-            if remove_maybe_validated
-            else validated == "rejected"
-            for validated in samples["validated"]
-        ]
+        if "validated" in samples:
+            idxs_rejected = [
+                validated in {"rejected", "maybe"}
+                if remove_maybe_validated
+                else validated == "rejected"
+                for validated in samples["validated"]
+            ]
+        else:
+            idxs_rejected = [False] * len(samples[audio_column])
         return [
             not (too_short or too_long or rejected)
             for too_short, too_long, rejected in zip(
@@ -278,12 +283,6 @@ def process_dataset(
             the transcriptions.
         text_column:
             The name of the column containing the transcriptions.
-        audio_column:
-            The name of the column containing the audio.
-        max_seconds_per_example:
-            The maximum number of seconds that an example can have.
-        sample_rate:
-            The desired sampling rate of the audio.
 
     Returns:
         The processed dataset.

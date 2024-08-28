@@ -45,7 +45,7 @@ def main(config: DictConfig) -> None:
                 )
             config.padding = "max_length"
 
-    finetune(config)
+    finetune(config=config)
 
 
 if __name__ == "__main__":
