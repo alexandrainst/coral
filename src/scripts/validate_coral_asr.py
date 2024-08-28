@@ -415,8 +415,8 @@ def compute_metrics(
             )
         ]
 
-        # Ensure that the scores are indeed floats, as `compute` returns a dictionary for
-        # some metrics
+        # Ensure that the scores are indeed floats, as `compute` returns a dictionary
+        # for some metrics
         scores = [score if isinstance(score, float) else -100.0 for score in scores]
         assert all(score >= 0 for score in scores), (
             f"The number of {metric_name.upper()}s should be equal to the number "
