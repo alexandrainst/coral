@@ -5,14 +5,6 @@ defaults:
   - override hydra/job_logging: custom
   - _self_
 
-dirs:
-  data: data
-  raw: raw
-  processed: processed
-  final: final
-  models: models
-  hidden: hidden
-
 seed: 4242
 
 evaluation_dataset:
@@ -39,7 +31,7 @@ dataset_probabilities: null
 
 # Model parameters
 model_id: ${model.name}-${now:%Y-%m-%d}
-model_dir: ${dirs.models}/${model_id}
+model_dir: models/${model_id}
 hub_organisation: alexandrainst
 push_to_hub: false
 fp16: true
