@@ -1,10 +1,7 @@
 # Evaluation dataset parameters
-dataset_id: alexandrainst/coral
 dataset_subset: read_aloud
 dataset_revision: null
 eval_split_name: test
-text_column: text
-audio_column: audio
 
 # Filtering of the dataset
 filter_dataset: true

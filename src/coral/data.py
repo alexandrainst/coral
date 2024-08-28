@@ -188,17 +188,12 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     """
     logger.info(f"Loading dataset {config.dataset_id}...")
     dataset = load_dataset(
-        path=config.dataset_id,
+        path="alexandrainst/coral",
         name=config.dataset_subset,
         split=config.eval_split_name,
         token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
         trust_remote_code=True,
     )
-
-    if config.text_column != "text":
-        dataset = dataset.rename_column(config.text_column, "text")
-    if config.audio_column != "audio":
-        dataset = dataset.rename_column(config.audio_column, "audio")
 
     assert isinstance(dataset, Dataset)
     if config.filter_dataset:

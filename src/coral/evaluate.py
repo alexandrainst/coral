@@ -20,7 +20,7 @@ logger = logging.getLogger(__package__)
 
 
 def evaluate(config: DictConfig) -> pd.DataFrame:
-    """Evaluate a model on a CoRal evaluation dataset.
+    """Evaluate a model on the CoRal evaluation dataset.
 
     Args:
         config:
