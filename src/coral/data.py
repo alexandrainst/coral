@@ -194,6 +194,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     dataset = (
         load_dataset(
             path=config.dataset_id,
+            name=config.dataset_subset,
             split=config.eval_split_name,
             token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
             trust_remote_code=True,
