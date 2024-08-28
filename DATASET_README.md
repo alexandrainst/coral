@@ -178,7 +178,7 @@ Analyse the linguistic features of different Danish dialects.
 ### Forbidden Use Cases
 
 Speech Synthesis and Biometric Identification are not allowed using the CoRal dataset.
-For more information see addition 4 in our
+For more information, see addition 4 in our
 [license](https://huggingface.co/datasets/alexandrainst/coral/blob/main/LICENSE).
 
 
