@@ -88,18 +88,18 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
 
         assert isinstance(ds, IterableDataset), f"Unsupported dataset type: {type(ds)}"
 
-        ds = (
-            ds.rename_column(dataset_config.text_column, "text")
-            .rename_column(dataset_config.audio_column, "audio")
-            .remove_columns(
-                column_names=[
-                    column
-                    for column in ds.column_names or list()
-                    if column not in ["audio", "text"]
-                ]
-            )
-            .shuffle(seed=config.seed)
-        )
+        if dataset_config.text_column != "text":
+            ds = ds.rename_column(dataset_config.text_column, "text")
+        if dataset_config.audio_column != "audio":
+            ds = ds.rename_column(dataset_config.audio_column, "audio")
+
+        ds = ds.remove_columns(
+            column_names=[
+                column
+                for column in ds.column_names or list()
+                if column not in ["audio", "text"]
+            ]
+        ).shuffle(seed=config.seed)
 
         ds = process_dataset(
             dataset=ds,
@@ -148,35 +148,30 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
     data_dict = dict(train=train)
     dataset = IterableDatasetDict(data_dict)
 
-    # Load CoRal validation and test sets
     if is_main_process:
-        logger.info("Loading CoRal validation and test datasets")
-    split_names = dict(
-        val=config.evaluation_dataset.val_name, test=config.evaluation_dataset.test_name
+        logger.info("Loading CoRal validation dataset")
+
+    val = load_dataset(
+        path=config.evaluation_dataset.id,
+        split=config.evaluation_dataset.val_name,
+        token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+        streaming=True,
+        trust_remote_code=True,
     )
-    for new_split_name, old_split_name in split_names.items():
-        split = load_dataset(
-            path=config.evaluation_dataset.id,
-            split=old_split_name,
-            token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-            streaming=True,
-            trust_remote_code=True,
-        )
-        if config.evaluation_dataset.text_column != "text":
-            split = split.rename_column(config.evaluation_dataset.text_column, "text")
+    if config.evaluation_dataset.text_column != "text":
+        val = val.rename_column(config.evaluation_dataset.text_column, "text")
+    if config.evaluation_dataset.audio_column != "audio":
+        val = val.rename_column(config.evaluation_dataset.audio_column, "audio")
 
-        if config.evaluation_dataset.audio_column != "audio":
-            split = split.rename_column(config.evaluation_dataset.audio_column, "audio")
-
-        split = process_dataset(
-            dataset=split,
-            characters_to_keep=config.characters_to_keep,
-            text_column="text",
-            audio_column="audio",
-            lower_case=config.model.lower_case,
-            cast_to_sampling_rate=config.model.sampling_rate,
-        )
-        dataset[new_split_name] = split
+    val = process_dataset(
+        dataset=val,
+        characters_to_keep=config.characters_to_keep,
+        text_column="text",
+        audio_column="audio",
+        lower_case=config.model.lower_case,
+        cast_to_sampling_rate=config.model.sampling_rate,
+    )
+    dataset["val"] = val
 
     return dataset
 
@@ -191,17 +186,20 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     Returns:
         A DatasetDict containing the validation and test datasets.
     """
-    dataset = (
-        load_dataset(
-            path=config.dataset_id,
-            name=config.dataset_subset,
-            split=config.eval_split_name,
-            token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-            trust_remote_code=True,
-        )
-        .rename_column(config.text_column, "text")
-        .rename_column(config.audio_column, "audio")
+    logger.info(f"Loading dataset {config.dataset_id}...")
+    dataset = load_dataset(
+        path=config.dataset_id,
+        name=config.dataset_subset,
+        split=config.eval_split_name,
+        token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+        trust_remote_code=True,
     )
+
+    if config.text_column != "text":
+        dataset = dataset.rename_column(config.text_column, "text")
+    if config.audio_column != "audio":
+        dataset = dataset.rename_column(config.audio_column, "audio")
+
     assert isinstance(dataset, Dataset)
     if config.filter_dataset:
         dataset = filter_dataset(
@@ -218,7 +216,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
             text_column="text",
             audio_column="audio",
             lower_case=True,
-            cast_to_sampling_rate=config.cast_to_sampling_rate,
+            cast_to_sampling_rate=config.sampling_rate,
         )
     return dataset
 

@@ -2,17 +2,14 @@
 
 import itertools as it
 import logging
-import re
 
 import pandas as pd
 import torch
-from datasets import Dataset
 from dotenv import load_dotenv
-from evaluate import load as load_metric
 from omegaconf import DictConfig
-from tqdm.auto import tqdm
 from transformers import AutomaticSpeechRecognitionPipeline, pipeline
-from transformers.pipelines.pt_utils import KeyDataset
+
+from coral.compute_metrics import compute_metrics_of_dataset_using_pipeline
 
 from .data import load_dataset_for_evaluation
 
@@ -51,13 +48,13 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     assert isinstance(transcriber, AutomaticSpeechRecognitionPipeline)
 
     # Get metrics
-    _, _, all_scores = compute_metrics(
+    _, _, all_scores = compute_metrics_of_dataset_using_pipeline(
         dataset=dataset,
         transcriber=transcriber,
         metric_names=[config.metric],
         characters_to_keep=config.characters_to_keep,
-        text_column=config.text_column,
-        audio_column=config.audio_column,
+        text_column="text",
+        audio_column="audio",
         batch_size=config.batch_size,
     )
 
@@ -109,86 +106,3 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
 
     score_df = pd.DataFrame.from_records(data=records)
     return score_df
-
-
-def compute_metrics(
-    dataset: Dataset,
-    transcriber: AutomaticSpeechRecognitionPipeline,
-    metric_names: list[str],
-    characters_to_keep: str,
-    text_column: str,
-    audio_column: str,
-    batch_size: int,
-) -> tuple[list[str], list[str], dict[str, list[float]]]:
-    """Compute the metrics for the dataset.
-
-    Args:
-        dataset:
-            The dataset to validate.
-        transcriber:
-            The transcriber used for transcribing the audio.
-        metric_names:
-            The names of the metrics to compute. Needs to be compatible with the name of
-            the metric in the `evaluate` library.
-        characters_to_keep:
-            The characters to keep in the transcriptions.
-        text_column:
-            The name of the column containing the transcriptions.
-        audio_column:
-            The name of the column containing the audio samples.
-        batch_size:
-            The batch size to use for transcribing the audio.
-
-    Returns:
-        A triple (predictions, labels, all_scores) where:
-            predictions:
-                The transcriptions predicted by the model.
-            labels:
-                The ASR-processed ground-truth labels for each sample.
-            all_scores:
-                A dictionary containing the computed scores for each metric.
-    """
-    # This contains all the punctuation characters that will be removed from the
-    # transcriptions, as they do not have an influence on the pronunciation of the
-    # words.
-    non_standard_characters_regex = re.compile(
-        f"[^{re.escape(characters_to_keep + ' |')}]"
-    )
-
-    labels: list[str] = [lbl.strip().lower() for lbl in dataset[text_column]]
-    predictions: list[str] = list()
-
-    with tqdm(total=len(dataset), desc="Transcribing") as pbar:
-        for out in transcriber(
-            KeyDataset(dataset=dataset, key=audio_column), batch_size=batch_size
-        ):
-            prediction = re.sub(
-                pattern=non_standard_characters_regex,
-                repl="",
-                string=out["text"].strip().lower(),
-            )
-            predictions.append(prediction.strip())
-            pbar.update()
-
-    all_scores: dict[str, list[float]] = dict()
-    for metric_name in metric_names:
-        metric = load_metric(metric_name)
-        scores = [
-            metric.compute(predictions=[pred], references=[ref])
-            for pred, ref in zip(
-                tqdm(predictions, desc=f"Computing {metric_name.upper()}s"), labels
-            )
-        ]
-
-        # Ensure that the scores are indeed floats, as `compute` returns a dictionary
-        # for some metrics
-        scores = [score if isinstance(score, float) else -100.0 for score in scores]
-        assert all(score >= 0 for score in scores), (
-            f"The number of {metric_name.upper()}s should be equal to the number "
-            f"of predictions - found {len(scores):,} {metric_name.upper()}s and "
-            f"{len(predictions):,} predictions."
-        )
-
-        all_scores[metric_name] = scores
-
-    return predictions, labels, all_scores

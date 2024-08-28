@@ -17,5 +17,6 @@ characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
 
 # Evaluation parameters
 model_id: null
+sampling_rate: 16_000
 metric: cer
 batch_size: 16

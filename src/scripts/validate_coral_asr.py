@@ -10,8 +10,8 @@ from time import sleep
 
 import hydra
 import torch
+from coral.compute_metrics import compute_metrics_of_dataset_using_pipeline
 from coral.data import filter_dataset, process_dataset
-from coral.evaluate import compute_metrics
 from datasets import Dataset, DatasetDict, enable_progress_bar, load_dataset
 from omegaconf import DictConfig
 from requests import HTTPError
@@ -85,7 +85,7 @@ def main(config: DictConfig) -> None:
     metric_names = [metric.name.lower() for metric in config.metrics]
     for split_name, split in dataset.items():
         logger.info(f"Validating the {split_name} split of the dataset...")
-        predictions, labels, score_dict = compute_metrics(
+        predictions, labels, score_dict = compute_metrics_of_dataset_using_pipeline(
             dataset=split,
             transcriber=transcriber,
             metric_names=metric_names,
