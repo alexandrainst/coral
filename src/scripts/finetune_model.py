@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 
-@hydra.main(config_path="../../config", config_name="config", version_base=None)
+@hydra.main(config_path="../../config", config_name="finetuning", version_base=None)
 def main(config: DictConfig) -> None:
     """Finetune an ASR model.
 
