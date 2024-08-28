@@ -421,15 +421,7 @@ def load_coral_metadata_df(
     metadata_path = Path("coral-metadata.csv")
 
     if metadata_path.exists():
-        df = pd.read_csv(metadata_path, low_memory=False)
-
-        # TEMP: Remove the automatically rejected samples
-        samples_before = len(df)
-        df = df.query("asr_cer < @max_cer")
-        samples_removed = samples_before - len(df)
-        logger.info(f"Removed {samples_removed:,} samples with CER > {max_cer}.")
-
-        return df
+        return pd.read_csv(metadata_path, low_memory=False)
 
     dataset = load_dataset(
         path="alexandrainst/coral", split="train", streaming=streaming
