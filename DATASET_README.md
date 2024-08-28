@@ -73,33 +73,33 @@ print(f"Text: {transcription}")
 - **Audio**: 366.6/2.7/7.6 hours in the train/val/test split, respectively.
 - **Speakers**: 566/10/21 speakers in the train/val/test split, respectively.
 
-### Test distribution
+### Test Split Distribution
 
 Gender distribution:
-- female: 58%
-- male: 42%
+  - female: 58%
+  - male: 42%
 
 Dialect distribution:
-- Bornholmsk: 10%
-- Fynsk: 10%
-- Københavnsk: 10%
-- Nordjysk: 11%
-- Sjællandsk: 11%
-- Sydømål: 14%
-- Sønderjysk: 10%
-- Vestjysk: 12%
-- Østjysk: 11%
-
-Age group distribution:
-- 0-24: 28%
-- 25-49: 32%
-- 50-: 40%
+  - Bornholmsk: 10%
+  - Fynsk: 10%
+  - Københavnsk: 10%
+  - Nordjysk: 11%
+  - Sjællandsk: 11%
+  - Sydømål: 14%
+  - Sønderjysk: 10%
+  - Vestjysk: 12%
+  - Østjysk: 11%
 
 Accent distribution:
 - native: 90%
 - foreign: 10%
 
-### Validation distribution
+Age group distribution:
+  - 0-24: 28%
+  - 25-49: 32%
+  - 50-: 40%
+
+### Validation Split Distribution
 
 Gender distribution:
 - female: 45%
@@ -116,14 +116,14 @@ Dialect distribution:
 - Vestjysk: 8%
 - Østjysk: 9%
 
+Accent distribution:
+- native: 81%
+- foreign: 19%
+
 Age group distribution:
 - 0-24: 11%
 - 25-49: 39%
 - 50-: 51%
-
-Accent distribution:
-- native: 81%
-- foreign: 19%
 
 
 ## Conversational Data Statistics
