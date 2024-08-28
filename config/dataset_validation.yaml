@@ -1,16 +1,26 @@
-model_id: alexandrainst/coral-asr-bootstrap
+# Loading the dataset to be validated
 dataset_id: alexandrainst/coral
 dataset_subset: read_aloud
 train_split: train
 dataset_revision: null
 text_column: text
 audio_column: audio
+cache_dir: null
+
+# Filtering of the dataset
+filter_dataset: true
+min_seconds_per_example: 0.5
+max_seconds_per_example: 10
+
+# Processing of the dataset
+process_dataset: true
+characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
+
+# Validation parameters
+model_id: alexandrainst/coral-asr-bootstrap
+batch_size: 16
+max_cer: 0.6
+
+# Dataset that contains the validation data
 output_dataset_id: alexandrainst/coral
 output_dataset_subset: read_aloud
-batch_size: 16
-cache_dir: null
-characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
-max_seconds_per_example: 10
-min_seconds_per_example: 0.5
-sample_rate: 16_000
-max_cer: 0.6
