@@ -1,11 +1,12 @@
 """Functions related to the data loading and processing."""
 
 import logging
+import multiprocessing as mp
 import os
 import re
 from functools import partial
 from pathlib import Path
-from typing import TypeVar
+from typing import Any, TypeVar
 from unicodedata import normalize
 
 from datasets import (
@@ -87,26 +88,27 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
 
         assert isinstance(ds, IterableDataset), f"Unsupported dataset type: {type(ds)}"
 
-        if dataset_config.text_column != "text":
-            ds = ds.rename_column(dataset_config.text_column, "text")
-
-        if dataset_config.audio_column != "audio":
-            ds = ds.rename_column(dataset_config.audio_column, "audio")
-
-        ds = ds.cast_column(
-            column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
+        ds = (
+            ds.rename_column(dataset_config.text_column, "text")
+            .rename_column(dataset_config.audio_column, "audio")
+            .remove_columns(
+                column_names=[
+                    column
+                    for column in ds.column_names or list()
+                    if column not in ["audio", "text"]
+                ]
+            )
+            .shuffle(seed=config.seed)
         )
-        ds = ds.remove_columns(
-            column_names=[
-                column
-                for column in ds.column_names or list()
-                if column not in ["audio", "text"]
-            ]
-        )
-        ds = ds.shuffle(seed=config.seed)
 
-        if config.model.clean_dataset:
-            ds = clean_dataset(dataset=ds, characters_to_keep=config.characters_to_keep)
+        ds = process_dataset(
+            dataset=ds,
+            characters_to_keep=config.characters_to_keep,
+            text_column="text",
+            audio_column="audio",
+            lower_case=config.model.lower_case,
+            cast_to_sampling_rate=config.model.sampling_rate,
+        )
 
         all_datasets.append(ds)
 
@@ -166,14 +168,14 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
         if config.evaluation_dataset.audio_column != "audio":
             split = split.rename_column(config.evaluation_dataset.audio_column, "audio")
 
-        split = split.cast_column(
-            column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
+        split = process_dataset(
+            dataset=split,
+            characters_to_keep=config.characters_to_keep,
+            text_column="text",
+            audio_column="audio",
+            lower_case=config.model.lower_case,
+            cast_to_sampling_rate=config.model.sampling_rate,
         )
-        assert isinstance(split, IterableDataset)
-        if config.model.clean_dataset:
-            split = clean_dataset(
-                dataset=split, characters_to_keep=config.characters_to_keep
-            )
         dataset[new_split_name] = split
 
     return dataset
@@ -192,29 +194,196 @@ def load_dataset_for_evaluation(config: DictConfig) -> DatasetDict:
     dataset = DatasetDict()
     split_names = dict(val=config.val_name, test=config.test_name)
     for new_split_name, old_split_name in split_names.items():
-        split = load_dataset(
-            path=config.dataset_id,
-            split=old_split_name,
-            token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-            trust_remote_code=True,
+        split = (
+            load_dataset(
+                path=config.dataset_id,
+                split=old_split_name,
+                token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+                trust_remote_code=True,
+            )
+            .rename_column(config.text_column, "text")
+            .rename_column(config.audio_column, "audio")
         )
-        if config.text_column != "text":
-            split = split.rename_column(config.text_column, "text")
 
-        if config.audio_column != "audio":
-            split = split.rename_column(config.audio_column, "audio")
-
-        split = split.cast_column(
-            column="audio", feature=Audio(sampling_rate=config.cast_to_sampling_rate)
-        )
-        split = clean_dataset(
-            dataset=split, characters_to_keep=config.characters_to_keep
+        split = process_dataset(
+            dataset=split,
+            characters_to_keep=config.characters_to_keep,
+            text_column="text",
+            audio_column="audio",
+            lower_case=True,
+            cast_to_sampling_rate=config.cast_to_sampling_rate,
         )
         dataset[new_split_name] = split
     return dataset
 
 
-def clean_dataset(dataset: Data, characters_to_keep: str) -> Data:
+def filter_dataset(
+    dataset: Data,
+    audio_column: str,
+    min_seconds_per_example: int,
+    max_seconds_per_example: int,
+    train_name: str,
+    remove_maybe_validated: bool | None = None,
+) -> Data:
+    """Filter the dataset based on the validation status.
+
+    Note that this removes samples from the dataset.
+
+    Args:
+        dataset:
+            The dataset to filter.
+        audio_column:
+            The name of the column containing the audio.
+        min_seconds_per_example:
+            The minimum number of seconds that an example can have.
+        max_seconds_per_example:
+            The maximum number of seconds that an example can have.
+        train_name:
+            The name of the training split.
+        remove_maybe_validated:
+            Whether to remove samples that are validated as "maybe". This is only
+            relevant if `dataset` is a Dataset or IterableDataset. If `None`, then
+            we assume this is not needed. Defaults to `None`.
+
+    Returns:
+        The filtered dataset.
+
+    Raises:
+        ValueError:
+            If `remove_maybe_validated` is not `None` and `dataset` is not a
+            Dataset or IterableDataset.
+    """
+    assert (
+        not isinstance(dataset, Dataset | IterableDataset)
+        or remove_maybe_validated is not None
+    ), (
+        "The `remove_maybe_validated` argument needs to be specified if the dataset "
+        "is a Dataset."
+    )
+
+    logger.info("Filtering the dataset...")
+
+    if isinstance(dataset, Dataset):
+        assert remove_maybe_validated is not None
+        num_samples_before = len(dataset)
+        filter_fn = partial(
+            filter_examples,
+            remove_maybe_validated=remove_maybe_validated,
+            audio_column=audio_column,
+            min_seconds_per_example=min_seconds_per_example,
+            max_seconds_per_example=max_seconds_per_example,
+        )
+        dataset = dataset.filter(
+            filter_fn, batched=True, num_proc=mp.cpu_count(), desc="Filtering dataset"
+        )
+        num_samples_removed = num_samples_before - len(dataset)
+        logger.info(f"Removed {num_samples_removed:,} samples from the dataset")
+
+    elif isinstance(dataset, IterableDataset):
+        assert remove_maybe_validated is not None
+        filter_fn = partial(
+            filter_examples,
+            remove_maybe_validated=remove_maybe_validated,
+            audio_column=audio_column,
+            min_seconds_per_example=min_seconds_per_example,
+            max_seconds_per_example=max_seconds_per_example,
+        )
+        dataset = dataset.filter(filter_fn, batched=True)
+
+    elif isinstance(dataset, DatasetDict):
+        for split_name, split in dataset.items():
+            num_samples_before = len(split)
+            filter_fn = partial(
+                filter_examples,
+                remove_maybe_validated=not split_name == train_name,
+                audio_column=audio_column,
+                min_seconds_per_example=min_seconds_per_example,
+                max_seconds_per_example=max_seconds_per_example,
+            )
+            dataset[split_name] = split.filter(
+                filter_fn,
+                batched=True,
+                num_proc=mp.cpu_count(),
+                desc=f"Filtering {split_name} split",
+            )
+            num_samples_removed = num_samples_before - len(dataset[split_name])
+            logger.info(
+                f"Removed {num_samples_removed:,} samples from the {split_name} split."
+            )
+
+    elif isinstance(dataset, IterableDatasetDict):
+        for split_name, split in dataset.items():
+            filter_fn = partial(
+                filter_examples,
+                remove_maybe_validated=not split_name == train_name,
+                audio_column=audio_column,
+                min_seconds_per_example=min_seconds_per_example,
+                max_seconds_per_example=max_seconds_per_example,
+            )
+            dataset[split_name] = split.filter(filter_fn, batched=True)
+
+    return dataset
+
+
+def filter_examples(
+    samples: dict[str, Any],
+    remove_maybe_validated: bool,
+    audio_column: str,
+    min_seconds_per_example: int,
+    max_seconds_per_example: int,
+) -> list[bool]:
+    """Filter samples based on the validation status.
+
+    Args:
+        samples:
+            The samples to filter.
+        remove_maybe_validated:
+            Whether to remove samples that are validated as "maybe".
+        audio_column:
+            The name of the column containing the audio.
+        min_seconds_per_example:
+            The minimum number of seconds that an example can have.
+        max_seconds_per_example:
+            The maximum number of seconds that an example can
+
+    Returns:
+        A list of booleans indicating whether the samples should be kept.
+    """
+    idxs_too_short = [
+        audio_dct["array"].shape[0]
+        < audio_dct["sampling_rate"] * min_seconds_per_example
+        for audio_dct in samples[audio_column]
+    ]
+    idxs_too_long = [
+        audio_dct["array"].shape[0]
+        > audio_dct["sampling_rate"] * max_seconds_per_example
+        for audio_dct in samples[audio_column]
+    ]
+    if "validated" in samples:
+        idxs_rejected = [
+            validated in {"rejected", "maybe"}
+            if remove_maybe_validated
+            else validated == "rejected"
+            for validated in samples["validated"]
+        ]
+    else:
+        idxs_rejected = [False] * len(samples[audio_column])
+    return [
+        not (too_short or too_long or rejected)
+        for too_short, too_long, rejected in zip(
+            idxs_too_short, idxs_too_long, idxs_rejected
+        )
+    ]
+
+
+def process_dataset(
+    dataset: Data,
+    characters_to_keep: str,
+    text_column: str,
+    audio_column: str,
+    lower_case: bool,
+    cast_to_sampling_rate: int | None = None,
+) -> Data:
     """Clean the transcriptions in a dataset.
 
     Args:
@@ -223,10 +392,25 @@ def clean_dataset(dataset: Data, characters_to_keep: str) -> Data:
         characters_to_keep:
             A string containing all the characters that should be kept in the
             transcriptions.
+        text_column:
+            The name of the column containing the text.
+        audio_column:
+            The name of the column containing the audio.
+        lower_case:
+            Whether to make the text lower case.
+        cast_to_sampling_rate:
+            The sampling rate to cast the audio to. If `None`, then the audio is not
+            cast. Defaults to `None`.
 
     Returns:
         The cleaned dataset.
     """
+    logger.info("Processing the dataset...")
+
+    dataset = dataset.cast_column(
+        column=audio_column, feature=Audio(sampling_rate=cast_to_sampling_rate)
+    )
+
     # Dictionary that contains characters to be converted (from the key to the value).
     # Some values contain spaces to ensure that they're separated from other
     # characters, and superfluous spaces are removed later. Note also that these are
@@ -268,29 +452,27 @@ def clean_dataset(dataset: Data, characters_to_keep: str) -> Data:
         "\u200b": " ",  # Empty whitespace symbol
     }
 
-    # This contains all the punctuation characters that will be removed from the
-    # transcriptions, as they do not have an influence on the pronunciation of the
-    # words.
-    non_standard_characters_regex = re.compile(
-        f"[^{re.escape(characters_to_keep + ' |')}]"
+    func = partial(
+        process_example,
+        characters_to_keep=characters_to_keep,
+        conversion_dict=conversion_dict,
+        text_column=text_column,
+        lower_case=lower_case,
     )
-
-    mapped = dataset.map(
-        partial(
-            clean_example,
-            non_standard_characters_regex=non_standard_characters_regex,
-            conversion_dict=conversion_dict,
+    if isinstance(dataset, Dataset | DatasetDict):
+        mapped = dataset.map(
+            function=func, num_proc=mp.cpu_count(), desc="Processing dataset"
         )
-    )
+    else:
+        mapped = dataset.map(function=func)
 
     # After calling `map` the DatasetInfo is lost, so we need to add it back in
-    if (isinstance(dataset, Dataset) and isinstance(mapped, Dataset)) or (
-        isinstance(dataset, IterableDataset) and isinstance(mapped, IterableDataset)
+    if isinstance(dataset, Dataset | IterableDataset) and isinstance(
+        mapped, Dataset | IterableDataset
     ):
         mapped._info = dataset._info
-    elif (isinstance(dataset, DatasetDict) and isinstance(mapped, DatasetDict)) or (
-        isinstance(dataset, IterableDatasetDict)
-        and isinstance(mapped, IterableDatasetDict)
+    elif isinstance(dataset, DatasetDict | IterableDatasetDict) and isinstance(
+        mapped, DatasetDict | IterableDatasetDict
     ):
         for key, value in dataset.items():
             if key in mapped:
@@ -299,23 +481,27 @@ def clean_dataset(dataset: Data, characters_to_keep: str) -> Data:
     return mapped
 
 
-def clean_example(
+def process_example(
     example: dict,
-    non_standard_characters_regex: re.Pattern[str],
+    characters_to_keep: str,
     conversion_dict: dict[str, str],
-    text_column: str = "text",
+    text_column: str,
+    lower_case: bool,
 ) -> dict:
     """Helper function which cleans a single example.
 
     Args:
         example:
             The example to be cleaned.
-        non_standard_characters_regex:
-            A compiled regex expression that matches all non-standard characters.
+        characters_to_keep:
+            A string containing all the characters that should be kept in the
+            transcriptions.
         conversion_dict:
             A dictionary of characters to be converted.
         text_column:
             The name of the column containing the text.
+        lower_case:
+            Whether to make the text lower case.
 
     Returns:
         The cleaned example.
@@ -329,7 +515,16 @@ def clean_example(
     for key, value in conversion_dict.items():
         doc = doc.replace(key, value)
 
+    if lower_case:
+        doc = doc.lower()
+        characters_to_keep = characters_to_keep.lower()
+    else:
+        characters_to_keep = characters_to_keep.lower() + characters_to_keep.upper()
+
     # Remove all non-standard characters, and make the document lower case
+    non_standard_characters_regex = re.compile(
+        f"[^{re.escape(characters_to_keep + ' |')}]"
+    )
     doc = re.sub(non_standard_characters_regex, " ", doc.lower().strip())
 
     # Replace superfluous spaces

@@ -5,17 +5,14 @@ Usage:
 """
 
 import logging
-import multiprocessing as mp
 import re
 import warnings
-from functools import partial
 from time import sleep
-from typing import Any
 
 import evaluate
 import hydra
 import torch
-from coral.data import clean_example
+from coral.data import filter_dataset, process_dataset
 from datasets import Dataset, DatasetDict, enable_progress_bar, load_dataset
 from omegaconf import DictConfig
 from requests import HTTPError
@@ -76,8 +73,11 @@ def main(config: DictConfig) -> None:
     if config.process_dataset:
         dataset = process_dataset(
             dataset=dataset,
-            non_standard_characters_regex=non_standard_characters_regex,
+            characters_to_keep=config.characters_to_keep,
             text_column=config.text_column,
+            audio_column=config.audio_column,
+            lower_case=True,
+            cast_to_sampling_rate=config.sampling_rate,
         )
 
     logger.info(f"Loading the {config.model_id!r} ASR model...")
@@ -101,6 +101,7 @@ def main(config: DictConfig) -> None:
             metric_names=metric_names,
             non_standard_characters_regex=non_standard_characters_regex,
             text_column=config.text_column,
+            audio_column=config.audio_column,
             batch_size=config.batch_size,
         )
 
@@ -178,188 +179,13 @@ def main(config: DictConfig) -> None:
     logger.info("All done!")
 
 
-def filter_dataset(
-    dataset: DatasetDict,
-    audio_column: str,
-    min_seconds_per_example: int,
-    max_seconds_per_example: int,
-    train_name: str,
-) -> DatasetDict:
-    """Filter the dataset based on the validation status.
-
-    Note that this removes samples from the dataset.
-
-    Args:
-        dataset:
-            The dataset to filter.
-        audio_column:
-            The name of the column containing the audio.
-        min_seconds_per_example:
-            The minimum number of seconds that an example can have.
-        max_seconds_per_example:
-            The maximum number of seconds that an example can have.
-        train_name:
-            The name of the training split.
-
-    Returns:
-        The filtered dataset.
-    """
-    logger.info("Filtering the dataset...")
-
-    def filter_samples(
-        samples: dict[str, Any], remove_maybe_validated: bool
-    ) -> list[bool]:
-        """Filter samples based on the validation status.
-
-        Args:
-            samples:
-                The samples to filter.
-            remove_maybe_validated:
-                Whether to remove samples that are validated as "maybe".
-
-        Returns:
-            A list of booleans indicating whether the samples should be kept.
-        """
-        idxs_too_short = [
-            audio_dct["array"].shape[0]
-            < audio_dct["sampling_rate"] * min_seconds_per_example
-            for audio_dct in samples[audio_column]
-        ]
-        idxs_too_long = [
-            audio_dct["array"].shape[0]
-            > audio_dct["sampling_rate"] * max_seconds_per_example
-            for audio_dct in samples[audio_column]
-        ]
-        if "validated" in samples:
-            idxs_rejected = [
-                validated in {"rejected", "maybe"}
-                if remove_maybe_validated
-                else validated == "rejected"
-                for validated in samples["validated"]
-            ]
-        else:
-            idxs_rejected = [False] * len(samples[audio_column])
-        return [
-            not (too_short or too_long or rejected)
-            for too_short, too_long, rejected in zip(
-                idxs_too_short, idxs_too_long, idxs_rejected
-            )
-        ]
-
-    for split_name, split in dataset.items():
-        num_samples_before = len(split)
-        filter_fn = partial(
-            filter_samples, remove_maybe_validated=not split_name == train_name
-        )
-        dataset[split_name] = split.filter(
-            filter_fn,
-            batched=True,
-            num_proc=mp.cpu_count(),
-            desc=f"Filtering {split_name} split",
-        )
-        num_samples_removed = num_samples_before - len(dataset[split_name])
-        logger.info(
-            f"Removed {num_samples_removed:,} samples from the {split_name} split."
-        )
-
-    return dataset
-
-
-def process_dataset(
-    dataset: DatasetDict,
-    non_standard_characters_regex: re.Pattern[str],
-    text_column: str,
-) -> DatasetDict:
-    """Process a dataset for ASR.
-
-    Note that this does not remove any samples from the dataset, but only processes the
-    existing samples.
-
-    Args:
-        dataset:
-            The dataset to clean.
-        non_standard_characters_regex:
-            Regular expression that matches all characters that should be removed from
-            the transcriptions.
-        text_column:
-            The name of the column containing the transcriptions.
-
-    Returns:
-        The processed dataset.
-    """
-    logger.info("Processing the dataset...")
-
-    # Dictionary that contains characters to be converted (from the key to the value).
-    # Some values contain spaces to ensure that they're separated from other
-    # characters, and superfluous spaces are removed later. Note also that these are
-    # converted in the order they appear in the dictionary.
-    conversion_dict = {
-        "aa": "å",
-        "ğ": "g",
-        "ñ": "n",
-        "ń": "n",
-        "è": "e",
-        "kg": " kilo ",
-        "μg": " mikrogram ",
-        "-": " minus ",
-        "+": " plus ",
-        "μ": " mikro ",
-        "§": " paragraf ",
-        "%": " procent ",
-        "‰": " promille ",
-        "ú": "u",
-        "ş": "s",
-        "ê": "e",
-        "ã": "a",
-        "ë": "e",
-        "ć": "c",
-        "ä": "æ",
-        "í": "i",
-        "š": "s",
-        "î": "i",
-        "ě": "e",
-        "ð": "d",
-        "á": "a",
-        "ó": "o",
-        "þ": "th",
-        "ı": "i",
-        "ö": "ø",
-        "ç": "c",
-        "ș": "s",
-        "\u0301": " ",  # Empty whitespace symbol
-        "\u200b": " ",  # Empty whitespace symbol
-    }
-
-    def clean_examples(examples: dict[str, list]) -> dict:
-        """Clean the transcriptions in the examples.
-
-        Args:
-            examples:
-                The examples to clean.
-
-        Returns:
-            The cleaned examples.
-        """
-        examples[text_column] = [
-            clean_example(
-                example={text_column: sample_text},
-                non_standard_characters_regex=non_standard_characters_regex,
-                conversion_dict=conversion_dict,
-                text_column=text_column,
-            )[text_column]
-            for sample_text in examples[text_column]
-        ]
-        return examples
-
-    return dataset.map(clean_examples, batched=True, num_proc=mp.cpu_count())
-
-
 def compute_metrics(
     dataset: Dataset,
     transcriber: AutomaticSpeechRecognitionPipeline,
     metric_names: list[str],
     non_standard_characters_regex: re.Pattern[str],
     text_column: str,
+    audio_column: str,
     batch_size: int,
 ) -> tuple[list[str], list[str], dict[str, list[float]]]:
     """Compute the metrics for the dataset.
@@ -377,6 +203,8 @@ def compute_metrics(
             the transcriptions.
         text_column:
             The name of the column containing the transcriptions.
+        audio_column:
+            The name of the column containing the audio samples.
         batch_size:
             The batch size to use for transcribing the audio.
 
@@ -395,7 +223,9 @@ def compute_metrics(
     predictions: list[str] = list()
 
     with tqdm(total=len(dataset), desc="Transcribing") as pbar:
-        for out in transcriber(KeyDataset(dataset, "audio"), batch_size=batch_size):
+        for out in transcriber(
+            KeyDataset(dataset, audio_column), batch_size=batch_size
+        ):
             prediction = re.sub(
                 pattern=non_standard_characters_regex,
                 repl="",
