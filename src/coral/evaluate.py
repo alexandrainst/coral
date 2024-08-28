@@ -34,7 +34,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     """
     assert (
         config.model_id is not None
-    ), "The `model_id` must be set in the configuration."
+    ), "`model_id` must be set to perform an evaluation!"
 
     dataset = load_dataset_for_evaluation(config=config)
 
