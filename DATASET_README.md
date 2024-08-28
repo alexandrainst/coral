@@ -164,14 +164,22 @@ The conversational data is not yet available, but we are working on it and plan 
 release it during 2024.
 
 
-## Example Applications
-- ASR Model Training: Train robust ASR models that can handle dialectal variations and
-  diverse speaker demographics in Danish.
-- Dialect Studies: Analyse the linguistic features of different Danish dialects.
+## Example Use Cases
 
-**Note** Speech Synthesis and Biometric Identification are not allowed using CoRal. For
-more information see
-[license](https://huggingface.co/datasets/alexandrainst/coral/blob/main/LICENSE) ad. 4
+### ASR Model Training
+
+Train robust ASR models that can handle dialectal variations and diverse speaker
+demographics in Danish.
+
+### Dialect Studies
+
+Analyse the linguistic features of different Danish dialects.
+
+### Forbidden Use Cases
+
+Speech Synthesis and Biometric Identification are not allowed using the CoRal dataset.
+For more information see addition 4 in our
+[license](https://huggingface.co/datasets/alexandrainst/coral/blob/main/LICENSE).
 
 
 ## License
