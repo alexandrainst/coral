@@ -1,8 +1,8 @@
 # Loading the dataset to be validated
 dataset_id: alexandrainst/coral
 dataset_subset: read_aloud
-train_split: train
 dataset_revision: null
+train_name: train
 text_column: text
 audio_column: audio
 cache_dir: null
