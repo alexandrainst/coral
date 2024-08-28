@@ -1,50 +1,21 @@
 # Evaluation dataset parameters
 dataset_id: alexandrainst/coral
-subset: read_aloud
+dataset_subset: read_aloud
+dataset_revision: null
 val_name: val
 test_name: test
 text_column: text
 audio_column: audio
 
-# Dataset parameters
-characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
+# Filtering of the dataset
+filter_dataset: true
+min_seconds_per_example: 0.5
 max_seconds_per_example: 10
-dataloader_num_workers: 4
 
-# Can be `longest`, `max_length` or `do_not_pad`
-# NOTE: This is automatically set to `max_length` in a multi-gpu setting
-padding: longest
+# Processing of the dataset
+process_dataset: true
+characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
 
-# This is a list of the sampling probability of each dataset, where null means that
-# each dataset will be sampled equally often
-dataset_probabilities: null
-
-# Model parameters
-model_id: ${model.name}-${now:%Y-%m-%d}
-model_dir: models/${model_id}
-hub_organisation: alexandrainst
-push_to_hub: false
-fp16: true
-
-# Training parameters
-wandb: false
-wandb_project: CoRal
-wandb_group: default
-wandb_name: ${model_id}
-resume_from_checkpoint: false
-ignore_data_skip: false
-save_total_limit: 1
-
-# Optimisation parameters
-learning_rate: 1e-4
-adam_first_momentum: 0.9
-adam_second_momentum: 0.98
-total_batch_size: 256
-per_device_batch_size: 16
-max_steps: 10_000
-warmup_steps: 1_000
-logging_steps: 100
-eval_steps: 500
-save_steps: 500
-early_stopping: false
-early_stopping_patience: 50
+# Evaluation parameters
+model_id: null
+batch_size: 16
