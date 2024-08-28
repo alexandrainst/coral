@@ -72,7 +72,8 @@ print(f"Text: {transcription}")
 
 ### Train Split
 
-There are 365.50 hours of audio in the train split, with 565 speakers.
+There are ~365 hours of audio in the train split, with ~565 speakers, reading ~152,000
+unique sentences aloud.
 
 Gender distribution:
 - female: 74%
@@ -100,7 +101,8 @@ Age group distribution:
 
 ### Validation Split
 
-There are 2.97 hours of audio in the validation split, with 10 speakers.
+There are 2.97 hours of audio in the validation split, with 10 speakers, reading 1,789
+unique sentences aloud.
 
 Gender distribution:
 - female: 45%
@@ -128,7 +130,8 @@ Age group distribution:
 
 ### Test Split
 
-There are 8.44 hours of audio in the test split, with 22 speakers.
+There are 8.44 hours of audio in the test split, with 22 speakers, reading 5,287 unique
+sentences aloud.
 
 Gender distribution:
   - female: 58%
