@@ -64,6 +64,7 @@ def main(config: DictConfig) -> None:
     if config.process_dataset:
         dataset = process_dataset(
             dataset=dataset,
+            clean_text=True,
             characters_to_keep=config.characters_to_keep,
             text_column=config.text_column,
             audio_column=config.audio_column,

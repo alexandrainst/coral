@@ -57,10 +57,11 @@ def train_ngram_model(config: DictConfig) -> None:
             enable_progress_bar()
             dataset = process_dataset(
                 dataset=dataset,
+                clean_text=config.model.clean_text,
                 characters_to_keep=config.characters_to_keep,
                 text_column=config.model.decoder.text_column,
                 audio_column=None,
-                lower_case=True,
+                lower_case=config.model.lower_case,
             )
             assert isinstance(dataset, Dataset)
 
