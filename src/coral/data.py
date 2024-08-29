@@ -225,7 +225,7 @@ def filter_dataset(
     train_name: str | None = None,
     remove_maybe_validated: bool | None = None,
 ) -> Data:
-    """Filter the dataset based on the validation status.
+    """Filter the dataset.
 
     Note that this removes samples from the dataset.
 
@@ -390,11 +390,13 @@ def process_dataset(
     dataset: Data,
     characters_to_keep: str,
     text_column: str,
-    audio_column: str,
+    audio_column: str | None,
     lower_case: bool,
     cast_to_sampling_rate: int | None = None,
 ) -> Data:
-    """Clean the transcriptions in a dataset.
+    """Process the dataset.
+
+    Note that this does not remove any samples from the dataset.
 
     Args:
         dataset:
@@ -405,7 +407,8 @@ def process_dataset(
         text_column:
             The name of the column containing the text.
         audio_column:
-            The name of the column containing the audio.
+            The name of the column containing the audio. Can be `None` if the dataset
+            does not have an audio column.
         lower_case:
             Whether to make the text lower case.
         cast_to_sampling_rate:
@@ -417,9 +420,10 @@ def process_dataset(
     """
     logger.info("Processing the dataset...")
 
-    dataset = dataset.cast_column(
-        column=audio_column, feature=Audio(sampling_rate=cast_to_sampling_rate)
-    )
+    if audio_column is not None:
+        dataset = dataset.cast_column(
+            column=audio_column, feature=Audio(sampling_rate=cast_to_sampling_rate)
+        )
 
     # Dictionary that contains characters to be converted (from the key to the value).
     # Some values contain spaces to ensure that they're separated from other

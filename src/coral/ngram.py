@@ -13,7 +13,7 @@ from omegaconf import DictConfig
 from pyctcdecode.decoder import build_ctcdecoder
 from transformers import Wav2Vec2Processor, Wav2Vec2ProcessorWithLM
 
-from .data import clean_dataset
+from .data import process_dataset
 
 
 def train_ngram_model(config: DictConfig) -> None:
@@ -55,14 +55,18 @@ def train_ngram_model(config: DictConfig) -> None:
             assert isinstance(dataset, Dataset)
 
             enable_progress_bar()
-            dataset = clean_dataset(
-                dataset=dataset, characters_to_keep=config.characters_to_keep
+            dataset = process_dataset(
+                dataset=dataset,
+                characters_to_keep=config.characters_to_keep,
+                text_column=config.model.decoder.text_column,
+                audio_column=None,
+                lower_case=True,
             )
             assert isinstance(dataset, Dataset)
 
             # Deduplicating the sentences in the dataset is required when training the
             # n-gram language model
-            sentences = list(set(dataset["text"]))
+            sentences = list(set(dataset[config.model.decoder.text_column]))
 
             with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as text_file:
                 # Dump dataset to a temporary text file
@@ -144,6 +148,11 @@ def train_ngram_model(config: DictConfig) -> None:
             str(new_ngram_path.with_suffix(".bin")),
         ]
     )
+
+    if config.push_to_hub:
+        processor_with_lm.push_to_hub(
+            repo_id=f"{config.hub_organisation}/{config.model_id}"
+        )
 
     # Remove the uncompressed ngram model, as we only need the compressed version
     if new_ngram_path.exists():
