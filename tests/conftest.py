@@ -1,10 +1,12 @@
 """General functions and fixtures related to `pytest`."""
 
 import itertools as it
+import os
 import sys
 from collections.abc import Generator
 
 import pytest
+from datasets import Dataset, load_dataset
 from dotenv import load_dotenv
 from hydra import compose, initialize
 from omegaconf import DictConfig
@@ -51,3 +53,22 @@ def finetuning_config(request) -> Generator[DictConfig, None, None]:
             "save_total_limit=0",
         ],
     )
+
+
+@pytest.fixture(scope="session")
+def dataset(finetuning_config) -> Generator[Dataset, None, None]:
+    """Load the dataset for testing."""
+    dataset_config = list(finetuning_config.datasets.values())[0]
+    dataset = load_dataset(
+        path=dataset_config.id,
+        name=dataset_config.subset,
+        split=dataset_config.train_name,
+        token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+        trust_remote_code=True,
+    )
+    assert isinstance(dataset, Dataset)
+    if dataset_config.text_column != "text":
+        dataset = dataset.rename_column(dataset_config.text_column, "text")
+    if dataset_config.audio_column != "audio":
+        dataset = dataset.rename_column(dataset_config.audio_column, "audio")
+    yield dataset

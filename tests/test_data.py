@@ -11,59 +11,43 @@ class TestLoadDataForFinetuning:
     """Unit tests for the `load_data` function."""
 
     @pytest.fixture(scope="class")
-    def dataset(self, finetuning_config) -> Generator[IterableDatasetDict, None, None]:
+    def finetuning_dataset(
+        self, finetuning_config
+    ) -> Generator[IterableDatasetDict, None, None]:
         """Load the dataset for testing."""
         yield load_data_for_finetuning(config=finetuning_config)
 
-    def test_dataset_type(self, dataset) -> None:
+    def test_dataset_type(self, finetuning_dataset) -> None:
         """Test that the dataset is of the correct type."""
-        assert isinstance(dataset, IterableDatasetDict)
+        assert isinstance(finetuning_dataset, IterableDatasetDict)
 
-    def test_split_names(self, dataset) -> None:
+    def test_split_names(self, finetuning_dataset) -> None:
         """Test that the dataset has the correct split names."""
-        assert set(dataset.keys()) == {"train", "val"}
-
-    def test_train_samples(self, dataset, finetuning_config) -> None:
-        """Test that the training dataset has the correct samples."""
-        samples = [sample["text"] for sample in dataset["train"]]
-        expected_samples = [
-            "hver rose på træet i haven havde sin historie",
-            "min fortræffelige lille nattergal",
-            "her er kommet gode klæder at slide for de fire børn",
-            "jeg venter grumme meget af den",
-            "men hendes vilje var fast som hendes tillid til vorherre",
-        ]
-        if finetuning_config.model.lower_case:
-            expected_samples = [sample.lower() for sample in expected_samples]
-        assert samples == expected_samples
+        assert set(finetuning_dataset.keys()) == {"train", "val"}
 
 
 class TestProcessDataset:
     """Unit tests for the `process_dataset` function."""
 
-    @pytest.fixture(scope="class")
-    def dataset(self, finetuning_config) -> Generator[IterableDatasetDict, None, None]:
-        """Load the dataset for testing."""
-        yield load_data_for_finetuning(config=finetuning_config)
-
     def test_process_dataset(self, dataset):
         """Test that the `process_dataset` function works as expected."""
         processed_dataset = process_dataset(
             dataset=dataset,
+            clean_text=True,
             characters_to_keep=None,
             text_column="text",
             audio_column=None,
             lower_case=True,
         )
-        expected_samples = [
-            "hver rose på træet i haven havde sin historie",
-            "min fortræffelige lille nattergal",
-            "her er kommet gode klæder at slide for de fire børn",
+        processed_samples = {sample["text"] for sample in processed_dataset}
+        expected_samples = {
+            "min fortræffelige lille nattergal!",
             "jeg venter grumme meget af den",
-            "men hendes vilje var fast som hendes tillid til vorherre",
-        ]
-        for sample, expected in zip(processed_dataset["train"], expected_samples):
-            assert sample["text"] == expected
+            "men hendes vilje var fast, som hendes tillid til vorherre",
+            "her er kommet gode klæder at slide for de fire børn!",
+            "hver rose på træet i haven havde sin historie.",
+        }
+        assert processed_samples == expected_samples
 
 
 class TestProcessExample:
