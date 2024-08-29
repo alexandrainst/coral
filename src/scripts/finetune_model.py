@@ -8,9 +8,10 @@ import logging
 import os
 
 import hydra
-from coral.finetune import finetune
 from dotenv import load_dotenv
 from omegaconf import DictConfig
+
+from coral.finetune import finetune
 
 logger = logging.getLogger(__name__)
 

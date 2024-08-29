@@ -3,8 +3,9 @@
 from collections.abc import Generator
 
 import pytest
-from coral.data import load_data_for_finetuning, process_dataset, process_example
 from datasets import IterableDatasetDict
+
+from coral.data import load_data_for_finetuning, process_dataset, process_example
 
 
 class TestLoadDataForFinetuning:

@@ -10,12 +10,13 @@ from time import sleep
 
 import hydra
 import torch
-from coral.compute_metrics import compute_metrics_of_dataset_using_pipeline
-from coral.data import filter_dataset, process_dataset
 from datasets import Dataset, DatasetDict, enable_progress_bar, load_dataset
 from omegaconf import DictConfig
 from requests import HTTPError
 from transformers import AutomaticSpeechRecognitionPipeline, pipeline
+
+from coral.compute_metrics import compute_metrics_of_dataset_using_pipeline
+from coral.data import filter_dataset, process_dataset
 
 logging.basicConfig(
     level=logging.INFO,

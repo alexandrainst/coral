@@ -7,9 +7,10 @@ Usage:
 import logging
 
 import hydra
-from coral.evaluate import evaluate
 from dotenv import load_dotenv
 from omegaconf import DictConfig
+
+from coral.evaluate import evaluate
 
 load_dotenv()
 

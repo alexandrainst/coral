@@ -5,8 +5,9 @@ Usage:
 """
 
 import hydra
-from coral.ngram import train_ngram_model
 from omegaconf import DictConfig
+
+from coral.ngram import train_ngram_model
 
 
 @hydra.main(config_path="../../config", config_name="finetuning", version_base=None)
