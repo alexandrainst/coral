@@ -62,7 +62,7 @@ def main(config: DictConfig) -> None:
         )
 
     if config.process_dataset:
-        dataset = process_dataset(
+        processed_dataset = process_dataset(
             dataset=dataset,
             clean_text=True,
             characters_to_keep=config.characters_to_keep,
@@ -85,7 +85,7 @@ def main(config: DictConfig) -> None:
     assert isinstance(transcriber, AutomaticSpeechRecognitionPipeline)
 
     metric_names = [metric.name.lower() for metric in config.metrics]
-    for split_name, split in dataset.items():
+    for split_name, split in processed_dataset.items():
         logger.info(f"Validating the {split_name} split of the dataset...")
         predictions, labels, score_dict = compute_metrics_of_dataset_using_pipeline(
             dataset=split,
