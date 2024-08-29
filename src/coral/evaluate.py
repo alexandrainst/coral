@@ -9,8 +9,7 @@ from dotenv import load_dotenv
 from omegaconf import DictConfig
 from transformers import AutomaticSpeechRecognitionPipeline, pipeline
 
-from coral.compute_metrics import compute_metrics_of_dataset_using_pipeline
-
+from .compute_metrics import compute_metrics_of_dataset_using_pipeline
 from .data import load_dataset_for_evaluation
 
 load_dotenv()

@@ -9,8 +9,7 @@ from pathlib import Path
 import datasets.utils.logging as ds_logging
 import tqdm as tqdm_package
 import transformers.utils.logging as hf_logging
-from datasets import Dataset, IterableDataset
-from tqdm.auto import tqdm
+from datasets import Dataset, IterableDataset, NamedSplit
 
 
 def block_terminal_output() -> None:
@@ -75,15 +74,20 @@ def disable_tqdm():
 
 
 def convert_iterable_dataset_to_dataset(
-    iterable_dataset: IterableDataset, dataset_id: str | None = None
+    iterable_dataset: IterableDataset,
+    split_name: str = "train",
+    dataset_id: str | None = None,
 ) -> Dataset:
     """Convert an IterableDataset to a Dataset.
 
     Args:
         iterable_dataset:
             The IterableDataset to convert.
-        dataset_id:
-            The ID of the dataset, which is used to store and re-load the dataset.
+        split_name (optional):
+            The name of the split. Defaults to "train".
+        dataset_id (optional):
+            The ID of the dataset, which is used to store and re-load the dataset. If
+            None then the dataset is not stored. Defaults to None.
 
     Returns:
         The converted Dataset.
@@ -94,10 +98,12 @@ def convert_iterable_dataset_to_dataset(
             return Dataset.load_from_disk(str(dataset_dir))
 
     def gen_from_iterable_dataset():
-        yield from tqdm(iterable=iterable_dataset)
+        yield from iterable_dataset
 
     dataset = Dataset.from_generator(
-        generator=gen_from_iterable_dataset, features=iterable_dataset.features
+        generator=gen_from_iterable_dataset,
+        features=iterable_dataset.features,
+        split=NamedSplit(name=split_name),
     )
     assert isinstance(dataset, Dataset)
 

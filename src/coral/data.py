@@ -22,6 +22,8 @@ from datasets import (
 )
 from omegaconf import DictConfig
 
+from .utils import convert_iterable_dataset_to_dataset
+
 logger = logging.getLogger(__package__)
 
 
@@ -206,9 +208,9 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
         trust_remote_code=True,
         cache_dir=config.cache_dir,
+        streaming=True,
     )
-
-    assert isinstance(dataset, Dataset)
+    assert isinstance(dataset, IterableDataset)
     dataset = filter_dataset(
         dataset=dataset,
         audio_column="audio",
@@ -224,6 +226,9 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         audio_column="audio",
         lower_case=config.lower_case,
         cast_to_sampling_rate=config.sampling_rate,
+    )
+    dataset = convert_iterable_dataset_to_dataset(
+        iterable_dataset=dataset, split_name=config.eval_split_name
     )
     return dataset
 
