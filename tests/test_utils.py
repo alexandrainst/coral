@@ -2,8 +2,9 @@
 
 import datasets.utils.logging as ds_logging
 import transformers.utils.logging as hf_logging
-from coral.utils import block_terminal_output, transformers_output_ignored
 from datasets.utils import enable_progress_bar
+
+from coral.utils import block_terminal_output, transformers_output_ignored
 
 
 class output_blocked:

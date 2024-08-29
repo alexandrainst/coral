@@ -1,8 +1,9 @@
 """Data models used throughout the project."""
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Type, TypeAlias
+from typing import Type, TypeAlias
 
 from omegaconf import DictConfig
 from transformers import (

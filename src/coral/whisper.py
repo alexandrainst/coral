@@ -2,9 +2,10 @@
 
 import logging
 import sys
+from collections.abc import Callable
 from functools import partial
 from pathlib import Path
-from typing import Callable, Type
+from typing import Type
 
 import torch
 from omegaconf import DictConfig

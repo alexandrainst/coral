@@ -4,7 +4,8 @@ pretrained_model_id: chcaa/xls-r-300m-danish
 freeze_feature_encoder: false
 
 # Data hyperparameters
-clean_dataset: true
+lower_case: true
+clean_text: true
 
 # Model hyperparameters
 sampling_rate: 16_000
@@ -26,4 +27,5 @@ decoder:
   dataset_id: alexandrainst/scandi-wiki
   dataset_subset: da
   dataset_split: train
+  text_column: text
   n: 5

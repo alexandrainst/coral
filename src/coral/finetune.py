@@ -3,15 +3,15 @@
 import logging
 import os
 import warnings
+from collections.abc import Callable
 from functools import partial
-from typing import Callable
 
 from omegaconf import DictConfig
 from transformers import EarlyStoppingCallback, TrainerCallback
 from wandb.sdk.wandb_init import init as wandb_init
 from wandb.sdk.wandb_run import finish as wandb_finish
 
-from .data import load_data
+from .data import load_data_for_finetuning
 from .data_models import ModelSetup
 from .model_setup import load_model_setup
 from .ngram import train_ngram_model
@@ -35,7 +35,7 @@ def finetune(config: DictConfig) -> None:
     processor = model_setup.load_processor()
     processor.save_pretrained(model_dir)
     model = model_setup.load_model()
-    dataset = load_data(config=config)
+    dataset = load_data_for_finetuning(config=config)
 
     dataset = dataset.map(
         function=partial(prepare_dataset_example, processor=processor),

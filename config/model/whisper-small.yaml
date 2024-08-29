@@ -4,7 +4,8 @@ pretrained_model_id: openai/whisper-small
 freeze_feature_encoder: false
 
 # Data hyperparameters
-clean_dataset: false
+lower_case: false
+clean_text: false
 
 # Model hyperparameters
 sampling_rate: 16_000

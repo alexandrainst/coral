@@ -4,7 +4,8 @@ pretrained_model_id: chcaa/xls-r-300m-danish
 freeze_feature_encoder: true
 
 # Data hyperparameters
-clean_dataset: true
+lower_case: true
+clean_text: true
 
 # Model hyperparameters
 sampling_rate: 16_000

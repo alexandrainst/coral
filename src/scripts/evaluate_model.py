@@ -7,9 +7,10 @@ Usage:
 import logging
 
 import hydra
-from coral.evaluate import evaluate
 from dotenv import load_dotenv
 from omegaconf import DictConfig
+
+from coral.evaluate import evaluate
 
 load_dotenv()
 
@@ -17,7 +18,7 @@ load_dotenv()
 logger = logging.getLogger("coral")
 
 
-@hydra.main(config_path="../../config", config_name="config", version_base=None)
+@hydra.main(config_path="../../config", config_name="evaluation", version_base=None)
 def main(config: DictConfig) -> None:
     """Evaluate a speech model on a dataset.
 

@@ -1,12 +1,12 @@
 """General functions and fixtures related to `pytest`."""
 
 import itertools as it
+import os
 import sys
-from typing import Generator
+from collections.abc import Generator
 
 import pytest
-from coral.data import load_data
-from datasets import DatasetDict, IterableDatasetDict
+from datasets import Dataset, load_dataset
 from dotenv import load_dotenv
 from hydra import compose, initialize
 from omegaconf import DictConfig
@@ -38,11 +38,11 @@ def pytest_unconfigure() -> None:
     ),
     ids=lambda x: f"model: {x[0]}, dataset: {x[1]}",
 )
-def config(request) -> Generator[DictConfig, None, None]:
+def finetuning_config(request) -> Generator[DictConfig, None, None]:
     """Hydra configuration."""
     model, datasets = request.param
     yield compose(
-        config_name="config",
+        config_name="finetuning",
         overrides=[
             f"model={model}",
             f"datasets={datasets}",
@@ -56,6 +56,19 @@ def config(request) -> Generator[DictConfig, None, None]:
 
 
 @pytest.fixture(scope="session")
-def dataset(config) -> Generator[DatasetDict | IterableDatasetDict, None, None]:
-    """ASR Dataset."""
-    yield load_data(config=config)
+def dataset(finetuning_config) -> Generator[Dataset, None, None]:
+    """Load the dataset for testing."""
+    dataset_config = list(finetuning_config.datasets.values())[0]
+    dataset = load_dataset(
+        path=dataset_config.id,
+        name=dataset_config.subset,
+        split=dataset_config.train_name,
+        token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+        trust_remote_code=True,
+    )
+    assert isinstance(dataset, Dataset)
+    if dataset_config.text_column != "text":
+        dataset = dataset.rename_column(dataset_config.text_column, "text")
+    if dataset_config.audio_column != "audio":
+        dataset = dataset.rename_column(dataset_config.audio_column, "audio")
+    yield dataset
