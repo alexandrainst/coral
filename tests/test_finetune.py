@@ -3,6 +3,6 @@
 from coral.finetune import finetune
 
 
-def test_finetune(config):
+def test_finetune(finetuning_config):
     """Test the `finetune` function."""
-    finetune(config=config)
+    finetune(config=finetuning_config)

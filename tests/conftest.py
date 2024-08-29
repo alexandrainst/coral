@@ -5,8 +5,6 @@ import sys
 from typing import Generator
 
 import pytest
-from coral.data import load_data
-from datasets import DatasetDict, IterableDatasetDict
 from dotenv import load_dotenv
 from hydra import compose, initialize
 from omegaconf import DictConfig
@@ -38,11 +36,11 @@ def pytest_unconfigure() -> None:
     ),
     ids=lambda x: f"model: {x[0]}, dataset: {x[1]}",
 )
-def config(request) -> Generator[DictConfig, None, None]:
+def finetuning_config(request) -> Generator[DictConfig, None, None]:
     """Hydra configuration."""
     model, datasets = request.param
     yield compose(
-        config_name="config",
+        config_name="finetuning",
         overrides=[
             f"model={model}",
             f"datasets={datasets}",
@@ -53,9 +51,3 @@ def config(request) -> Generator[DictConfig, None, None]:
             "save_total_limit=0",
         ],
     )
-
-
-@pytest.fixture(scope="session")
-def dataset(config) -> Generator[DatasetDict | IterableDatasetDict, None, None]:
-    """ASR Dataset."""
-    yield load_data(config=config)

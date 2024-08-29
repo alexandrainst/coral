@@ -4,6 +4,7 @@ import logging
 import multiprocessing as mp
 import os
 import re
+from collections.abc import Iterable
 from functools import partial
 from pathlib import Path
 from typing import Any, TypeVar
@@ -388,7 +389,7 @@ def filter_examples(
 
 def process_dataset(
     dataset: Data,
-    characters_to_keep: str,
+    characters_to_keep: Iterable[str] | None,
     text_column: str,
     audio_column: str | None,
     lower_case: bool,
@@ -402,8 +403,8 @@ def process_dataset(
         dataset:
             The dataset to be cleaned.
         characters_to_keep:
-            A string containing all the characters that should be kept in the
-            transcriptions.
+            All the characters that should be kept in the transcriptions. Can be None if
+            all characters should be kept.
         text_column:
             The name of the column containing the text.
         audio_column:
@@ -497,7 +498,7 @@ def process_dataset(
 
 def process_example(
     example: dict,
-    characters_to_keep: str,
+    characters_to_keep: Iterable[str] | None,
     conversion_dict: dict[str, str],
     text_column: str,
     lower_case: bool,
@@ -508,8 +509,8 @@ def process_example(
         example:
             The example to be cleaned.
         characters_to_keep:
-            A string containing all the characters that should be kept in the
-            transcriptions.
+            All the characters that should be kept in the transcriptions. Can be None if
+            all characters should be kept.
         conversion_dict:
             A dictionary of characters to be converted.
         text_column:
@@ -522,6 +523,9 @@ def process_example(
     """
     doc = example[text_column]
 
+    if lower_case:
+        doc = doc.lower()
+
     # Normalise the transcription, which uniformises the characters. For instance, the
     # "long dash" (－) is converted to the normal dash (-).
     doc = normalize("NFKC", doc)
@@ -529,23 +533,23 @@ def process_example(
     for key, value in conversion_dict.items():
         doc = doc.replace(key, value)
 
-    if lower_case:
-        doc = doc.lower()
-        characters_to_keep = characters_to_keep.lower()
-    else:
-        characters_to_keep = characters_to_keep.lower() + characters_to_keep.upper()
-
-    # Remove all non-standard characters, and make the document lower case
-    non_standard_characters_regex = re.compile(
-        f"[^{re.escape(characters_to_keep + ' |')}]"
-    )
-    doc = re.sub(non_standard_characters_regex, " ", doc.lower().strip())
+    # Remove all non-standard characters
+    if characters_to_keep is not None:
+        characters_to_keep = "".join(char for char in characters_to_keep)
+        if lower_case:
+            characters_to_keep = characters_to_keep.lower()
+        else:
+            characters_to_keep = characters_to_keep.upper() + characters_to_keep.lower()
+        non_standard_characters_regex = re.compile(
+            f"[^{re.escape(characters_to_keep + ' |')}]"
+        )
+        doc = re.sub(non_standard_characters_regex, " ", doc.strip())
 
     # Replace superfluous spaces
     doc = re.sub(r" +", " ", doc)
 
     # Strip each newline
-    doc = "\n".join([line.strip() for line in doc.split("\n")])
+    doc = "\n".join([line.strip() for line in doc.split("\n")]).strip("\n")
 
     # Re-assign the cleaned transcription
     example[text_column] = doc
