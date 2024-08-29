@@ -282,8 +282,6 @@ def filter_dataset(
         "is a Dataset."
     )
 
-    logger.info("Filtering the dataset...")
-
     if isinstance(dataset, Dataset):
         assert remove_maybe_validated is not None
         num_samples_before = len(dataset)
@@ -447,8 +445,6 @@ def process_dataset(
     Returns:
         The cleaned dataset.
     """
-    logger.info("Processing the dataset...")
-
     if audio_column is not None:
         dataset = dataset.cast_column(
             column=audio_column, feature=Audio(sampling_rate=cast_to_sampling_rate)
