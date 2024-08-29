@@ -296,7 +296,7 @@ def filter_dataset(
             min_seconds_per_example=min_seconds_per_example,
             max_seconds_per_example=max_seconds_per_example,
         )
-        dataset = dataset.filter(
+        filtered = dataset.filter(
             filter_fn, batched=True, num_proc=mp.cpu_count(), desc="Filtering dataset"
         )
         num_samples_removed = num_samples_before - len(dataset)
@@ -311,9 +311,10 @@ def filter_dataset(
             min_seconds_per_example=min_seconds_per_example,
             max_seconds_per_example=max_seconds_per_example,
         )
-        dataset = dataset.filter(filter_fn, batched=True)
+        filtered = dataset.filter(filter_fn, batched=True)
 
     elif isinstance(dataset, DatasetDict):
+        filtered = DatasetDict()
         for split_name, split in dataset.items():
             num_samples_before = len(split)
             filter_fn = partial(
@@ -323,7 +324,7 @@ def filter_dataset(
                 min_seconds_per_example=min_seconds_per_example,
                 max_seconds_per_example=max_seconds_per_example,
             )
-            dataset[split_name] = split.filter(
+            filtered[split_name] = split.filter(
                 filter_fn,
                 batched=True,
                 num_proc=mp.cpu_count(),
@@ -335,6 +336,7 @@ def filter_dataset(
             )
 
     elif isinstance(dataset, IterableDatasetDict):
+        filtered = IterableDatasetDict()
         for split_name, split in dataset.items():
             filter_fn = partial(
                 filter_examples,
@@ -343,9 +345,21 @@ def filter_dataset(
                 min_seconds_per_example=min_seconds_per_example,
                 max_seconds_per_example=max_seconds_per_example,
             )
-            dataset[split_name] = split.filter(filter_fn, batched=True)
+            filtered[split_name] = split.filter(filter_fn, batched=True)
 
-    return dataset
+    # After calling `filter` the DatasetInfo is lost, so we need to add it back in
+    if isinstance(dataset, Dataset | IterableDataset) and isinstance(
+        filtered, Dataset | IterableDataset
+    ):
+        filtered._info = dataset._info
+    elif isinstance(dataset, DatasetDict | IterableDatasetDict) and isinstance(
+        filtered, DatasetDict | IterableDatasetDict
+    ):
+        for key, value in dataset.items():
+            if key in filtered:
+                filtered[key]._info = value._info
+
+    return filtered
 
 
 def filter_examples(
