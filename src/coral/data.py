@@ -343,7 +343,7 @@ def filter_dataset(
                 min_seconds_per_example=min_seconds_per_example,
                 max_seconds_per_example=max_seconds_per_example,
             )
-            filtered[split_name] = split.filter(filter_fn, batched=True)
+            filtered[split_name] = split.filter(filter_fn, batched=True, batch_size=1)
 
     # After calling `filter` the DatasetInfo is lost, so we need to add it back in
     if isinstance(dataset, Dataset | IterableDataset) and isinstance(
