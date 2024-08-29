@@ -63,7 +63,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     df["score"] = all_scores[config.metric]
 
     # Make a new binary feature of whether the native language is Danish
-    df["accent"] = "native" if df.country_birth == "DK" else "foreign"
+    df["accent"] = df.country_birth.map(lambda x: "native" if x == "DK" else "foreign")
 
     # Get unique values for each category
     categories = ["age", "gender", "dialect", "native"]
