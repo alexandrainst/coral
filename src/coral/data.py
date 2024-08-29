@@ -102,6 +102,15 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
             ]
         ).shuffle(seed=config.seed)
 
+        ds = filter_dataset(
+            dataset=ds,
+            audio_column="audio",
+            min_seconds_per_example=config.min_seconds_per_example,
+            max_seconds_per_example=config.max_seconds_per_example,
+            train_name="train",
+            remove_maybe_validated=False,
+        )
+
         ds = process_dataset(
             dataset=ds,
             characters_to_keep=config.characters_to_keep,
