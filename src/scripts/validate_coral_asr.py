@@ -50,14 +50,13 @@ def main(config: DictConfig) -> None:
         dataset = DatasetDict(dict(train=dataset))
     assert isinstance(dataset, DatasetDict)
 
-    if config.do_filter_dataset:
-        dataset = filter_dataset(
-            dataset=dataset,
-            audio_column=config.audio_column,
-            min_seconds_per_example=config.min_seconds_per_example,
-            max_seconds_per_example=config.max_seconds_per_example,
-            train_name=config.train_name,
-        )
+    dataset = filter_dataset(
+        dataset=dataset,
+        audio_column=config.audio_column,
+        min_seconds_per_example=config.min_seconds_per_example,
+        max_seconds_per_example=config.max_seconds_per_example,
+        train_name=config.train_name,
+    )
 
     dataset = add_validations(
         dataset=dataset,

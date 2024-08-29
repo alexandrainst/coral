@@ -209,24 +209,22 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     )
 
     assert isinstance(dataset, Dataset)
-    if config.filter_dataset:
-        dataset = filter_dataset(
-            dataset=dataset,
-            audio_column="audio",
-            min_seconds_per_example=config.min_seconds_per_example,
-            max_seconds_per_example=config.max_seconds_per_example,
-            remove_maybe_validated=True,
-        )
-    if config.process_dataset:
-        dataset = process_dataset(
-            dataset=dataset,
-            clean_text=True,
-            characters_to_keep=config.characters_to_keep,
-            text_column="text",
-            audio_column="audio",
-            lower_case=True,
-            cast_to_sampling_rate=config.sampling_rate,
-        )
+    dataset = filter_dataset(
+        dataset=dataset,
+        audio_column="audio",
+        min_seconds_per_example=config.min_seconds_per_example,
+        max_seconds_per_example=config.max_seconds_per_example,
+        remove_maybe_validated=True,
+    )
+    dataset = process_dataset(
+        dataset=dataset,
+        clean_text=config.clean_text,
+        characters_to_keep=config.characters_to_keep,
+        text_column="text",
+        audio_column="audio",
+        lower_case=config.lower_case,
+        cast_to_sampling_rate=config.sampling_rate,
+    )
     return dataset
 
 
