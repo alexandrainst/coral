@@ -2,7 +2,6 @@
 
 import datasets.utils.logging as ds_logging
 import transformers.utils.logging as hf_logging
-from datasets.utils import enable_progress_bar
 
 from coral.utils import block_terminal_output, transformers_output_ignored
 
@@ -17,7 +16,6 @@ class output_blocked:
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """Unblock terminal output."""
         ds_logging.set_verbosity_warning()
-        enable_progress_bar()
 
 
 class TestBlockTerminalOutput:
@@ -29,13 +27,6 @@ class TestBlockTerminalOutput:
         assert ds_logging.get_verbosity() == ds_logging.WARNING
         with output_blocked():
             assert ds_logging.get_verbosity() == ds_logging.ERROR
-
-    def test_datasets_progress_bars_are_disabled(self) -> None:
-        """Test that the datasets progress bars are disabled."""
-        enable_progress_bar()
-        assert ds_logging.is_progress_bar_enabled()
-        with output_blocked():
-            assert not ds_logging.is_progress_bar_enabled()
 
 
 def test_transformers_output_ignored() -> None:

@@ -9,7 +9,7 @@ import warnings
 from time import sleep
 
 import hydra
-from datasets import Dataset, DatasetDict, enable_progress_bar, load_dataset
+from datasets import Dataset, DatasetDict, load_dataset
 from omegaconf import DictConfig
 from requests import HTTPError
 
@@ -36,8 +36,6 @@ def main(config: DictConfig) -> None:
         config:
             The Hydra configuration object.
     """
-    enable_progress_bar()
-
     logger.info(f"Loading the {config.dataset_id!r} dataset...")
     dataset = load_dataset(
         path=config.dataset_id,

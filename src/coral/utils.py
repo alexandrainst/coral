@@ -10,7 +10,6 @@ import datasets.utils.logging as ds_logging
 import tqdm as tqdm_package
 import transformers.utils.logging as hf_logging
 from datasets import Dataset, IterableDataset
-from datasets.utils import disable_progress_bar
 from tqdm.auto import tqdm
 
 
@@ -30,9 +29,6 @@ def block_terminal_output() -> None:
     ds_logging.set_verbosity_error()
     logging.getLogger("accelerate").setLevel(logging.ERROR)
     logging.getLogger("pyctcdecode").setLevel(logging.ERROR)
-
-    # Disable the tokeniser progress bars from the `datasets` library
-    disable_progress_bar()
 
 
 class transformers_output_ignored:
