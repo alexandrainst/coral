@@ -160,7 +160,7 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
     dataset = IterableDatasetDict(data_dict)
 
     if is_main_process:
-        logger.info("Loading CoRal validation dataset")
+        logger.info("Loading CoRal validation dataset...")
 
     val = load_dataset(
         path=config.evaluation_dataset.id,
