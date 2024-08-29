@@ -113,6 +113,7 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
 
         ds = process_dataset(
             dataset=ds,
+            clean_text=config.model.clean_text,
             characters_to_keep=config.characters_to_keep,
             text_column="text",
             audio_column="audio",
@@ -175,6 +176,7 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
 
     val = process_dataset(
         dataset=val,
+        clean_text=config.model.clean_text,
         characters_to_keep=config.characters_to_keep,
         text_column="text",
         audio_column="audio",
@@ -218,6 +220,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     if config.process_dataset:
         dataset = process_dataset(
             dataset=dataset,
+            clean_text=True,
             characters_to_keep=config.characters_to_keep,
             text_column="text",
             audio_column="audio",
@@ -398,6 +401,7 @@ def filter_examples(
 
 def process_dataset(
     dataset: Data,
+    clean_text: bool,
     characters_to_keep: Iterable[str] | None,
     text_column: str,
     audio_column: str | None,
@@ -411,16 +415,19 @@ def process_dataset(
     Args:
         dataset:
             The dataset to be cleaned.
+        clean_text:
+            Whether to clean the text.
         characters_to_keep:
             All the characters that should be kept in the transcriptions. Can be None if
-            all characters should be kept.
+            all characters should be kept. Only relevant if `clean_text` is True.
         text_column:
-            The name of the column containing the text.
+            The name of the column containing the text. Only relevant if `clean_text` is
+            True.
         audio_column:
             The name of the column containing the audio. Can be `None` if the dataset
             does not have an audio column.
         lower_case:
-            Whether to make the text lower case.
+            Whether to make the text lower case. Only relevant if `clean_text` is True.
         cast_to_sampling_rate:
             The sampling rate to cast the audio to. If `None`, then the audio is not
             cast. Defaults to `None`.
@@ -434,6 +441,9 @@ def process_dataset(
         dataset = dataset.cast_column(
             column=audio_column, feature=Audio(sampling_rate=cast_to_sampling_rate)
         )
+
+    if not clean_text:
+        return dataset
 
     # Dictionary that contains characters to be converted (from the key to the value).
     # Some values contain spaces to ensure that they're separated from other
