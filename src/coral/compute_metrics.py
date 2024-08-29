@@ -3,6 +3,7 @@
 import logging
 import os
 import re
+from collections.abc import Iterable
 
 import numpy as np
 from datasets import Dataset
@@ -118,7 +119,7 @@ def compute_metrics_of_dataset_using_pipeline(
     dataset: Dataset,
     transcriber: AutomaticSpeechRecognitionPipeline,
     metric_names: list[str],
-    characters_to_keep: str,
+    characters_to_keep: Iterable[str],
     text_column: str,
     audio_column: str,
     batch_size: int,
@@ -151,6 +152,8 @@ def compute_metrics_of_dataset_using_pipeline(
             all_scores:
                 A dictionary containing the computed scores for each metric.
     """
+    characters_to_keep = "".join(characters_to_keep)
+
     # This contains all the punctuation characters that will be removed from the
     # transcriptions, as they do not have an influence on the pronunciation of the
     # words.

@@ -8,12 +8,12 @@ audio_column: audio
 cache_dir: null
 
 # Filtering of the dataset
-filter_dataset: true
 min_seconds_per_example: 0.5
 max_seconds_per_example: 10
 
 # Processing of the dataset
-process_dataset: true
+lower_case: true
+clean_text: true
 sampling_rate: 16_000
 characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
 

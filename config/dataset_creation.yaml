@@ -2,6 +2,20 @@
 audio_dir: /Volumes/CoRal/_new_structure/raw
 metadata_database_path: /Volumes/CoRal/_new_structure/raw/CoRal_public.db
 
+# Filtering of the dataset
+min_seconds_per_example: 0.5
+max_seconds_per_example: 10
+
+# Validation parameters
+validation:
+  lower_case: true
+  clean_text: true
+  model_id: alexandrainst/coral-asr-bootstrap
+  sampling_rate: 16_000
+  characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
+  batch_size: 16
+  max_cer: 0.6
+
 # Hugging Face Hub ID of output dataset
 hub_id: alexandrainst/coral
 

@@ -29,6 +29,8 @@ from omegaconf import DictConfig
 from requests import HTTPError
 from tqdm.auto import tqdm
 
+from coral.validation import add_validations
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s ⋅ %(name)s ⋅ %(message)s",
@@ -73,6 +75,28 @@ def main(config: DictConfig) -> None:
     conversation_dataset = build_conversation_dataset(
         metadata_database_path=temp_metadata_database_path,
         audio_dir=temp_conversation_dir,
+    )
+
+    logger.info("Validating and filtering the datasets...")
+    read_aloud_dataset = add_validations(
+        dataset=read_aloud_dataset,
+        model_id=config.validation.model_id,
+        clean_text=config.validation.clean_text,
+        lower_case=config.validation.lower_case,
+        sampling_rate=config.validation.sampling_rate,
+        characters_to_keep=config.validation.characters_to_keep,
+        batch_size=config.validation.batch_size,
+        max_cer=config.validation.max_cer,
+    )
+    conversation_dataset = add_validations(
+        dataset=conversation_dataset,
+        model_id=config.validation.model_id,
+        clean_text=config.validation.clean_text,
+        lower_case=config.validation.lower_case,
+        sampling_rate=config.validation.sampling_rate,
+        characters_to_keep=config.validation.characters_to_keep,
+        batch_size=config.validation.batch_size,
+        max_cer=config.validation.max_cer,
     )
 
     logger.info("Splitting the datasets into train, validation and test sets...")
