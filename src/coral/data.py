@@ -198,7 +198,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     Returns:
         A DatasetDict containing the validation and test datasets.
     """
-    logger.info(f"Loading dataset {config.dataset_id}...")
+    logger.info(f"Loading the {config.eval_split_name} split of the CoRal dataset...")
     dataset = load_dataset(
         path="alexandrainst/coral",
         name=config.dataset_subset,
