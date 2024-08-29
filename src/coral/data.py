@@ -102,14 +102,14 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
             ]
         ).shuffle(seed=config.seed)
 
-        # ds = filter_dataset(
-        #     dataset=ds,
-        #     audio_column="audio",
-        #     min_seconds_per_example=config.min_seconds_per_example,
-        #     max_seconds_per_example=config.max_seconds_per_example,
-        #     train_name="train",
-        #     remove_maybe_validated=False,
-        # )
+        ds = filter_dataset(
+            dataset=ds,
+            audio_column="audio",
+            min_seconds_per_example=config.min_seconds_per_example,
+            max_seconds_per_example=config.max_seconds_per_example,
+            train_name="train",
+            remove_maybe_validated=False,
+        )
 
         ds = process_dataset(
             dataset=ds,
@@ -286,14 +286,14 @@ def filter_dataset(
         assert remove_maybe_validated is not None
         num_samples_before = len(dataset)
         filter_fn = partial(
-            filter_examples,
+            filter_example,
             remove_maybe_validated=remove_maybe_validated,
             audio_column=audio_column,
             min_seconds_per_example=min_seconds_per_example,
             max_seconds_per_example=max_seconds_per_example,
         )
         filtered = dataset.filter(
-            filter_fn, batched=True, num_proc=mp.cpu_count(), desc="Filtering dataset"
+            filter_fn, num_proc=mp.cpu_count(), desc="Filtering dataset"
         )
         num_samples_removed = num_samples_before - len(dataset)
         logger.info(f"Removed {num_samples_removed:,} samples from the dataset")
@@ -301,30 +301,27 @@ def filter_dataset(
     elif isinstance(dataset, IterableDataset):
         assert remove_maybe_validated is not None
         filter_fn = partial(
-            filter_examples,
+            filter_example,
             remove_maybe_validated=remove_maybe_validated,
             audio_column=audio_column,
             min_seconds_per_example=min_seconds_per_example,
             max_seconds_per_example=max_seconds_per_example,
         )
-        filtered = dataset.filter(filter_fn, batched=True)
+        filtered = dataset.filter(filter_fn)
 
     elif isinstance(dataset, DatasetDict):
         filtered = DatasetDict()
         for split_name, split in dataset.items():
             num_samples_before = len(split)
             filter_fn = partial(
-                filter_examples,
+                filter_example,
                 remove_maybe_validated=not split_name == train_name,
                 audio_column=audio_column,
                 min_seconds_per_example=min_seconds_per_example,
                 max_seconds_per_example=max_seconds_per_example,
             )
             filtered[split_name] = split.filter(
-                filter_fn,
-                batched=True,
-                num_proc=mp.cpu_count(),
-                desc=f"Filtering {split_name} split",
+                filter_fn, num_proc=mp.cpu_count(), desc=f"Filtering {split_name} split"
             )
             num_samples_removed = num_samples_before - len(dataset[split_name])
             logger.info(
@@ -335,13 +332,13 @@ def filter_dataset(
         filtered = IterableDatasetDict()
         for split_name, split in dataset.items():
             filter_fn = partial(
-                filter_examples,
+                filter_example,
                 remove_maybe_validated=not split_name == train_name,
                 audio_column=audio_column,
                 min_seconds_per_example=min_seconds_per_example,
                 max_seconds_per_example=max_seconds_per_example,
             )
-            filtered[split_name] = split.filter(filter_fn, batched=True)
+            filtered[split_name] = split.filter(filter_fn)
 
     # After calling `filter` the DatasetInfo is lost, so we need to add it back in
     if isinstance(dataset, Dataset | IterableDataset) and isinstance(
@@ -358,18 +355,18 @@ def filter_dataset(
     return filtered
 
 
-def filter_examples(
-    samples: dict[str, Any],
+def filter_example(
+    sample: dict[str, Any],
     remove_maybe_validated: bool,
     audio_column: str,
     min_seconds_per_example: int,
     max_seconds_per_example: int,
-) -> list[bool]:
+) -> bool:
     """Filter samples based on the validation status.
 
     Args:
-        samples:
-            The samples to filter.
+        sample:
+            The sample to filter.
         remove_maybe_validated:
             Whether to remove samples that are validated as "maybe".
         audio_column:
@@ -380,33 +377,21 @@ def filter_examples(
             The maximum number of seconds that an example can
 
     Returns:
-        A list of booleans indicating whether the samples should be kept.
+        Whether the sample should be kept.
     """
-    idxs_too_short = [
-        audio_dct["array"].shape[0]
-        < audio_dct["sampling_rate"] * min_seconds_per_example
-        for audio_dct in samples[audio_column]
-    ]
-    idxs_too_long = [
-        audio_dct["array"].shape[0]
-        > audio_dct["sampling_rate"] * max_seconds_per_example
-        for audio_dct in samples[audio_column]
-    ]
-    if "validated" in samples:
-        idxs_rejected = [
-            validated in {"rejected", "maybe"}
-            if remove_maybe_validated
-            else validated == "rejected"
-            for validated in samples["validated"]
-        ]
-    else:
-        idxs_rejected = [False] * len(samples[audio_column])
-    return [
-        not (too_short or too_long or rejected)
-        for too_short, too_long, rejected in zip(
-            idxs_too_short, idxs_too_long, idxs_rejected
-        )
-    ]
+    audio = sample[audio_column]
+    if audio["array"].shape[0] <= audio["sampling_rate"] * min_seconds_per_example:
+        return False
+    if audio["array"].shape[0] >= audio["sampling_rate"] * max_seconds_per_example:
+        return False
+
+    if "validated" in sample:
+        if remove_maybe_validated and sample["validated"] in {"rejected", "maybe"}:
+            return False
+        elif sample["validated"] == "rejected":
+            return False
+
+    return True
 
 
 def process_dataset(
