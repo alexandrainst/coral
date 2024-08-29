@@ -2,6 +2,7 @@
 
 import contextlib
 import logging
+import multiprocessing as mp
 import warnings
 from functools import partialmethod
 from pathlib import Path
@@ -9,7 +10,14 @@ from pathlib import Path
 import datasets.utils.logging as ds_logging
 import tqdm as tqdm_package
 import transformers.utils.logging as hf_logging
-from datasets import Dataset, IterableDataset, NamedSplit
+from datasets import (
+    Dataset,
+    IterableDataset,
+    NamedSplit,
+    disable_progress_bar,
+    enable_progress_bar,
+)
+from tqdm.auto import tqdm
 
 
 def block_terminal_output() -> None:
@@ -97,14 +105,23 @@ def convert_iterable_dataset_to_dataset(
         if dataset_dir.exists():
             return Dataset.load_from_disk(str(dataset_dir))
 
-    def gen_from_iterable_dataset():
-        yield from iterable_dataset
+    splits_info = iterable_dataset.info.splits
+    num_examples = None if splits_info is None else splits_info[split_name].num_examples
 
-    dataset = Dataset.from_generator(
-        generator=gen_from_iterable_dataset,
-        features=iterable_dataset.features,
-        split=NamedSplit(name=split_name),
-    )
+    def gen_from_iterable_dataset():
+        yield from tqdm(
+            iterable=iterable_dataset,
+            total=num_examples,
+            desc="Converting iterable dataset to regular dataset",
+        )
+
+    with no_datasets_progress_bars():
+        dataset = Dataset.from_generator(
+            generator=gen_from_iterable_dataset,
+            features=iterable_dataset.features,
+            split=NamedSplit(name=split_name),
+            num_proc=mp.cpu_count(),
+        )
     assert isinstance(dataset, Dataset)
 
     if dataset_id is not None:
@@ -112,3 +129,15 @@ def convert_iterable_dataset_to_dataset(
         dataset.save_to_disk(str(dataset_dir))
 
     return dataset
+
+
+class no_datasets_progress_bars:
+    """Context manager that disables the `datasets` progress bars."""
+
+    def __enter__(self):
+        """Disable the progress bar."""
+        disable_progress_bar()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Re-enable the progress bar."""
+        enable_progress_bar()

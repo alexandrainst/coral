@@ -17,18 +17,13 @@ from pathlib import Path
 from time import sleep
 
 import hydra
-from datasets import (
-    Audio,
-    Dataset,
-    DatasetDict,
-    disable_progress_bar,
-    enable_progress_bar,
-)
+from datasets import Audio, Dataset, DatasetDict
 from joblib import Parallel, delayed
 from omegaconf import DictConfig
 from requests import HTTPError
 from tqdm.auto import tqdm
 
+from coral.utils import no_datasets_progress_bars
 from coral.validation import add_validations
 
 logging.basicConfig(
@@ -320,7 +315,7 @@ def split_dataset(
     if len(dataset) == 0:
         return None
 
-    with no_progress_bar():
+    with no_datasets_progress_bars():
         train_dataset = dataset.filter(
             function=partial(
                 examples_belong_to_train,
@@ -331,7 +326,7 @@ def split_dataset(
         )
     splits = dict(train=train_dataset)
 
-    with no_progress_bar():
+    with no_datasets_progress_bars():
         val_dataset = dataset.filter(
             function=partial(examples_belong_to_val, val_speakers=val_speakers),
             batched=True,
@@ -339,7 +334,7 @@ def split_dataset(
     if len(val_dataset) > 0:
         splits["val"] = val_dataset
 
-    with no_progress_bar():
+    with no_datasets_progress_bars():
         test_dataset = dataset.filter(
             function=partial(examples_belong_to_test, test_speakers=test_speakers),
             batched=True,
@@ -558,18 +553,6 @@ def decompress_file(file: Path, destination_dir: Path) -> None:
             shutil.rmtree(decompressed_path, ignore_errors=True)
             file.unlink()
         destination_path.unlink()
-
-
-class no_progress_bar:
-    """Context manager that disables the progress bar."""
-
-    def __enter__(self):
-        """Disable the progress bar."""
-        disable_progress_bar()
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Re-enable the progress bar."""
-        enable_progress_bar()
 
 
 def remove_suffixes(path: Path) -> Path:
