@@ -3,8 +3,8 @@
 import logging
 import os
 import warnings
+from collections.abc import Callable
 from functools import partial
-from typing import Callable
 
 from omegaconf import DictConfig
 from transformers import EarlyStoppingCallback, TrainerCallback

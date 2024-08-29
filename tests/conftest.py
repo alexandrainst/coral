@@ -2,7 +2,7 @@
 
 import itertools as it
 import sys
-from typing import Generator
+from collections.abc import Generator
 
 import pytest
 from dotenv import load_dotenv
