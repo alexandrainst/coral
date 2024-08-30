@@ -87,7 +87,18 @@ def main(config: DictConfig) -> None:
             mean_seconds_per_sample=mean_seconds_per_sample,
         )
         test_candidates.append(test_candidate)
-    test_dataset = min(test_candidates, key=lambda x: len(x))
+
+    # Pick the test dataset that is both short and difficult
+    difficulty_sorted_candidates = sorted(
+        test_candidates, key=lambda x: x.difficulty, reverse=True
+    )
+    length_sorted_candidates = sorted(test_candidates, key=len)
+    candidate_scores = {
+        candidate: difficulty_sorted_candidates.index(candidate)
+        + length_sorted_candidates.index(candidate)
+        for candidate in test_candidates
+    }
+    test_dataset = min(test_candidates, key=lambda x: candidate_scores[x])
     logger.info(f"Test dataset:\n{test_dataset}")
 
     # Build validation split
@@ -114,7 +125,18 @@ def main(config: DictConfig) -> None:
             mean_seconds_per_sample=mean_seconds_per_sample,
         )
         val_candidates.append(val_candidate)
-    val_dataset = min(val_candidates, key=lambda x: len(x))
+
+    # Pick the test dataset that is both short and difficult
+    difficulty_sorted_candidates = sorted(
+        val_candidates, key=lambda x: x.difficulty, reverse=True
+    )
+    length_sorted_candidates = sorted(val_candidates, key=len)
+    candidate_scores = {
+        candidate: difficulty_sorted_candidates.index(candidate)
+        + length_sorted_candidates.index(candidate)
+        for candidate in val_candidates
+    }
+    val_dataset = min(val_candidates, key=lambda x: candidate_scores[x])
     logger.info(f"Validation dataset:\n{val_dataset}")
 
     assert set(test_dataset.speakers).intersection(val_dataset.speakers) == set()
@@ -241,6 +263,11 @@ class EvalDataset:
         self.betas = dict(dialect=100.0, age_group=5.0)
         self.add_dialect_samples()
 
+    @property
+    def difficulty(self) -> float:
+        """Return the difficulty of the dataset."""
+        return self.df.loc[self.indices].asr_cer.mean()
+
     def add_speaker_samples(self, speaker: str) -> "EvalDataset":
         """Add all samples of a speaker to the dataset.
 
@@ -353,6 +380,7 @@ class EvalDataset:
         num_hours = len(self) * self.mean_seconds_per_sample / 60 / 60
         msg = (
             f"\nEstimated number of hours: {num_hours:.2f}"
+            f"\nDifficulty: {self.difficulty:.2f}"
             f"\nSpeaker IDs: {self.speakers}\n\n"
         )
 
