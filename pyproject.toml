@@ -42,7 +42,7 @@ ruff = ">=0.6.2"
 mypy = ">=1.11.2"
 nbstripout = ">=0.7.1"
 pdoc = ">=14.5.0"
-jupyterlab = "^4.2.4"
+jupyterlab = "^4.2.5"
 ipywidgets = "^8.1.3"
 
 [tool.poetry.extras]
