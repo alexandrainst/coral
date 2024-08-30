@@ -19,80 +19,84 @@ validation:
 # Hugging Face Hub ID of output dataset
 hub_id: alexandrainst/coral
 
-# Number of hours: 7.60
+# Estimated number of hours: 8.84
+# Difficulty: 0.05
+# Gender distribution:
+# - female: 55%
+# - male: 45%
+# Dialect distribution:
+# - Bornholmsk: 10%
+# - Fynsk: 11%
+# - Københavnsk: 10%
+# - Nordjysk: 12%
+# - Sjællandsk: 12%
+# - Sydømål: 11%
+# - Sønderjysk: 10%
+# - Vestjysk: 10%
+# - Østjysk: 13%
+# Age_group distribution:
+# - 0-24: 29%
+# - 25-49: 42%
+# - 50-: 29%
+# Accent distribution:
+# - native: 88%
+# - foreign: 12%
+test_speakers:
+ - spe_f52921e1e787609ab99623340c5dd212
+ - spe_cdb17db7c331cbb89e40dcbbecf4d560
+ - spe_e3742811d83011e22ec2ef5a7af32065
+ - spe_42de8f7200a57e1d28ae5b415ba5b934
+ - spe_d84ebbfd3b0a3fbc12df4f960fe44ae3
+ - spe_199e03b334b15576a69be73ea39a34d5
+ - spe_0f8c666aaf602dfc580d99254e37ac77
+ - spe_e33e46611f54ae91ed7b235c11ef2628
+ - spe_37a526e88c934c7966038d34af9debf0
+ - spe_07c0276e66e920209cf22266b24fa5e4
+ - spe_9b8d26599c6b7932dbac00832b73dcf8
+ - spe_6a029298b9eaa3d7e7f8f74510f88e70
+ - spe_7b8398c898a828791c0fc40d6d146b3f
+ - spe_5e319f90767d47e11731d95e314e4670
+ - spe_4b7ba1403d8540b3101c07b9c8a19474
+ - spe_436e439616edf662c232486b3face2f1
+ - spe_647d4e905427d45ab699abe73d80ef1d
+ - spe_51b02c4d372de72ba1cab851642ab363
+ - spe_50cddf66f739637c1b3c534938649b8e
+ - spe_6e7cb65603907f863e06d7a02e00fb67
+ - spe_f1d26280a22ad55b85083b19d61f243a
+ - spe_9f92cb4d6feb94dab9c691811656e33e
+ - spe_55028d05581a88a8655fa1f74ddfb5a1
+
+# Estimated number of hours: 2.56
+# Difficulty: 0.06
 # Gender distribution:
 # - female: 58%
 # - male: 42%
 # Dialect distribution:
-# - Bornholmsk: 10%
+# - Bornholmsk: 19%
 # - Fynsk: 10%
-# - Københavnsk: 10%
-# - Nordjysk: 11%
+# - Københavnsk: 17%
+# - Nordjysk: 5%
 # - Sjællandsk: 11%
-# - Sydømål: 14%
-# - Sønderjysk: 10%
-# - Vestjysk: 12%
-# - Østjysk: 11%
+# - Sydømål: 13%
+# - Sønderjysk: 11%
+# - Vestjysk: 7%
+# - Østjysk: 8%
 # Age_group distribution:
-# - 0-24: 28%
-# - 25-49: 32%
-# - 50-: 40%
+# - 0-24: 29%
+# - 25-49: 37%
+# - 50-: 35%
 # Accent distribution:
-# - native: 90%
-# - foreign: 10%
-test_speakers:
-  - spe_6e7cb65603907f863e06d7a02e00fb67
-  - spe_55028d05581a88a8655fa1f74ddfb5a1
-  - spe_c883de44acfc7d9cfd32d5c9fa162342
-  - spe_3a85fdec89b8deb698bba43485b54fd2
-  - spe_e530efaab83b53fb59942e984b57e5cb
-  - spe_a3d4edeab8ea4c9bb67e847103c4b5f7
-  - spe_01fc2b156c7fe429f1b72bd3be5ad3c3
-  - spe_4aa23a60464a18e3597cdeb3606ac572
-  - spe_19b1d393bbe3ad9db3457ccda9bda5ea
-  - spe_aaa7d1aa7c5e1df17aa33156b8b54677
-  - spe_ae8bb53db7e325a8ecbb3238f4578d38
-  - spe_915ba6768904307f02be61ac0afe6366
-  - spe_63f165c8164332ea0791ffe410b40f0b
-  - spe_10b8eb8c3ba5fd8405d1516b7b12f2de
-  - spe_18c97571c93826474f71a51f48c2debd
-  - spe_9a2fee70cd58727ea1dbcf056de688b7
-  - spe_0a531653d15a79f97c28519ee3d024a0
-  - spe_8baebafddb83768cc4abe225511c5e0d
-  - spe_d147969fc79b1ba50c56e5adb9f662af
-  - spe_c1ae98ac0db97166130c016e5a91000b
-  - spe_4facb80c94341b25425ec1d8962b1f8d
-  - spe_6a029298b9eaa3d7e7f8f74510f88e70
-
-# Number of hours: 2.67
-# Gender distribution:
-# - female: 45%
-# - male: 55%
-# Dialect distribution:
-# - Bornholmsk: 7%
-# - Fynsk: 11%
-# - Københavnsk: 9%
-# - Nordjysk: 8%
-# - Sjællandsk: 12%
-# - Sydømål: 23%
-# - Sønderjysk: 13%
-# - Vestjysk: 8%
-# - Østjysk: 9%
-# Age_group distribution:
-# - 0-24: 11%
-# - 25-49: 39%
-# - 50-: 51%
-# Accent distribution:
-# - native: 81%
-# - foreign: 19%
+# - native: 68%
+# - foreign: 32%
 val_speakers:
-  - spe_b977ebc0a2ba961cbe158190fce0dc06
-  - spe_33b9071834e38bd3a2829add3bbcccb3
-  - spe_4c0f1933310dc0958cedf35fcc92fdc5
-  - spe_abad80046cdb930d9e11c61018000313
-  - spe_9c4dc6be57f6c63860331813a71417e5
-  - spe_51b02c4d372de72ba1cab851642ab363
-  - spe_6e67cbe51a49d9e4abbd7699a4a89d91
-  - spe_bb1d0e9d3f2bca18658975b3073924cb
-  - spe_65c05e58f399d854594d4716454a806b
-  - spe_1aec105b85238c5ebbc4bfc72d0569e1
+ - spe_9c4dc6be57f6c63860331813a71417e5
+ - spe_4a7e760bd0a2775337880155e8ac0ec2
+ - spe_03e8b9d0ee8d3192e113ff62c61e4916
+ - spe_92fea6e4419210f4c4219e84ec89837e
+ - spe_b977ebc0a2ba961cbe158190fce0dc06
+ - spe_4aa23a60464a18e3597cdeb3606ac572
+ - spe_20b91d51f72ee56930ca778cb16c29da
+ - spe_fbf3381f525dbe5ddf1a2a1d36e9c4b9
+ - spe_4d03787c2092b6bee053e75e2cfa4aa3
+ - spe_877ac9c88e53b43ebfe464da79aa6da3
+ - spe_ffc1068fc082deac40144691e1ae754c
