@@ -20,6 +20,7 @@ validation:
 hub_id: alexandrainst/coral
 
 # Estimated number of hours: 8.84
+# Actual number of hours: 9.43
 # Difficulty: 0.05
 # Gender distribution:
 # - female: 55%
@@ -67,6 +68,7 @@ test_speakers:
  - spe_55028d05581a88a8655fa1f74ddfb5a1
 
 # Estimated number of hours: 2.56
+# Actual number of hours: 3.05
 # Difficulty: 0.06
 # Gender distribution:
 # - female: 58%
