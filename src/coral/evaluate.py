@@ -65,10 +65,19 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     # Make a new binary feature of whether the native language is Danish
     df["accent"] = df.country_birth.map(lambda x: "native" if x == "DK" else "foreign")
 
+    age_group_mapping = {"0-25": (0, 25), "25-50": (26, 50), "50+": (50, None)}
+    df["age_group"] = df.age.map(
+        lambda x: next(
+            group
+            for group, (start, end) in age_group_mapping.items()
+            if (start is None or x >= start) and (end is None or x < end)
+        )
+    )
+
     # Get unique values for each category
-    categories = ["age", "gender", "dialect", "native"]
+    categories = ["age_group", "gender", "dialect", "accent"]
     unique_category_values = [
-        df[f"{category}_1"].unique().tolist() + [None] for category in categories
+        df[f"{category}"].unique().tolist() + [None] for category in categories
     ]
 
     # Iterate over all combinations of categories
