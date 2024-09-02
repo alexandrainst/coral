@@ -22,7 +22,7 @@ min_seconds_per_example: 0.5
 max_seconds_per_example: 10
 dataloader_num_workers: 4
 streaming: true
-cache: null
+cache_dir: null
 
 # Can be `longest`, `max_length` or `do_not_pad`
 # NOTE: This is automatically set to `max_length` in a multi-gpu setting
