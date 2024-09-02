@@ -54,30 +54,32 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
         if is_main_process:
             logger.info(f"Loading dataset {dataset_name!r}")
 
-        # Load from disk if the dataset ID is a path
+        # Load from disk if the dataset ID is a path and it is stored as an arrow dataset
         if Path(dataset_config.id).exists():
             train_path = Path(dataset_config.id) / dataset_config.train_name
             data_files = list(map(str, train_path.glob("data-*.arrow")))
             if len(data_files) == 0:
-                raise FileNotFoundError(
-                    f"No train data files found for the dataset {dataset_name!r}. "
-                    f"Please check that the provided dataset directory {train_path} "
-                    "contains arrow files of the form 'data-*.arrow'."
-                )
-            try:
                 ds = load_dataset(
-                    "arrow",
-                    data_files=data_files,
+                    path=dataset_config.id,
+                    name=dataset_config.subset,
                     split=dataset_config.train_name,
                     streaming=config.streaming,
                 )
-            except ValueError:
-                ds = load_dataset(
-                    "arrow",
-                    data_files=data_files,
-                    split="train",
-                    streaming=config.streaming,
-                )
+            else:
+                try:
+                    ds = load_dataset(
+                        "arrow",
+                        data_files=data_files,
+                        split=dataset_config.train_name,
+                        streaming=config.streaming,
+                    )
+                except ValueError:
+                    ds = load_dataset(
+                        "arrow",
+                        data_files=data_files,
+                        split="train",
+                        streaming=config.streaming,
+                    )
 
         # Load dataset from the Hugging Face Hub. The HUGGINGFACE_HUB_TOKEN is only
         # used during CI - normally it is expected that the user is logged in to the
