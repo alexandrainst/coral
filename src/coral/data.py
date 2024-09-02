@@ -98,7 +98,9 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
                 cache_dir=config.cache_dir,
             )
 
-        assert isinstance(ds, IterableDataset), f"Unsupported dataset type: {type(ds)}"
+        assert isinstance(
+            ds, Dataset | IterableDataset
+        ), f"Unsupported dataset type: {type(ds)}"
 
         if dataset_config.text_column != "text":
             ds = ds.rename_column(dataset_config.text_column, "text")
