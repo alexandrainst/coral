@@ -49,7 +49,7 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
     # Note if we're on the main process, if we are running in a distributed setting
     is_main_process = os.getenv("RANK", "0") == "0"
 
-    all_datasets: list[IterableDataset] = list()
+    all_datasets: list[IterableDataset] | list[Dataset] = list()
     for dataset_name, dataset_config in config.datasets.items():
         if is_main_process:
             logger.info(f"Loading dataset {dataset_name!r}")
@@ -115,14 +115,15 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
             ]
         ).shuffle(seed=config.seed)
 
-        ds = filter_dataset(
-            dataset=ds,
-            audio_column="audio",
-            min_seconds_per_example=config.min_seconds_per_example,
-            max_seconds_per_example=config.max_seconds_per_example,
-            train_name="train",
-            remove_maybe_validated=False,
-        )
+        if config.filter_dataset:
+            ds = filter_dataset(
+                dataset=ds,
+                audio_column="audio",
+                min_seconds_per_example=config.min_seconds_per_example,
+                max_seconds_per_example=config.max_seconds_per_example,
+                train_name="train",
+                remove_maybe_validated=False,
+            )
 
         ds = process_dataset(
             dataset=ds,
