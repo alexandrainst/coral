@@ -64,6 +64,7 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
                     name=dataset_config.subset,
                     split=dataset_config.train_name,
                     streaming=config.streaming,
+                    cache_dir=config.cache_dir,
                 )
             else:
                 try:
@@ -72,6 +73,7 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
                         data_files=data_files,
                         split=dataset_config.train_name,
                         streaming=config.streaming,
+                        cache_dir=config.cache_dir,
                     )
                 except ValueError:
                     ds = load_dataset(
@@ -79,6 +81,7 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
                         data_files=data_files,
                         split="train",
                         streaming=config.streaming,
+                        cache_dir=config.cache_dir,
                     )
 
         # Load dataset from the Hugging Face Hub. The HUGGINGFACE_HUB_TOKEN is only
@@ -92,6 +95,7 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
                 token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
                 streaming=config.streaming,
                 trust_remote_code=True,
+                cache_dir=config.cache_dir,
             )
 
         assert isinstance(ds, IterableDataset), f"Unsupported dataset type: {type(ds)}"
