@@ -69,11 +69,14 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
                     "arrow",
                     data_files=data_files,
                     split=dataset_config.train_name,
-                    streaming=True,
+                    streaming=config.streaming,
                 )
             except ValueError:
                 ds = load_dataset(
-                    "arrow", data_files=data_files, split="train", streaming=True
+                    "arrow",
+                    data_files=data_files,
+                    split="train",
+                    streaming=config.streaming,
                 )
 
         # Load dataset from the Hugging Face Hub. The HUGGINGFACE_HUB_TOKEN is only
@@ -85,7 +88,7 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
                 name=dataset_config.subset,
                 split=dataset_config.train_name,
                 token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-                streaming=True,
+                streaming=config.streaming,
                 trust_remote_code=True,
             )
 
@@ -168,7 +171,7 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
         path=config.evaluation_dataset.id,
         split=config.evaluation_dataset.val_name,
         token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-        streaming=True,
+        streaming=config.streaming,
         trust_remote_code=True,
     )
     if config.evaluation_dataset.text_column != "text":
