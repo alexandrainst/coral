@@ -22,7 +22,7 @@ from datasets import (
 )
 from tqdm.auto import tqdm
 
-from coral.data import Data
+from .types import Data
 
 
 def block_terminal_output() -> None:

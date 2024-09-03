@@ -7,7 +7,7 @@ import re
 from collections.abc import Callable, Iterable, Sized
 from functools import partial
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any
 from unicodedata import normalize
 
 from datasets import (
@@ -22,14 +22,10 @@ from datasets import (
 )
 from omegaconf import DictConfig
 
+from .types import Data
 from .utils import convert_iterable_dataset_to_dataset, filter_with_info, map_with_info
 
 logger = logging.getLogger(__package__)
-
-
-Data = TypeVar(
-    "Data", bound=Dataset | IterableDataset | DatasetDict | IterableDatasetDict
-)
 
 
 def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
