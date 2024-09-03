@@ -197,6 +197,7 @@ def load_data_for_finetuning(
         audio_column="audio",
         lower_case=config.model.lower_case,
         cast_to_sampling_rate=config.model.sampling_rate,
+        processor=processor,
     )
     dataset["val"] = val
 
