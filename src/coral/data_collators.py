@@ -50,7 +50,6 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
             BatchFeature:
                 A dictionary of the collated features.
         """
-        breakpoint()
         if "input_values" in features[0]:
             audio_features = [dict(input_values=f["input_values"]) for f in features]
         elif "audio" in features[0]:

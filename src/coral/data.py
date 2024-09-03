@@ -125,14 +125,13 @@ def load_data_for_finetuning(
                 is_main_process=is_main_process,
             )
 
-        breakpoint()
         ds = process_dataset(
             dataset=ds,
             clean_text=config.model.clean_text,
+            lower_case=config.model.lower_case,
             characters_to_keep=config.characters_to_keep,
             text_column="text",
             audio_column="audio",
-            lower_case=config.model.lower_case,
             cast_to_sampling_rate=config.model.sampling_rate,
             processor=processor,
         )
@@ -193,10 +192,10 @@ def load_data_for_finetuning(
     val = process_dataset(
         dataset=val,
         clean_text=config.model.clean_text,
+        lower_case=config.model.lower_case,
         characters_to_keep=config.characters_to_keep,
         text_column="text",
         audio_column="audio",
-        lower_case=config.model.lower_case,
         cast_to_sampling_rate=config.model.sampling_rate,
         processor=processor,
     )
@@ -243,10 +242,10 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     dataset = process_dataset(
         dataset=dataset,
         clean_text=config.clean_text,
+        lower_case=config.lower_case,
         characters_to_keep=config.characters_to_keep,
         text_column="text",
         audio_column="audio",
-        lower_case=config.lower_case,
         cast_to_sampling_rate=config.sampling_rate,
     )
     dataset = convert_iterable_dataset_to_dataset(
@@ -335,10 +334,10 @@ def filter_example(
 def process_dataset(
     dataset: Data,
     clean_text: bool,
+    lower_case: bool,
     characters_to_keep: Iterable[str] | None,
     text_column: str,
     audio_column: str | None,
-    lower_case: bool,
     cast_to_sampling_rate: int | None = None,
     processor: Callable | None = None,
 ) -> Data:
@@ -351,17 +350,16 @@ def process_dataset(
             The dataset to be cleaned.
         clean_text:
             Whether to clean the text.
+        lower_case:
+            Whether to make the text lower case. Only relevant if `clean_text` is True.
         characters_to_keep:
             All the characters that should be kept in the transcriptions. Can be None if
             all characters should be kept. Only relevant if `clean_text` is True.
         text_column:
-            The name of the column containing the text. Only relevant if `clean_text` is
-            True.
+            The name of the column containing the text.
         audio_column:
             The name of the column containing the audio. Can be `None` if the dataset
             does not have an audio column.
-        lower_case:
-            Whether to make the text lower case. Only relevant if `clean_text` is True.
         cast_to_sampling_rate:
             The sampling rate to cast the audio to. If `None`, then the audio is not
             cast. Defaults to `None`.
@@ -376,9 +374,6 @@ def process_dataset(
         dataset = dataset.cast_column(
             column=audio_column, feature=Audio(sampling_rate=cast_to_sampling_rate)
         )
-
-    if not clean_text:
-        return dataset
 
     # Dictionary that contains characters to be converted (from the key to the value).
     # Some values contain spaces to ensure that they're separated from other
@@ -432,6 +427,7 @@ def process_dataset(
         conversion_dict=conversion_dict,
         text_column=text_column,
         audio_column=audio_column,
+        clean_text=clean_text,
         lower_case=lower_case,
         processor=processor,
     )
@@ -451,6 +447,7 @@ def process_example(
     conversion_dict: dict[str, str],
     text_column: str,
     audio_column: str | None,
+    clean_text: bool,
     lower_case: bool,
     processor: Callable | None,
 ) -> dict:
@@ -469,6 +466,8 @@ def process_example(
         audio_column:
             The name of the column containing the audio. Can be `None` if the dataset
             does not have an audio column.
+        clean_text:
+            Whether to clean the text.
         lower_case:
             Whether to make the text lower case.
         processor:
@@ -478,6 +477,7 @@ def process_example(
     Returns:
         The cleaned example.
     """
+    breakpoint()
     doc = example[text_column]
 
     if lower_case:
@@ -485,28 +485,31 @@ def process_example(
 
     # Normalise the transcription, which uniformises the characters. For instance, the
     # "long dash" (－) is converted to the normal dash (-).
-    doc = normalize("NFKC", doc)
+    if clean_text:
+        doc = normalize("NFKC", doc)
 
-    for key, value in conversion_dict.items():
-        doc = doc.replace(key, value)
+        for key, value in conversion_dict.items():
+            doc = doc.replace(key, value)
 
-    # Remove all non-standard characters
-    if characters_to_keep is not None:
-        characters_to_keep = "".join(char for char in characters_to_keep)
-        if lower_case:
-            characters_to_keep = characters_to_keep.lower()
-        else:
-            characters_to_keep = characters_to_keep.upper() + characters_to_keep.lower()
-        non_standard_characters_regex = re.compile(
-            f"[^{re.escape(characters_to_keep + ' |')}]"
-        )
-        doc = re.sub(non_standard_characters_regex, " ", doc.strip())
+        # Remove all non-standard characters
+        if characters_to_keep is not None:
+            characters_to_keep = "".join(char for char in characters_to_keep)
+            if lower_case:
+                characters_to_keep = characters_to_keep.lower()
+            else:
+                characters_to_keep = (
+                    characters_to_keep.upper() + characters_to_keep.lower()
+                )
+            non_standard_characters_regex = re.compile(
+                f"[^{re.escape(characters_to_keep + ' |')}]"
+            )
+            doc = re.sub(non_standard_characters_regex, " ", doc.strip())
 
-    # Replace superfluous spaces
-    doc = re.sub(r" +", " ", doc)
+        # Replace superfluous spaces
+        doc = re.sub(r" +", " ", doc)
 
-    # Strip each newline
-    doc = "\n".join([line.strip() for line in doc.split("\n")]).strip("\n")
+        # Strip each newline
+        doc = "\n".join([line.strip() for line in doc.split("\n")]).strip("\n")
 
     # Re-assign the cleaned transcription
     example[text_column] = doc
