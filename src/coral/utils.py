@@ -193,7 +193,7 @@ def map_with_info(dataset: Data, function: Callable, **map_kwargs) -> Data:
         The mapped dataset.
     """
     if not isinstance(dataset, Dataset | DatasetDict):
-        map_kwargs.pop("num_proc")
+        map_kwargs.pop("num_proc", None)
         map_kwargs.pop("batched", None)
         map_kwargs.pop("batch_size", None)
         map_kwargs.pop("desc", None)
@@ -217,7 +217,7 @@ def filter_with_info(dataset: Data, function: Callable, **filter_kwargs) -> Data
         The filtered dataset.
     """
     if not isinstance(dataset, Dataset | DatasetDict):
-        filter_kwargs.pop("num_proc")
+        filter_kwargs.pop("num_proc", None)
         filter_kwargs.pop("batched", None)
         filter_kwargs.pop("batch_size", None)
         filter_kwargs.pop("desc", None)
