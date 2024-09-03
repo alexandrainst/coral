@@ -28,12 +28,17 @@ from .utils import convert_iterable_dataset_to_dataset, filter_with_info, map_wi
 logger = logging.getLogger(__package__)
 
 
-def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
+def load_data_for_finetuning(
+    config: DictConfig, processor: Callable | None = None
+) -> IterableDatasetDict:
     """Load an audio dataset for finetuning.
 
     Args:
         config:
             The Hydra configuration object.
+        processor (optional):
+            The processor to use for processing the audio and transcriptions. If `None`,
+            then the processor is not used. Defaults to `None`.
 
     Returns:
         The audio dataset.
@@ -128,6 +133,7 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
             audio_column="audio",
             lower_case=config.model.lower_case,
             cast_to_sampling_rate=config.model.sampling_rate,
+            processor=processor,
         )
 
         all_datasets.append(ds)

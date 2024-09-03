@@ -33,7 +33,7 @@ def finetune(config: DictConfig) -> None:
     processor = model_setup.load_processor()
     processor.save_pretrained(model_dir)
     model = model_setup.load_model()
-    dataset = load_data_for_finetuning(config=config)
+    dataset = load_data_for_finetuning(config=config, processor=processor)
 
     if config.wandb and is_main_process:
         wandb_init(
