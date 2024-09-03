@@ -431,10 +431,11 @@ def process_dataset(
         lower_case=lower_case,
         processor=processor,
     )
+    breakpoint()
     mapped = map_with_info(
         dataset=dataset,
         function=func,
-        # num_proc=mp.cpu_count(),
+        num_proc=mp.cpu_count(),
         desc="Processing dataset",
         remove_columns=column_names,
     )
