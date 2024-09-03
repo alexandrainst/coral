@@ -480,7 +480,6 @@ def process_example(
     Returns:
         The cleaned example.
     """
-    breakpoint()
     doc = example[text_column]
 
     if lower_case:
