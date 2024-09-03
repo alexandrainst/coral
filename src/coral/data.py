@@ -117,6 +117,7 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
                 audio_column="audio",
                 min_seconds_per_example=config.min_seconds_per_example,
                 max_seconds_per_example=config.max_seconds_per_example,
+                is_main_process=is_main_process,
             )
 
         ds = process_dataset(
@@ -206,7 +207,14 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     Returns:
         A DatasetDict containing the validation and test datasets.
     """
-    logger.info(f"Loading the {config.eval_split_name} split of the CoRal dataset...")
+    # Note if we're on the main process, if we are running in a distributed setting
+    is_main_process = os.getenv("RANK", "0") == "0"
+
+    if is_main_process:
+        logger.info(
+            f"Loading the {config.eval_split_name} split of the CoRal dataset..."
+        )
+
     dataset = load_dataset(
         path="alexandrainst/coral",
         name=config.dataset_subset,
@@ -222,6 +230,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         audio_column="audio",
         min_seconds_per_example=config.min_seconds_per_example,
         max_seconds_per_example=config.max_seconds_per_example,
+        is_main_process=is_main_process,
     )
     dataset = process_dataset(
         dataset=dataset,
@@ -243,6 +252,7 @@ def filter_dataset(
     audio_column: str,
     min_seconds_per_example: int,
     max_seconds_per_example: int,
+    is_main_process: bool,
 ) -> Data:
     """Filter the dataset.
 
@@ -257,6 +267,8 @@ def filter_dataset(
             The minimum number of seconds that an example can have.
         max_seconds_per_example:
             The maximum number of seconds that an example can have.
+        is_main_process:
+            Whether the current process is the main process.
 
     Returns:
         The filtered dataset.
@@ -276,7 +288,7 @@ def filter_dataset(
         desc="Filtering dataset",
     )
 
-    if isinstance(dataset, Sized):
+    if isinstance(dataset, Sized) and is_main_process:
         num_samples_removed = num_samples_before - len(dataset)
         logger.info(f"Removed {num_samples_removed:,} samples from the dataset")
 
