@@ -62,7 +62,7 @@ def finetune(config: DictConfig) -> None:
             warnings.simplefilter("ignore", category=FutureWarning)
             trainer.train(resume_from_checkpoint=config.resume_from_checkpoint)
 
-    if is_main_process:
+    if config.wandb and is_main_process:
         wandb_finish()
         model.save_pretrained(model_dir)
         if config.push_to_hub:
