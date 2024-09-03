@@ -4,7 +4,7 @@ import logging
 import multiprocessing as mp
 import os
 import re
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Sized
 from functools import partial
 from pathlib import Path
 from typing import Any, TypeVar
@@ -22,7 +22,7 @@ from datasets import (
 )
 from omegaconf import DictConfig
 
-from .utils import convert_iterable_dataset_to_dataset
+from .utils import convert_iterable_dataset_to_dataset, filter_with_info, map_with_info
 
 logger = logging.getLogger(__package__)
 
@@ -121,8 +121,6 @@ def load_data_for_finetuning(config: DictConfig) -> IterableDatasetDict:
                 audio_column="audio",
                 min_seconds_per_example=config.min_seconds_per_example,
                 max_seconds_per_example=config.max_seconds_per_example,
-                train_name="train",
-                remove_maybe_validated=False,
             )
 
         ds = process_dataset(
@@ -228,7 +226,6 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         audio_column="audio",
         min_seconds_per_example=config.min_seconds_per_example,
         max_seconds_per_example=config.max_seconds_per_example,
-        remove_maybe_validated=True,
     )
     dataset = process_dataset(
         dataset=dataset,
@@ -250,8 +247,6 @@ def filter_dataset(
     audio_column: str,
     min_seconds_per_example: int,
     max_seconds_per_example: int,
-    train_name: str | None = None,
-    remove_maybe_validated: bool | None = None,
 ) -> Data:
     """Filter the dataset.
 
@@ -266,115 +261,34 @@ def filter_dataset(
             The minimum number of seconds that an example can have.
         max_seconds_per_example:
             The maximum number of seconds that an example can have.
-        train_name:
-            The name of the training split. This is only relevant if `dataset` is a
-            DatasetDict or IterableDatasetDict. If `None`, then we assume this is not
-            needed. Defaults to `None`.
-        remove_maybe_validated:
-            Whether to remove samples that are validated as "maybe". This is only
-            relevant if `dataset` is a Dataset or IterableDataset. If `None`, then
-            we assume this is not needed. Defaults to `None`.
 
     Returns:
         The filtered dataset.
-
-    Raises:
-        ValueError:
-            If `remove_maybe_validated` is not `None` and `dataset` is not a
-            Dataset or IterableDataset.
     """
-    assert (
-        not isinstance(dataset, DatasetDict | IterableDatasetDict)
-        or train_name is not None
-    ), (
-        "The `train_name` argument needs to be specified if the dataset is a "
-        "DatasetDict."
+    num_samples_before = len(dataset) if isinstance(dataset, Sized) else 0
+
+    filter_fn = partial(
+        filter_example,
+        audio_column=audio_column,
+        min_seconds_per_example=min_seconds_per_example,
+        max_seconds_per_example=max_seconds_per_example,
+    )
+    filtered = filter_with_info(
+        dataset=dataset,
+        function=filter_fn,
+        num_proc=mp.cpu_count(),
+        desc="Filtering dataset",
     )
 
-    assert (
-        not isinstance(dataset, Dataset | IterableDataset)
-        or remove_maybe_validated is not None
-    ), (
-        "The `remove_maybe_validated` argument needs to be specified if the dataset "
-        "is a Dataset."
-    )
-
-    if isinstance(dataset, Dataset):
-        assert remove_maybe_validated is not None
-        num_samples_before = len(dataset)
-        filter_fn = partial(
-            filter_example,
-            remove_maybe_validated=remove_maybe_validated,
-            audio_column=audio_column,
-            min_seconds_per_example=min_seconds_per_example,
-            max_seconds_per_example=max_seconds_per_example,
-        )
-        filtered = dataset.filter(
-            filter_fn, num_proc=mp.cpu_count(), desc="Filtering dataset"
-        )
+    if isinstance(dataset, Sized):
         num_samples_removed = num_samples_before - len(dataset)
         logger.info(f"Removed {num_samples_removed:,} samples from the dataset")
-
-    elif isinstance(dataset, IterableDataset):
-        assert remove_maybe_validated is not None
-        filter_fn = partial(
-            filter_example,
-            remove_maybe_validated=remove_maybe_validated,
-            audio_column=audio_column,
-            min_seconds_per_example=min_seconds_per_example,
-            max_seconds_per_example=max_seconds_per_example,
-        )
-        filtered = dataset.filter(filter_fn)
-
-    elif isinstance(dataset, DatasetDict):
-        filtered = DatasetDict()
-        for split_name, split in dataset.items():
-            num_samples_before = len(split)
-            filter_fn = partial(
-                filter_example,
-                remove_maybe_validated=not split_name == train_name,
-                audio_column=audio_column,
-                min_seconds_per_example=min_seconds_per_example,
-                max_seconds_per_example=max_seconds_per_example,
-            )
-            filtered[split_name] = split.filter(
-                filter_fn, num_proc=mp.cpu_count(), desc=f"Filtering {split_name} split"
-            )
-            num_samples_removed = num_samples_before - len(dataset[split_name])
-            logger.info(
-                f"Removed {num_samples_removed:,} samples from the {split_name} split."
-            )
-
-    elif isinstance(dataset, IterableDatasetDict):
-        filtered = IterableDatasetDict()
-        for split_name, split in dataset.items():
-            filter_fn = partial(
-                filter_example,
-                remove_maybe_validated=not split_name == train_name,
-                audio_column=audio_column,
-                min_seconds_per_example=min_seconds_per_example,
-                max_seconds_per_example=max_seconds_per_example,
-            )
-            filtered[split_name] = split.filter(filter_fn)
-
-    # After calling `filter` the DatasetInfo is lost, so we need to add it back in
-    if isinstance(dataset, Dataset | IterableDataset) and isinstance(
-        filtered, Dataset | IterableDataset
-    ):
-        filtered._info = dataset._info
-    elif isinstance(dataset, DatasetDict | IterableDatasetDict) and isinstance(
-        filtered, DatasetDict | IterableDatasetDict
-    ):
-        for key, value in dataset.items():
-            if key in filtered:
-                filtered[key]._info = value._info
 
     return filtered
 
 
 def filter_example(
     sample: dict[str, Any],
-    remove_maybe_validated: bool,
     audio_column: str,
     min_seconds_per_example: int,
     max_seconds_per_example: int,
@@ -384,8 +298,6 @@ def filter_example(
     Args:
         sample:
             The sample to filter.
-        remove_maybe_validated:
-            Whether to remove samples that are validated as "maybe".
         audio_column:
             The name of the column containing the audio.
         min_seconds_per_example:
@@ -401,14 +313,7 @@ def filter_example(
         return False
     if audio["array"].shape[0] >= audio["sampling_rate"] * max_seconds_per_example:
         return False
-
-    if "validated" in sample:
-        if remove_maybe_validated and sample["validated"] in {"rejected", "maybe"}:
-            return False
-        elif sample["validated"] == "rejected":
-            return False
-
-    return True
+    return "validated" not in sample or sample["validated"] != "rejected"
 
 
 def process_dataset(
@@ -419,6 +324,7 @@ def process_dataset(
     audio_column: str | None,
     lower_case: bool,
     cast_to_sampling_rate: int | None = None,
+    processor: Callable | None = None,
 ) -> Data:
     """Process the dataset.
 
@@ -443,6 +349,9 @@ def process_dataset(
         cast_to_sampling_rate:
             The sampling rate to cast the audio to. If `None`, then the audio is not
             cast. Defaults to `None`.
+        processor:
+            The processor to use for processing the audio and transcriptions. If `None`,
+            then the processor is not used. Defaults to `None`.
 
     Returns:
         The cleaned dataset.
@@ -496,32 +405,27 @@ def process_dataset(
         "\u200b": " ",  # Empty whitespace symbol
     }
 
+    if isinstance(dataset, Dataset) or isinstance(dataset, IterableDataset):
+        column_names = dataset.column_names
+    elif isinstance(dataset, DatasetDict) or isinstance(dataset, IterableDatasetDict):
+        column_names = dataset["train"].column_names
+
     func = partial(
         process_example,
         characters_to_keep=characters_to_keep,
         conversion_dict=conversion_dict,
         text_column=text_column,
+        audio_column=audio_column,
         lower_case=lower_case,
+        processor=processor,
     )
-    if isinstance(dataset, Dataset | DatasetDict):
-        mapped = dataset.map(
-            function=func, num_proc=mp.cpu_count(), desc="Processing dataset"
-        )
-    else:
-        mapped = dataset.map(function=func)
-
-    # After calling `map` the DatasetInfo is lost, so we need to add it back in
-    if isinstance(dataset, Dataset | IterableDataset) and isinstance(
-        mapped, Dataset | IterableDataset
-    ):
-        mapped._info = dataset._info
-    elif isinstance(dataset, DatasetDict | IterableDatasetDict) and isinstance(
-        mapped, DatasetDict | IterableDatasetDict
-    ):
-        for key, value in dataset.items():
-            if key in mapped:
-                mapped[key]._info = value._info
-
+    mapped = map_with_info(
+        dataset=dataset,
+        function=func,
+        num_proc=mp.cpu_count(),
+        desc="Processing dataset",
+        remove_columns=column_names,
+    )
     return mapped
 
 
@@ -530,7 +434,9 @@ def process_example(
     characters_to_keep: Iterable[str] | None,
     conversion_dict: dict[str, str],
     text_column: str,
+    audio_column: str | None,
     lower_case: bool,
+    processor: Callable | None,
 ) -> dict:
     """Helper function which cleans a single example.
 
@@ -544,8 +450,14 @@ def process_example(
             A dictionary of characters to be converted.
         text_column:
             The name of the column containing the text.
+        audio_column:
+            The name of the column containing the audio. Can be `None` if the dataset
+            does not have an audio column.
         lower_case:
             Whether to make the text lower case.
+        processor:
+            The processor to use for processing the audio and transcriptions. If `None`,
+            then the processor is not used. Requires `audio_column` to be specified.
 
     Returns:
         The cleaned example.
@@ -582,5 +494,23 @@ def process_example(
 
     # Re-assign the cleaned transcription
     example[text_column] = doc
+
+    if processor is None:
+        return example
+
+    # Prepare audio
+    audio = example[audio_column]
+    sampling_rate = audio["sampling_rate"]
+    processed = processor(audio["array"], sampling_rate=sampling_rate)
+    if "input_values" in processed:
+        example["input_values"] = processed.input_values[0]
+        example["num_seconds"] = len(example["input_values"]) / sampling_rate
+    if "input_features" in processed:
+        example["input_features"] = processed.input_features[0]
+        example["num_seconds"] = len(example["input_features"]) / sampling_rate
+
+    # Prepare transcriptions
+    example["labels"] = processor(text=example[text_column], truncation=True).input_ids
+    example["input_length"] = len(example["labels"])
 
     return example

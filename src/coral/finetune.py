@@ -3,8 +3,6 @@
 import logging
 import os
 import warnings
-from collections.abc import Callable
-from functools import partial
 
 from omegaconf import DictConfig
 from transformers import EarlyStoppingCallback, TrainerCallback
@@ -36,17 +34,6 @@ def finetune(config: DictConfig) -> None:
     processor.save_pretrained(model_dir)
     model = model_setup.load_model()
     dataset = load_data_for_finetuning(config=config)
-
-    dataset = dataset.map(
-        function=partial(prepare_dataset_example, processor=processor),
-        remove_columns=dataset["train"].column_names,
-    )
-    dataset = dataset.filter(
-        function=partial(
-            example_audio_is_short,
-            max_seconds_per_example=config.max_seconds_per_example,
-        )
-    )
 
     if config.wandb and is_main_process:
         wandb_init(
@@ -102,48 +89,3 @@ def load_early_stopping_callback(config: DictConfig) -> list[TrainerCallback]:
         )
         callbacks = [early_stopping_callback]
     return callbacks
-
-
-def prepare_dataset_example(example: dict, processor: Callable) -> dict:
-    """Prepare a dataset example for the model.
-
-    Args:
-        example:
-            The example from the dataset.
-        processor:
-            The processor to use.
-
-    Returns:
-        The prepared example.
-    """
-    # Prepare audio
-    audio = example["audio"]
-    sampling_rate = audio["sampling_rate"]
-    processed = processor(audio["array"], sampling_rate=sampling_rate)
-    if "input_values" in processed:
-        example["input_values"] = processed.input_values[0]
-        example["num_seconds"] = len(example["input_values"]) / sampling_rate
-    if "input_features" in processed:
-        example["input_features"] = processed.input_features[0]
-        example["num_seconds"] = len(example["input_features"]) / sampling_rate
-
-    # Prepare transcriptions
-    example["labels"] = processor(text=example["text"], truncation=True).input_ids
-    example["input_length"] = len(example["labels"])
-
-    return example
-
-
-def example_audio_is_short(example: dict, max_seconds_per_example: int) -> bool:
-    """Check if the example audio is too short.
-
-    Args:
-        example:
-            The example from the dataset.
-        max_seconds_per_example:
-            The maximum number of seconds per example.
-
-    Returns:
-        Whether the example audio is too short.
-    """
-    return example["num_seconds"] <= max_seconds_per_example
