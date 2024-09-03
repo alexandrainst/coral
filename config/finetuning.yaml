@@ -35,7 +35,8 @@ dataset_probabilities: null
 
 # Model parameters
 model_id: ${model.name}-${now:%Y-%m-%d}
-model_dir: models/${model_id}
+models_dir: models
+model_dir: ${models_dir}/${model_id}
 hub_organisation: alexandrainst
 push_to_hub: false
 fp16: true
