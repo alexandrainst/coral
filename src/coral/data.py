@@ -23,7 +23,7 @@ from datasets import (
 from omegaconf import DictConfig
 
 from .types import Data
-from .utils import convert_iterable_dataset_to_dataset, filter_with_info, map_with_info
+from .utils import convert_iterable_dataset_to_dataset
 
 logger = logging.getLogger(__package__)
 
@@ -288,12 +288,12 @@ def filter_dataset(
         min_seconds_per_example=min_seconds_per_example,
         max_seconds_per_example=max_seconds_per_example,
     )
-    filtered = filter_with_info(
-        dataset=dataset,
-        function=filter_fn,
-        num_proc=mp.cpu_count(),
-        desc="Filtering dataset",
-    )
+    if isinstance(dataset, Dataset | DatasetDict):
+        filtered = dataset.filter(
+            function=filter_fn, num_proc=mp.cpu_count(), desc="Filtering dataset"
+        )
+    else:
+        filtered = dataset.filter(function=filter_fn)
 
     if isinstance(dataset, Sized) and is_main_process:
         num_samples_removed = num_samples_before - len(dataset)
@@ -421,7 +421,7 @@ def process_dataset(
     elif isinstance(dataset, DatasetDict) or isinstance(dataset, IterableDatasetDict):
         column_names = dataset["train"].column_names
 
-    func = partial(
+    map_fn = partial(
         process_example,
         characters_to_keep=characters_to_keep,
         conversion_dict=conversion_dict,
@@ -431,14 +431,16 @@ def process_dataset(
         lower_case=lower_case,
         processor=processor,
     )
-    breakpoint()
-    mapped = map_with_info(
-        dataset=dataset,
-        function=func,
-        num_proc=mp.cpu_count(),
-        desc="Processing dataset",
-        remove_columns=column_names,
-    )
+    if isinstance(dataset, Dataset | DatasetDict):
+        mapped = dataset.map(
+            function=map_fn,
+            num_proc=mp.cpu_count(),
+            desc="Processing dataset",
+            remove_columns=column_names,
+        )
+    else:
+        mapped = dataset.map(function=map_fn, remove_columns=column_names)
+
     return mapped
 
 

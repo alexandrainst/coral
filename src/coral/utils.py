@@ -4,7 +4,6 @@ import contextlib
 import logging
 import multiprocessing as mp
 import warnings
-from collections.abc import Callable
 from functools import partialmethod
 from pathlib import Path
 
@@ -13,16 +12,12 @@ import tqdm as tqdm_package
 import transformers.utils.logging as hf_logging
 from datasets import (
     Dataset,
-    DatasetDict,
     IterableDataset,
-    IterableDatasetDict,
     NamedSplit,
     disable_progress_bar,
     enable_progress_bar,
 )
 from tqdm.auto import tqdm
-
-from .types import Data
 
 
 def block_terminal_output() -> None:
@@ -146,81 +141,3 @@ class no_datasets_progress_bars:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Re-enable the progress bar."""
         enable_progress_bar()
-
-
-def recover_dataset_info(new_dataset: Data, old_dataset: Data) -> Data:
-    """Recover the dataset info from the old dataset.
-
-    This is used after calling `map` on a dataset, as that operation removes the
-    dataset info.
-
-    Args:
-        new_dataset:
-            The new dataset.
-        old_dataset:
-            The old dataset.
-
-    Returns:
-        The new dataset with the recovered info.
-    """
-    if isinstance(old_dataset, Dataset | IterableDataset) and isinstance(
-        new_dataset, Dataset | IterableDataset
-    ):
-        new_dataset._info = old_dataset._info
-
-    elif isinstance(old_dataset, DatasetDict | IterableDatasetDict) and isinstance(
-        new_dataset, DatasetDict | IterableDatasetDict
-    ):
-        for key, value in old_dataset.items():
-            if key in new_dataset:
-                new_dataset[key]._info = value._info
-
-    return new_dataset
-
-
-def map_with_info(dataset: Data, function: Callable, **map_kwargs) -> Data:
-    """Map a function over a dataset, preserving the dataset info.
-
-    Args:
-        dataset:
-            The dataset to map over.
-        function:
-            The function to map.
-        map_kwargs:
-            Additional keyword arguments to pass to the `map` method.
-
-    Returns:
-        The mapped dataset.
-    """
-    if not isinstance(dataset, Dataset | DatasetDict):
-        map_kwargs.pop("num_proc", None)
-        map_kwargs.pop("batched", None)
-        map_kwargs.pop("batch_size", None)
-        map_kwargs.pop("desc", None)
-    mapped = dataset.map(function=function, **map_kwargs)
-    mapped = recover_dataset_info(new_dataset=mapped, old_dataset=dataset)
-    return mapped
-
-
-def filter_with_info(dataset: Data, function: Callable, **filter_kwargs) -> Data:
-    """Filter a dataset, preserving the dataset info.
-
-    Args:
-        dataset:
-            The dataset to filter.
-        function:
-            The function to filter.
-        filter_kwargs:
-            Additional keyword arguments to pass to the `filter` method.
-
-    Returns:
-        The filtered dataset.
-    """
-    if not isinstance(dataset, Dataset | DatasetDict):
-        filter_kwargs.pop("num_proc", None)
-        filter_kwargs.pop("batched", None)
-        filter_kwargs.pop("batch_size", None)
-        filter_kwargs.pop("desc", None)
-    filtered = dataset.filter(function=function, **filter_kwargs)
-    filtered = recover_dataset_info(new_dataset=filtered, old_dataset=dataset)
-    return filtered
