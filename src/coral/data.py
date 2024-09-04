@@ -1,7 +1,6 @@
 """Functions related to the data loading and processing."""
 
 import logging
-import multiprocessing as mp
 import os
 import re
 from collections.abc import Callable, Iterable, Sized
@@ -123,6 +122,7 @@ def load_data_for_finetuning(
                 min_seconds_per_example=config.min_seconds_per_example,
                 max_seconds_per_example=config.max_seconds_per_example,
                 is_main_process=is_main_process,
+                num_proc=config.dataset_num_workers,
             )
 
         ds = process_dataset(
@@ -134,6 +134,7 @@ def load_data_for_finetuning(
             audio_column="audio",
             cast_to_sampling_rate=config.model.sampling_rate,
             processor=processor,
+            num_proc=config.dataset_num_workers,
         )
 
         all_datasets.append(ds)
@@ -179,10 +180,12 @@ def load_data_for_finetuning(
 
     val = load_dataset(
         path=config.evaluation_dataset.id,
+        name=config.evaluation_dataset.subset,
         split=config.evaluation_dataset.val_name,
         token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
         streaming=config.streaming,
         trust_remote_code=True,
+        cache_dir=config.cache_dir,
     )
     if config.evaluation_dataset.text_column != "text":
         val = val.rename_column(config.evaluation_dataset.text_column, "text")
@@ -198,6 +201,7 @@ def load_data_for_finetuning(
         audio_column="audio",
         cast_to_sampling_rate=config.model.sampling_rate,
         processor=processor,
+        num_proc=config.dataset_num_workers,
     )
     dataset["val"] = val
 
@@ -260,6 +264,7 @@ def filter_dataset(
     min_seconds_per_example: int,
     max_seconds_per_example: int,
     is_main_process: bool,
+    num_proc: int | None = None,
 ) -> Data:
     """Filter the dataset.
 
@@ -276,6 +281,9 @@ def filter_dataset(
             The maximum number of seconds that an example can have.
         is_main_process:
             Whether the current process is the main process.
+        num_proc (optional):
+            The number of processes to use for filtering the dataset. If `None`, then
+            no multiprocessing is used. Defaults to `None`.
 
     Returns:
         The filtered dataset.
@@ -290,7 +298,7 @@ def filter_dataset(
     )
     if isinstance(dataset, Dataset | DatasetDict):
         filtered = dataset.filter(
-            function=filter_fn, num_proc=mp.cpu_count(), desc="Filtering dataset"
+            function=filter_fn, num_proc=num_proc, desc="Filtering dataset"
         )
     else:
         filtered = dataset.filter(function=filter_fn)
@@ -338,6 +346,7 @@ def process_dataset(
     characters_to_keep: Iterable[str] | None,
     text_column: str,
     audio_column: str | None,
+    num_proc: int | None = None,
     cast_to_sampling_rate: int | None = None,
     processor: Callable | None = None,
 ) -> Data:
@@ -360,10 +369,13 @@ def process_dataset(
         audio_column:
             The name of the column containing the audio. Can be `None` if the dataset
             does not have an audio column.
-        cast_to_sampling_rate:
+        num_proc (optional):
+            The number of processes to use for processing the dataset. If `None`, then
+            no multiprocessing is used. Defaults to `None`.
+        cast_to_sampling_rate (optional):
             The sampling rate to cast the audio to. If `None`, then the audio is not
             cast. Defaults to `None`.
-        processor:
+        processor (optional):
             The processor to use for processing the audio and transcriptions. If `None`,
             then the processor is not used. Defaults to `None`.
 
@@ -434,7 +446,7 @@ def process_dataset(
     if isinstance(dataset, Dataset | DatasetDict):
         mapped = dataset.map(
             function=map_fn,
-            num_proc=mp.cpu_count(),
+            num_proc=num_proc,
             desc="Processing dataset",
             remove_columns=column_names,
         )
