@@ -19,6 +19,7 @@ from transformers import (
 from transformers.pipelines.pt_utils import KeyDataset
 
 from .data_models import Processor
+from .utils import transformers_output_ignored
 
 logger = logging.getLogger(__package__)
 
@@ -164,7 +165,10 @@ def compute_metrics_of_dataset_using_pipeline(
     labels: list[str] = [lbl.strip().lower() for lbl in dataset[text_column]]
     predictions: list[str] = list()
 
-    with tqdm(total=len(dataset), desc="Transcribing") as pbar:
+    with (
+        tqdm(total=len(dataset), desc="Transcribing") as pbar,
+        transformers_output_ignored(),
+    ):
         for out in transcriber(
             KeyDataset(dataset=dataset, key=audio_column), batch_size=batch_size
         ):
