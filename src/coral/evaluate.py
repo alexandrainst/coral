@@ -34,33 +34,8 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
 
     dataset = load_dataset_for_evaluation(config=config)
 
-    logger.info(f"Loading the {config.model_id!r} ASR model...")
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-    elif torch.backends.mps.is_available():
-        device = torch.device("mps")
-    else:
-        device = torch.device("cpu")
-    transcriber = pipeline(
-        task="automatic-speech-recognition", model=config.model_id, device=device
-    )
-    assert isinstance(transcriber, AutomaticSpeechRecognitionPipeline)
-
-    # Get metrics
-    _, _, all_scores = compute_metrics_of_dataset_using_pipeline(
-        dataset=dataset,
-        transcriber=transcriber,
-        metric_names=[config.metric],
-        characters_to_keep=config.characters_to_keep,
-        text_column="text",
-        audio_column="audio",
-        batch_size=config.batch_size,
-    )
-
     df = dataset.to_pandas()
     assert isinstance(df, pd.DataFrame)
-
-    df["score"] = all_scores[config.metric]
 
     # Make a new binary feature of whether the native language is Danish
     df["accent"] = df.country_birth.map(lambda x: "native" if x == "DK" else "foreign")
@@ -74,11 +49,36 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
         )
     )
 
+    df.dialect = df.dialect.map(config.sub_dialect_to_dialect)
+
     # Get unique values for each category
     categories = ["age_group", "gender", "dialect", "accent"]
     unique_category_values = [
         df[f"{category}"].unique().tolist() + [None] for category in categories
     ]
+
+    logger.info(f"Loading the {config.model_id!r} ASR model...")
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
+    transcriber = pipeline(
+        task="automatic-speech-recognition", model=config.model_id, device=device
+    )
+    assert isinstance(transcriber, AutomaticSpeechRecognitionPipeline)
+
+    _, _, all_scores = compute_metrics_of_dataset_using_pipeline(
+        dataset=dataset,
+        transcriber=transcriber,
+        metric_names=[config.metric],
+        characters_to_keep=config.characters_to_keep,
+        text_column="text",
+        audio_column="audio",
+        batch_size=config.batch_size,
+    )
+    df["score"] = all_scores[config.metric]
 
     # Iterate over all combinations of categories
     records = list()

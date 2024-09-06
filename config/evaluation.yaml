@@ -18,3 +18,39 @@ model_id: null
 sampling_rate: 16_000
 metric: cer
 batch_size: 16
+
+sub_dialect_to_dialect:
+  midtøstjysk: Østjysk
+  østjysk: Østjysk
+  amagermål: Københavnsk
+  nørrejysk: Nordjysk
+  vestjysk: Vestjysk
+  nordsjællandsk: Sjællandsk
+  sjællandsk: Sjællandsk
+  fynsk: Fynsk
+  bornholmsk: Bornholmsk
+  sønderjysk: Sønderjysk
+  vendsysselsk (m. hanherred og læsø): Nordjysk
+  østligt sønderjysk (m. als): Sønderjysk
+  nordvestsjællandsk: Sjællandsk
+  thybomål: Vestjysk
+  himmerlandsk: Nordjysk
+  djurslandsk (nord-, syddjurs m. nord- og sydsamsø, anholt): Østjysk
+  sydsjællandsk (sydligt sydsjællandsk): Sjællandsk
+  sydfynsk: Fynsk
+  morsingmål: Vestjysk
+  sydøstjysk: Østjysk
+  østsjællandsk: Sjællandsk
+  "syd for rigsgrænsen: mellemslesvisk, angelmål, fjoldemål": Sønderjysk
+  vestfynsk (nordvest-, sydvestfynsk): Fynsk
+  vestlig sønderjysk (m. mandø og rømø): Sønderjysk
+  sydvestjysk (m. fanø): Vestjysk
+  sallingmål: Vestjysk
+  nordfalstersk: Sydømål
+  langelandsk: Fynsk
+  sydvestsjællandsk: Sjællandsk
+  lollandsk: Sydømål
+  sydømål: Sydømål
+  ommersysselsk: Østjysk
+  sydfalstersk: Sydømål
+  fjandbomål: Vestjysk
