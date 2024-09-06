@@ -38,7 +38,7 @@ class TestProcessDataset:
             characters_to_keep=None,
             text_column="text",
             audio_column=None,
-            remove_input_dataset_columns=True,
+            remove_input_dataset_columns=False,
             lower_case=True,
         )
         processed_samples = {sample["text"] for sample in processed_dataset}
