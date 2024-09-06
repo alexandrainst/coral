@@ -37,9 +37,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     dataset = load_dataset_for_evaluation(config=config)
 
     logger.info(f"Loading the {config.model_id!r} ASR model...")
-    transcriber = load_asr_pipeline(
-        model_id=config.model_id, cache_dir=config.cache_dir
-    )
+    transcriber = load_asr_pipeline(model_id=config.model_id)
 
     logger.info("Computing the scores...")
     _, _, all_scores = compute_metrics_of_dataset_using_pipeline(
@@ -100,17 +98,12 @@ def convert_evaluation_dataset_to_df(
     return df
 
 
-def load_asr_pipeline(
-    model_id: str, cache_dir: str | None = None
-) -> AutomaticSpeechRecognitionPipeline:
+def load_asr_pipeline(model_id: str) -> AutomaticSpeechRecognitionPipeline:
     """Load the ASR pipeline.
 
     Args:
         model_id:
             The model ID to load.
-        cache_dir (optional):
-            The cache directory to use. If not provided, the default ~/.cache/huggingface
-            is used.
 
     Returns:
         The ASR pipeline.
@@ -122,10 +115,7 @@ def load_asr_pipeline(
     else:
         device = torch.device("cpu")
     transcriber = pipeline(
-        task="automatic-speech-recognition",
-        model=model_id,
-        device=device,
-        cache_dir=cache_dir,
+        task="automatic-speech-recognition", model=model_id, device=device
     )
     assert isinstance(transcriber, AutomaticSpeechRecognitionPipeline)
     return transcriber
