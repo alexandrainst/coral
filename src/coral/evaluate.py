@@ -89,7 +89,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
         for key, value in zip(categories, combination):
             if value is None:
                 continue
-            new_df_filtered = df_filtered.query(f"{key}_1 == @value")
+            new_df_filtered = df_filtered.query(f"{key} == @value")
             if len(new_df_filtered) == len(df_filtered) or len(new_df_filtered) == 0:
                 skip_combination = True
             df_filtered = new_df_filtered
