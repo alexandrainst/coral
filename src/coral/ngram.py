@@ -164,15 +164,15 @@ def train_ngram_model(config: DictConfig) -> None:
         ]
     )
 
+    # Remove the uncompressed ngram model, as we only need the compressed version
+    if new_ngram_path.exists():
+        new_ngram_path.unlink()
+
     if config.push_to_hub:
         logger.info("Pushing n-gram language model to hub...")
         processor_with_lm.push_to_hub(
             repo_id=f"{config.hub_organisation}/{config.model_id}", max_shard_size=None
         )
-
-    # Remove the uncompressed ngram model, as we only need the compressed version
-    if new_ngram_path.exists():
-        new_ngram_path.unlink()
 
 
 def download_and_extract(url: str, target_dir: str | Path) -> None:
