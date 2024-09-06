@@ -36,12 +36,6 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     logger.info("Loading the dataset...")
     dataset = load_dataset_for_evaluation(config=config)
 
-    # TEMP
-    df = convert_evaluation_dataset_to_df(
-        dataset=dataset, sub_dialect_to_dialect_mapping=config.sub_dialect_to_dialect
-    )
-    breakpoint()
-
     logger.info(f"Loading the {config.model_id!r} ASR model...")
     transcriber = load_asr_pipeline(model_id=config.model_id)
 
