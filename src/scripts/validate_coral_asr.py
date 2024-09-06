@@ -53,7 +53,7 @@ def main(config: DictConfig) -> None:
         audio_column=config.audio_column,
         min_seconds_per_example=config.min_seconds_per_example,
         max_seconds_per_example=config.max_seconds_per_example,
-        train_name=config.train_name,
+        is_main_process=True,
     )
 
     dataset = add_validations(
