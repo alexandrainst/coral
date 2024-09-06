@@ -36,18 +36,6 @@ def train_ngram_model(config: DictConfig) -> None:
             url="https://kheafield.com/code/kenlm.tar.gz", target_dir=cache_dir
         )
 
-    # TEMP
-    processor_with_lm = Wav2Vec2ProcessorWithLM.from_pretrained(config.model_dir)
-    processor_with_lm._save_pretrained = deepcopy(processor_with_lm.save_pretrained)
-    processor_with_lm.save_pretrained = MethodType(
-        lambda self, save_directory, **kwargs: self._save_pretrained(save_directory),
-        processor_with_lm,
-    )
-    processor_with_lm.push_to_hub(
-        repo_id=f"{config.hub_organisation}/{config.model_id}"
-    )
-    return
-
     # Compile `kenlm` if it hasn't already been compiled
     kenlm_build_dir = kenlm_dir / "build"
     if not (kenlm_build_dir / "bin" / "lmplz").exists():
@@ -177,6 +165,19 @@ def train_ngram_model(config: DictConfig) -> None:
 
     if config.push_to_hub:
         logger.info("Pushing n-gram language model to hub...")
+
+        # Hotfix related to pushing Wav2Vec2ProcessorWithLM to the hub, since the
+        # `push_to_hub` method calls `save_pretrained` with extra kwargs, which is not
+        # allowed with that method. Here we simply allow such extra kwargs, and ignore
+        # them all.
+        processor_with_lm._save_pretrained = deepcopy(processor_with_lm.save_pretrained)
+        processor_with_lm.save_pretrained = MethodType(
+            lambda self, save_directory, **kwargs: self._save_pretrained(
+                save_directory
+            ),
+            processor_with_lm,
+        )
+
         processor_with_lm.push_to_hub(
             repo_id=f"{config.hub_organisation}/{config.model_id}", max_shard_size=None
         )
