@@ -236,6 +236,10 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         streaming=True,
     )
     assert isinstance(dataset, IterableDataset)
+    dataset = convert_iterable_dataset_to_dataset(
+        iterable_dataset=dataset, split_name=config.eval_split_name
+    )
+    assert isinstance(dataset, Dataset)
     dataset = filter_dataset(
         dataset=dataset,
         audio_column="audio",
@@ -251,9 +255,6 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         text_column="text",
         audio_column="audio",
         cast_to_sampling_rate=config.sampling_rate,
-    )
-    dataset = convert_iterable_dataset_to_dataset(
-        iterable_dataset=dataset, split_name=config.eval_split_name
     )
     return dataset
 
@@ -382,6 +383,7 @@ def process_dataset(
     Returns:
         The cleaned dataset.
     """
+    breakpoint()
     if audio_column is not None:
         dataset = dataset.cast_column(
             column=audio_column, feature=Audio(sampling_rate=cast_to_sampling_rate)
