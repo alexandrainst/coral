@@ -3,6 +3,7 @@
 import logging
 import os
 import re
+import warnings
 from collections.abc import Iterable
 
 import numpy as np
@@ -168,7 +169,9 @@ def compute_metrics_of_dataset_using_pipeline(
     with (
         tqdm(total=len(dataset), desc="Transcribing") as pbar,
         transformers_output_ignored(),
+        warnings.catch_warnings(),
     ):
+        warnings.filterwarnings("ignore", category=FutureWarning)
         for out in transcriber(
             KeyDataset(dataset=dataset, key=audio_column), batch_size=batch_size
         ):
