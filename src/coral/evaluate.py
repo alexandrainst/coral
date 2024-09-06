@@ -13,6 +13,7 @@ from transformers import AutomaticSpeechRecognitionPipeline, pipeline
 
 from .compute_metrics import compute_metrics_of_dataset_using_pipeline
 from .data import load_dataset_for_evaluation
+from .utils import transformers_output_ignored
 
 load_dotenv()
 
@@ -116,7 +117,7 @@ def load_asr_pipeline(model_id: str) -> AutomaticSpeechRecognitionPipeline:
         device = torch.device("mps")
     else:
         device = torch.device("cpu")
-    with warnings.catch_warnings():
+    with warnings.catch_warnings(), transformers_output_ignored():
         warnings.simplefilter("ignore", category=FutureWarning)
         transcriber = pipeline(
             task="automatic-speech-recognition", model=model_id, device=device
