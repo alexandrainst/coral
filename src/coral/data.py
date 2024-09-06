@@ -228,6 +228,11 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
             f"Loading the {config.eval_split_name} split of the CoRal dataset..."
         )
 
+    eval_dataset_path = Path(config.cache_dir) / "coral-test-set"
+
+    if eval_dataset_path.exists():
+        return Dataset.load_from_disk(dataset_path=eval_dataset_path)
+
     dataset = load_dataset(
         path="alexandrainst/coral",
         name=config.dataset_subset,
@@ -259,6 +264,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         remove_input_dataset_columns=False,
         cast_to_sampling_rate=config.sampling_rate,
     )
+    dataset.save_to_disk(dataset_path=eval_dataset_path)
     return dataset
 
 
