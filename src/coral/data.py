@@ -307,6 +307,13 @@ def filter_dataset(
     else:
         filtered = dataset.filter(function=filter_fn)
 
+    # Add info back in the filtered dataset, as it gets removed after calling `filter`
+    if isinstance(dataset, Dataset | IterableDataset):
+        filtered.info.features = dataset.info.features
+    else:
+        for split_name in dataset.keys():
+            dataset[split_name].info.features = filtered[split_name].info.features
+
     if isinstance(dataset, Sized) and is_main_process:
         num_samples_removed = num_samples_before - len(dataset)
         logger.info(f"Removed {num_samples_removed:,} samples from the dataset")
