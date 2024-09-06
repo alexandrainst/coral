@@ -38,6 +38,7 @@ class TestProcessDataset:
             characters_to_keep=None,
             text_column="text",
             audio_column=None,
+            remove_input_dataset_columns=True,
             lower_case=True,
         )
         processed_samples = {sample["text"] for sample in processed_dataset}
@@ -207,6 +208,9 @@ class TestProcessExample:
             characters_to_keep=characters_to_keep,
             conversion_dict=conversion_dict,
             text_column=text_column,
+            audio_column=None,
+            clean_text=True,
             lower_case=lower_case,
+            processor=None,
         )[text_column]
         assert cleaned_transcription == expected

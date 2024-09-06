@@ -132,6 +132,7 @@ def load_data_for_finetuning(
             characters_to_keep=config.characters_to_keep,
             text_column="text",
             audio_column="audio",
+            remove_input_dataset_columns=True,
             cast_to_sampling_rate=config.model.sampling_rate,
             processor=processor,
             num_proc=config.dataset_num_workers,
@@ -199,6 +200,7 @@ def load_data_for_finetuning(
         characters_to_keep=config.characters_to_keep,
         text_column="text",
         audio_column="audio",
+        remove_input_dataset_columns=True,
         cast_to_sampling_rate=config.model.sampling_rate,
         processor=processor,
         num_proc=config.dataset_num_workers,
@@ -254,6 +256,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         characters_to_keep=config.characters_to_keep,
         text_column="text",
         audio_column="audio",
+        remove_input_dataset_columns=True,
         cast_to_sampling_rate=config.sampling_rate,
     )
     return dataset
@@ -346,6 +349,7 @@ def process_dataset(
     lower_case: bool,
     characters_to_keep: Iterable[str] | None,
     text_column: str,
+    remove_input_dataset_columns: bool,
     audio_column: str | None,
     num_proc: int | None = None,
     cast_to_sampling_rate: int | None = None,
@@ -367,6 +371,8 @@ def process_dataset(
             all characters should be kept. Only relevant if `clean_text` is True.
         text_column:
             The name of the column containing the text.
+        remove_input_dataset_columns:
+            Whether to remove all input dataset columns from the output dataset.
         audio_column:
             The name of the column containing the audio. Can be `None` if the dataset
             does not have an audio column.
@@ -383,7 +389,6 @@ def process_dataset(
     Returns:
         The cleaned dataset.
     """
-    breakpoint()
     if audio_column is not None:
         dataset = dataset.cast_column(
             column=audio_column, feature=Audio(sampling_rate=cast_to_sampling_rate)
@@ -450,7 +455,7 @@ def process_dataset(
             function=map_fn,
             num_proc=num_proc,
             desc="Processing dataset",
-            remove_columns=column_names,
+            remove_columns=column_names if remove_input_dataset_columns else None,
         )
     else:
         mapped = dataset.map(function=map_fn, remove_columns=column_names)
