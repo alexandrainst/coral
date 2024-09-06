@@ -256,7 +256,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         characters_to_keep=config.characters_to_keep,
         text_column="text",
         audio_column="audio",
-        remove_input_dataset_columns=True,
+        remove_input_dataset_columns=False,
         cast_to_sampling_rate=config.sampling_rate,
     )
     return dataset
