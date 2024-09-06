@@ -467,7 +467,6 @@ def process_dataset(
     else:
         mapped = dataset.map(function=map_fn, remove_columns=column_names)
 
-    breakpoint()
     return mapped
 
 
