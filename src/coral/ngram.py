@@ -7,6 +7,7 @@ import subprocess
 import tarfile
 import tempfile
 from pathlib import Path
+from types import MethodType
 
 import requests
 from datasets import Dataset, load_dataset
@@ -36,6 +37,10 @@ def train_ngram_model(config: DictConfig) -> None:
 
     # TEMP
     processor_with_lm = Wav2Vec2ProcessorWithLM.from_pretrained(config.model_dir)
+    processor_with_lm.save_pretrained = MethodType(
+        lambda self, save_directory, **kwargs: self.save_pretrained(save_directory),
+        processor_with_lm,
+    )
     processor_with_lm.push_to_hub(
         repo_id=f"{config.hub_organisation}/{config.model_id}"
     )
