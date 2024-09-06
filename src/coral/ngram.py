@@ -37,7 +37,7 @@ def train_ngram_model(config: DictConfig) -> None:
     # TEMP
     processor_with_lm = Wav2Vec2ProcessorWithLM.from_pretrained(config.model_dir)
     processor_with_lm.push_to_hub(
-        repo_id=f"{config.hub_organisation}/{config.model_id}", max_shard_size=None
+        repo_id=f"{config.hub_organisation}/{config.model_id}"
     )
     return
 
