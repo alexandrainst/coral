@@ -27,7 +27,8 @@ def main(config: DictConfig) -> None:
             The Hydra configuration object.
     """
     score_df = evaluate(config=config)
-    score_df.to_csv(f"{config.model_id}_scores.csv", index=False)
+    model_id_without_slashes = config.model_id.replace("/", "__")
+    score_df.to_csv(f"{model_id_without_slashes}_scores.csv", index=False)
 
 
 if __name__ == "__main__":
