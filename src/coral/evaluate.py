@@ -2,6 +2,7 @@
 
 import itertools as it
 import logging
+import warnings
 
 import pandas as pd
 import torch
@@ -115,9 +116,11 @@ def load_asr_pipeline(model_id: str) -> AutomaticSpeechRecognitionPipeline:
         device = torch.device("mps")
     else:
         device = torch.device("cpu")
-    transcriber = pipeline(
-        task="automatic-speech-recognition", model=model_id, device=device
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=FutureWarning)
+        transcriber = pipeline(
+            task="automatic-speech-recognition", model=model_id, device=device
+        )
     assert isinstance(transcriber, AutomaticSpeechRecognitionPipeline)
     return transcriber
 
