@@ -1,6 +1,7 @@
 """Training n-gram language model for Wav2Vec2 models."""
 
 import io
+import logging
 import os
 import subprocess
 import tarfile
@@ -14,6 +15,8 @@ from pyctcdecode.decoder import build_ctcdecoder
 from transformers import Wav2Vec2Processor, Wav2Vec2ProcessorWithLM
 
 from .data import process_dataset
+
+logger = logging.getLogger(__package__)
 
 
 def train_ngram_model(config: DictConfig) -> None:
@@ -41,6 +44,8 @@ def train_ngram_model(config: DictConfig) -> None:
     # Train the n-gram language model if it doesn't already exist
     correct_ngram_path = Path(config.model_dir) / f"{config.model.decoder.n}gram.arpa"
     if not correct_ngram_path.exists():
+        logger.info("Training n-gram language model...")
+
         ngram_path = Path(config.model_dir) / f"raw_{config.model.decoder.n}gram.arpa"
         ngram_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -53,6 +58,7 @@ def train_ngram_model(config: DictConfig) -> None:
                 token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
             )
             assert isinstance(dataset, Dataset)
+            breakpoint()
 
             dataset = process_dataset(
                 dataset=dataset,
@@ -114,6 +120,8 @@ def train_ngram_model(config: DictConfig) -> None:
         if ngram_path.exists():
             ngram_path.unlink()
 
+    logger.info("Storing n-gram language model...")
+
     processor = Wav2Vec2Processor.from_pretrained(config.model_dir)
 
     # Extract the vocabulary, which will be used to build the CTC decoder
@@ -150,6 +158,7 @@ def train_ngram_model(config: DictConfig) -> None:
     )
 
     if config.push_to_hub:
+        logger.info("Pushing n-gram language model to hub...")
         processor_with_lm.push_to_hub(
             repo_id=f"{config.hub_organisation}/{config.model_id}"
         )
