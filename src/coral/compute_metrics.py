@@ -54,11 +54,13 @@ def compute_wer_metrics(
     assert isinstance(labels, np.ndarray)
     labels[labels == -100] = pad_token
 
-    # Decode the predictions to get the transcriptions
+    # Whisper decoding
     pred_ids: NDArray[np.int_]
     if predictions.ndim == 2:
         predictions_str = processor.batch_decode(predictions, skip_special_tokens=True)
         labels_str = tokenizer.batch_decode(sequences=labels, skip_special_tokens=True)
+
+    # Wav2Vec2 decoding
     elif predictions.ndim == 3:
         # If all the logits are -100 for a token, then we set the logit for the padding
         # token for that token to 0. This is to ensure that this token gets decoded to a
@@ -68,6 +70,7 @@ def compute_wer_metrics(
         pred_ids = np.argmax(predictions, axis=-1)
         predictions_str = processor.batch_decode(pred_ids)
         labels_str = tokenizer.batch_decode(sequences=labels, group_tokens=False)
+
     else:
         raise ValueError(
             f"Expected predictions to have either 2 or 3 dimensions, but found "
