@@ -31,6 +31,7 @@ def block_terminal_output() -> None:
     # Ignore user warnings throughout the codebase
     warnings.filterwarnings("ignore", category=UserWarning)
     warnings.filterwarnings("ignore", category=RuntimeWarning)
+    warnings.filterwarnings("ignore", category=FutureWarning)
 
     # Disable logging from Hugging Face libraries
     ds_logging.set_verbosity_error()

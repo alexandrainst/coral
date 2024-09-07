@@ -2,7 +2,6 @@
 
 import logging
 import os
-import warnings
 
 from omegaconf import DictConfig
 from transformers import EarlyStoppingCallback, TrainerCallback
@@ -58,9 +57,7 @@ def finetune(config: DictConfig) -> None:
     )
 
     with disable_tqdm():
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=FutureWarning)
-            trainer.train(resume_from_checkpoint=config.resume_from_checkpoint)
+        trainer.train(resume_from_checkpoint=config.resume_from_checkpoint)
 
     if config.wandb and is_main_process:
         wandb_finish()

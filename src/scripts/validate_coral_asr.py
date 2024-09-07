@@ -5,7 +5,6 @@ Usage:
 """
 
 import logging
-import warnings
 from time import sleep
 
 import hydra
@@ -22,8 +21,6 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger("validate_coral_asr")
-
-warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 @hydra.main(
