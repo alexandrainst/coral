@@ -77,6 +77,11 @@ def compute_wer_metrics(
             f"{predictions.ndim} dimensions."
         )
 
+    # Lower case and strip both the predictions and the ground truth labels, to ensure
+    # that the WER and CER metrics are computed fairly
+    predictions_str = [pred.lower().strip() for pred in predictions_str]
+    labels_str = [lbl.lower().strip() for lbl in labels_str]
+
     # Log both the predictions and the ground truth labels
     is_main_process = os.getenv("RANK", "0") == "0"
     if is_main_process and log_examples:
