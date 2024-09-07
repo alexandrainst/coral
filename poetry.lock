@@ -5566,4 +5566,4 @@ kenlm = ["kenlm"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.13"
-content-hash = "22afd276e52060d0d1e91227c08b18c1dd2f30379e2f2a21982fcd46d77cc555"
+content-hash = "4ccc9c4ffb06e35482c0554e6f01591e17d954618894f0bad4570da5146ffde3"
