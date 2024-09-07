@@ -45,7 +45,6 @@ def finetune(config: DictConfig) -> None:
     if "val" not in dataset and is_main_process:
         logger.info("No validation set found. Disabling early stopping.")
 
-    breakpoint()
     trainer = model_setup.load_trainer_class()(
         model=model,
         data_collator=model_setup.load_data_collator(),

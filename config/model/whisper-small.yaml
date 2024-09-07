@@ -16,4 +16,4 @@ mask_time_prob: 0.3
 mask_time_length: 10
 mask_feature_prob: 0.3
 mask_feature_length: 64
-generation_max_length: 128
+generation_max_length: 225
