@@ -53,6 +53,7 @@ def compute_wer_metrics(
     # If all the logits are -100 for a token, then we set the logit for the padding
     # token for that token to 0. This is to ensure that this token gets decoded to a
     # padding token, and are therefore ignored
+    breakpoint()
     predictions[np.all(predictions == -100, axis=-1), pad_token] = 0
 
     # Decode the predictions to get the transcriptions. When a language model is
