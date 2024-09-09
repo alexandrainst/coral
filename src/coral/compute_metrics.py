@@ -174,7 +174,10 @@ def compute_metrics_of_dataset_using_pipeline(
                 convert_numerals=True,
                 processor=None,
             )["text"]
-            breakpoint()
+
+            # TEMP
+            logger.info(prediction, labels[len(predictions)])
+
             predictions.append(prediction)
             pbar.update()
 
