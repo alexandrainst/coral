@@ -296,7 +296,7 @@ def convert_numeral_to_words(numeral: str, inside_larger_numeral: bool = False) 
     Returns:
         The text with numerals converted to words.
     """
-    if not re.match(pattern=r"^[\d.,]+$", string=numeral) or numeral == "":
+    if re.match(pattern=r"^(\d|\.|\,)+$", string=numeral) is None or numeral == "":
         return numeral
 
     numeral = numeral.replace(".", "")
