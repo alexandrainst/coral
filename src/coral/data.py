@@ -476,6 +476,7 @@ def process_dataset(
         audio_column=audio_column,
         clean_text=clean_text,
         lower_case=lower_case,
+        convert_numerals=convert_numerals,
         processor=processor,
     )
     if isinstance(dataset, Dataset | DatasetDict):
