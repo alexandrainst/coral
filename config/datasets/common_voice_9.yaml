@@ -1,4 +1,4 @@
-common_voice_9_da:
+common_voice_9:
   id: mozilla-foundation/common_voice_9_0
   subset: da
   train_name: train

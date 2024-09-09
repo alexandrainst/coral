@@ -1,4 +1,4 @@
-fleurs_da:
+fleurs:
   id: google/fleurs
   subset: da_dk
   train_name: train
