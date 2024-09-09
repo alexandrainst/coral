@@ -56,7 +56,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
         mean_scores = {
             metric: sum(scores) / len(scores) for metric, scores in all_scores.items()
         }
-        logger.info(f"Mean scores: {mean_scores}")
+        logger.info(f"Scores of {config.model_id} on {config.dataset}: {mean_scores}")
         df = pd.DataFrame(mean_scores, index=np.array([config.dataset]))
         return df
 
