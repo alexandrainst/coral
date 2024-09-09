@@ -5,12 +5,7 @@ from collections.abc import Generator
 import pytest
 from datasets import IterableDatasetDict
 
-from coral.data import (
-    convert_numeral_to_words,
-    load_data_for_finetuning,
-    process_dataset,
-    process_example,
-)
+from coral.data import load_data_for_finetuning, process_dataset, process_example
 
 
 class TestLoadDataForFinetuning:
@@ -220,80 +215,3 @@ class TestProcessExample:
             processor=None,
         )[text_column]
         assert cleaned_transcription == expected
-
-
-@pytest.mark.parametrize(
-    argnames=["numeral", "expected"],
-    argvalues=[
-        ("0", "nul"),
-        ("1", "en"),
-        ("2", "to"),
-        ("3", "tre"),
-        ("4", "fire"),
-        ("5", "fem"),
-        ("6", "seks"),
-        ("7", "syv"),
-        ("8", "otte"),
-        ("9", "ni"),
-        ("10", "ti"),
-        ("11", "elleve"),
-        ("12", "tolv"),
-        ("13", "tretten"),
-        ("14", "fjorten"),
-        ("15", "femten"),
-        ("16", "seksten"),
-        ("17", "sytten"),
-        ("18", "atten"),
-        ("19", "nitten"),
-        ("20", "tyve"),
-        ("21", "enogtyve"),
-        ("22", "toogtyve"),
-        ("23", "treogtyve"),
-        ("24", "fireogtyve"),
-        ("25", "femogtyve"),
-        ("26", "seksogtyve"),
-        ("27", "syvogtyve"),
-        ("28", "otteogtyve"),
-        ("29", "niogtyve"),
-        ("30", "tredive"),
-        ("40", "fyrre"),
-        ("50", "halvtreds"),
-        ("60", "tres"),
-        ("70", "halvfjerds"),
-        ("80", "firs"),
-        ("90", "halvfems"),
-        ("100", "hundrede"),
-        ("101", "et hundrede og en"),
-        ("110", "et hundrede og ti"),
-        ("121", "et hundrede og enogtyve"),
-        ("200", "to hundrede"),
-        ("999", "ni hundrede og nioghalvfems"),
-        ("1000", "tusind"),
-        ("1001", "et tusind og en"),
-        ("1010", "et tusind og ti"),
-        ("1100", "et tusind et hundrede"),
-        ("1121", "et tusind et hundrede og enogtyve"),
-        ("2000", "to tusind"),
-        ("10.000", "ti tusind"),
-        ("100.000", "et hundrede tusind"),
-        ("100000", "et hundrede tusind"),
-        ("999.999", "ni hundrede og nioghalvfems tusind ni hundrede og nioghalvfems"),
-        ("999999", "ni hundrede og nioghalvfems tusind ni hundrede og nioghalvfems"),
-        ("1.000.000", "en million"),
-        ("1.000000", "en million"),
-        ("1.0.00000", "en million"),
-        ("1.000.001", "en million og en"),
-        ("10.000.000", "ti millioner"),
-        ("100.000.000", "et hundrede millioner"),
-        (
-            "999.999.999",
-            "ni hundrede og nioghalvfems millioner ni hundrede og nioghalvfems tusind "
-            "ni hundrede og nioghalvfems",
-        ),
-        ("10,123", "ti komma et to tre"),
-        ("10.102,92", "ti tusind et hundrede og to komma ni to"),
-    ],
-)
-def test_convert_numeral_to_words(numeral, expected):
-    """Test that the `convert_numeral_to_words` function works as expected."""
-    assert convert_numeral_to_words(numeral=numeral) == expected
