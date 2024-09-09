@@ -174,12 +174,6 @@ def compute_metrics_of_dataset_using_pipeline(
                 convert_numerals=True,
                 processor=None,
             )["text"]
-
-            # TEMP
-            logger.info(
-                f"\nPrediction: {prediction!r})\nLabel: {labels[len(predictions)]!r}"
-            )
-
             predictions.append(prediction)
             pbar.update()
 
