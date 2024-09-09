@@ -19,6 +19,8 @@ NonIterableData = TypeVar("NonIterableData", bound=Dataset | DatasetDict)
 
 def add_validations(
     dataset: NonIterableData,
+    text_column: str,
+    audio_column: str,
     model_id: str,
     clean_text: bool,
     lower_case: bool,
@@ -32,6 +34,10 @@ def add_validations(
     Args:
         dataset:
             The dataset to add the validation columns to.
+        text_column:
+            The name of the column containing the transcriptions.
+        audio_column:
+            The name of the column containing the audio samples.
         model_id:
             The ID of the ASR model to use for validation.
         clean_text:
@@ -58,8 +64,8 @@ def add_validations(
         dataset=dataset,
         clean_text=clean_text,
         characters_to_keep=characters_to_keep,
-        text_column="text",
-        audio_column="audio",
+        text_column=text_column,
+        audio_column=audio_column,
         remove_input_dataset_columns=True,
         lower_case=lower_case,
         cast_to_sampling_rate=sampling_rate,
@@ -68,8 +74,6 @@ def add_validations(
     logger.info(f"Loading the {model_id!r} ASR model...")
     if torch.cuda.is_available():
         device = torch.device("cuda")
-    elif torch.backends.mps.is_available():
-        device = torch.device("mps")
     else:
         device = torch.device("cpu")
     transcriber = pipeline(
@@ -84,8 +88,8 @@ def add_validations(
             transcriber=transcriber,
             metric_names=["cer"],
             characters_to_keep=characters_to_keep,
-            text_column="text",
-            audio_column="audio",
+            text_column=text_column,
+            audio_column=audio_column,
             batch_size=batch_size,
         )
 

@@ -3,6 +3,7 @@
 import itertools as it
 import logging
 
+import numpy as np
 import pandas as pd
 import torch
 from datasets import Dataset
@@ -46,10 +47,17 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
         transcriber=transcriber,
         metric_names=[config.metric],
         characters_to_keep=config.characters_to_keep,
-        text_column="text",
-        audio_column="audio",
+        text_column=config.text_column,
+        audio_column=config.audio_column,
         batch_size=config.batch_size,
     )
+
+    if "coral" not in config.dataset or not config.detailed:
+        mean_scores = {
+            metric: sum(scores) / len(scores) for metric, scores in all_scores.items()
+        }
+        df = pd.DataFrame(mean_scores, index=np.array([config.dataset]))
+        return df
 
     logger.info(
         "Converting the dataset to a dataframe computing the scores for each "
@@ -111,8 +119,6 @@ def load_asr_pipeline(model_id: str) -> AutomaticSpeechRecognitionPipeline:
     """
     if torch.cuda.is_available():
         device = torch.device("cuda")
-    elif torch.backends.mps.is_available():
-        device = torch.device("mps")
     else:
         device = torch.device("cpu")
     with transformers_output_ignored():

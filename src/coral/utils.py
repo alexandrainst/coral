@@ -143,3 +143,62 @@ class no_datasets_progress_bars:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Re-enable the progress bar."""
         enable_progress_bar()
+
+
+def interpret_dataset_name(dataset_name: str) -> tuple[str, str | None, str | None]:
+    """Interpret the dataset name.
+
+    This extracts the dataset ID, dataset subset and dataset revision from the dataset
+    name.
+
+    Args:
+        dataset_name:
+            The name of the dataset.
+
+    Returns:
+        A triple (dataset_id, dataset_subset, dataset_revision) where:
+            dataset_id:
+                The ID of the dataset.
+            dataset_subset:
+                The subset of the dataset, which can be None if the default subset
+                should be used.
+            dataset_revision:
+                The revision of the dataset, which can be None if the newest revision
+                should be used.
+    """
+    if ":" in dataset_name and "::" not in dataset_name:
+        dataset_name = dataset_name.replace(":", "::")
+
+    assert (
+        dataset_name.count("@") <= 1
+    ), "You cannot include more than one '@' in the dataset name"
+    assert (
+        dataset_name.count("::") <= 1
+    ), "You cannot include more than one ':' in the dataset name"
+
+    dataset_id = dataset_name
+    dataset_subset = None
+    dataset_revision = None
+
+    if "@" in dataset_name:
+        dataset_id_and_dataset_subset, dataset_revision_and_dataset_subset = (
+            dataset_name.split("@")
+        )
+        if "::" in dataset_id_and_dataset_subset:
+            dataset_id, dataset_subset = dataset_id_and_dataset_subset.split("::")
+        else:
+            dataset_id = dataset_id_and_dataset_subset
+            dataset_subset = None
+        if "::" in dataset_revision_and_dataset_subset:
+            dataset_id, dataset_subset = dataset_revision_and_dataset_subset.split("::")
+        else:
+            dataset_revision = dataset_revision_and_dataset_subset
+
+    if "::" in dataset_name:
+        dataset_id, dataset_subset = dataset_name.split("::")
+        if "@" in dataset_subset:
+            dataset_subset, dataset_revision = dataset_subset.split("@")
+        else:
+            dataset_revision = None
+
+    return dataset_id, dataset_subset, dataset_revision

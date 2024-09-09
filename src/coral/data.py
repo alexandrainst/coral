@@ -22,7 +22,7 @@ from datasets import (
 from omegaconf import DictConfig
 
 from .types import Data
-from .utils import convert_iterable_dataset_to_dataset
+from .utils import convert_iterable_dataset_to_dataset, interpret_dataset_name
 
 logger = logging.getLogger(__package__)
 
@@ -223,20 +223,26 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     # Note if we're on the main process, if we are running in a distributed setting
     is_main_process = os.getenv("RANK", "0") == "0"
 
+    dataset_id, dataset_subset, dataset_revision = interpret_dataset_name(
+        dataset_name=config.dataset
+    )
+
     if is_main_process:
         logger.info(
-            f"Loading the {config.eval_split_name} split of the CoRal dataset..."
+            f"Loading the {config.eval_split_name!r} split of the {dataset_id} "
+            "dataset..."
         )
 
-    eval_dataset_path = Path(config.cache_dir) / "coral-test-set"
-
-    if eval_dataset_path.exists():
-        return Dataset.load_from_disk(dataset_path=eval_dataset_path)
+    if config.cache_dir:
+        eval_dataset_path = Path(config.cache_dir) / "test-sets" / dataset_id
+        if eval_dataset_path.exists():
+            return Dataset.load_from_disk(dataset_path=eval_dataset_path)
 
     dataset = load_dataset(
-        path="alexandrainst/coral",
-        name=config.dataset_subset,
+        path=dataset_id,
+        name=dataset_subset,
         split=config.eval_split_name,
+        revision=dataset_revision,
         token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
         trust_remote_code=True,
         cache_dir=config.cache_dir,
@@ -249,7 +255,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     assert isinstance(dataset, Dataset)
     dataset = filter_dataset(
         dataset=dataset,
-        audio_column="audio",
+        audio_column=config.audio_column,
         min_seconds_per_example=config.min_seconds_per_example,
         max_seconds_per_example=config.max_seconds_per_example,
         is_main_process=is_main_process,
@@ -259,12 +265,15 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         clean_text=config.clean_text,
         lower_case=config.lower_case,
         characters_to_keep=config.characters_to_keep,
-        text_column="text",
-        audio_column="audio",
+        text_column=config.text_column,
+        audio_column=config.audio_column,
         remove_input_dataset_columns=False,
         cast_to_sampling_rate=config.sampling_rate,
     )
-    dataset.save_to_disk(dataset_path=eval_dataset_path)
+
+    if config.cache_dir:
+        dataset.save_to_disk(dataset_path=eval_dataset_path)
+
     return dataset
 
 

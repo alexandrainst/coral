@@ -13,6 +13,7 @@ from omegaconf import DictConfig
 from requests import HTTPError
 
 from coral.data import filter_dataset
+from coral.utils import interpret_dataset_name
 from coral.validation import add_validations
 
 logging.basicConfig(
@@ -33,11 +34,15 @@ def main(config: DictConfig) -> None:
         config:
             The Hydra configuration object.
     """
+    dataset_id, dataset_subset, dataset_revision = interpret_dataset_name(
+        dataset_name=config.dataset
+    )
+
     logger.info(f"Loading the {config.dataset_id!r} dataset...")
     dataset = load_dataset(
-        path=config.dataset_id,
-        name=config.dataset_subset,
-        revision=config.dataset_revision,
+        path=dataset_id,
+        name=dataset_subset,
+        revision=dataset_revision,
         token=True,
         cache_dir=config.cache_dir,
     )
@@ -55,6 +60,8 @@ def main(config: DictConfig) -> None:
 
     dataset = add_validations(
         dataset=dataset,
+        text_column=config.text_column,
+        audio_column=config.audio_column,
         model_id=config.model_id,
         clean_text=config.clean_text,
         lower_case=config.lower_case,

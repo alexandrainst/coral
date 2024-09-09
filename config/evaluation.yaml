@@ -1,7 +1,8 @@
 # Evaluation dataset parameters
-dataset_subset: read_aloud
-dataset_revision: null
+dataset: "alexandrainst/coral::read_aloud"
 eval_split_name: test
+text_column: text
+audio_column: audio
 cache_dir: null
 
 # Filtering of the dataset
@@ -18,6 +19,8 @@ model_id: null
 sampling_rate: 16_000
 metric: cer
 batch_size: 16
+store_results: true
+detailed: true  # Only relevant if the evaluation dataset is CoRal
 
 sub_dialect_to_dialect:
   midtøstjysk: Østjysk
