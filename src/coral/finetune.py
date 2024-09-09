@@ -63,7 +63,14 @@ def finetune(config: DictConfig) -> None:
         wandb_finish()
         model.save_pretrained(model_dir)
         if config.push_to_hub:
-            trainer.push_to_hub()
+            trainer.push_to_hub(
+                commit_message="End of training 🎉",
+                token=os.getenv("HUGGINGFACE_HUB_TOKEN"),
+                language="da",
+                license="openrail",
+                finetuned_from=config.model.pretrained_model_id,
+                tasks=["automatic-speech-recognition"],
+            )
 
     if hasattr(config.model, "decoder") and config.model.decoder is not None:
         train_ngram_model(config=config)
