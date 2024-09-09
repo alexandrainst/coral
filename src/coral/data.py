@@ -234,7 +234,9 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         )
 
     if config.cache_dir:
-        eval_dataset_path = Path(config.cache_dir) / "test-sets" / dataset_id
+        eval_dataset_path = (
+            Path(config.cache_dir) / "test-sets" / dataset_id.replace("/", "--")
+        )
         if eval_dataset_path.exists():
             return Dataset.load_from_disk(dataset_path=eval_dataset_path)
 
