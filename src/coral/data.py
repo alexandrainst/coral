@@ -599,7 +599,7 @@ def process_example(
     """
     doc = example[text_column]
 
-    if convert_numerals:
+    if convert_numerals and re.search(pattern=r"\d", string=doc):
         doc = "".join(
             convert_numeral_to_words(numeral=maybe_numeral)
             for maybe_numeral in re.split(pattern=r"(\d+)", string=doc)
