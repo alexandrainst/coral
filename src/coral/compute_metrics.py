@@ -176,7 +176,9 @@ def compute_metrics_of_dataset_using_pipeline(
             )["text"]
 
             # TEMP
-            logger.info(prediction, labels[len(predictions)])
+            logger.info(
+                f"\nPrediction: {prediction!r})\nLabel: {labels[len(predictions)]}!r"
+            )
 
             predictions.append(prediction)
             pbar.update()
