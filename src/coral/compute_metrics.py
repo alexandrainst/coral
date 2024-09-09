@@ -177,7 +177,7 @@ def compute_metrics_of_dataset_using_pipeline(
 
             # TEMP
             logger.info(
-                f"\nPrediction: {prediction!r})\nLabel: {labels[len(predictions)]}!r"
+                f"\nPrediction: {prediction!r})\nLabel: {labels[len(predictions)]!r}"
             )
 
             predictions.append(prediction)
