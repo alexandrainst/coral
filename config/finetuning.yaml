@@ -17,6 +17,7 @@ evaluation_dataset:
 
 # Dataset parameters
 filter_dataset: true
+remove_numeric_words: true
 min_seconds_per_example: 0.5
 max_seconds_per_example: 10
 characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'

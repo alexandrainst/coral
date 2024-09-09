@@ -122,9 +122,11 @@ def load_data_for_finetuning(
         if config.filter_dataset:
             ds = filter_dataset(
                 dataset=ds,
+                text_column="text",
                 audio_column="audio",
                 min_seconds_per_example=config.min_seconds_per_example,
                 max_seconds_per_example=config.max_seconds_per_example,
+                remove_numeric_words=config.remove_numeric_words,
                 is_main_process=is_main_process,
                 num_proc=config.dataset_num_workers,
             )
@@ -261,9 +263,11 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     assert isinstance(dataset, Dataset)
     dataset = filter_dataset(
         dataset=dataset,
+        text_column=config.text_column,
         audio_column=config.audio_column,
         min_seconds_per_example=config.min_seconds_per_example,
         max_seconds_per_example=config.max_seconds_per_example,
+        remove_numeric_words=False,
         is_main_process=is_main_process,
     )
     dataset = process_dataset(
@@ -286,9 +290,11 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
 
 def filter_dataset(
     dataset: Data,
+    text_column: str,
     audio_column: str,
     min_seconds_per_example: int,
     max_seconds_per_example: int,
+    remove_numeric_words: bool,
     is_main_process: bool,
     num_proc: int | None = None,
 ) -> Data:
@@ -299,12 +305,16 @@ def filter_dataset(
     Args:
         dataset:
             The dataset to filter.
+        text_column:
+            The name of the column containing the text.
         audio_column:
             The name of the column containing the audio.
         min_seconds_per_example:
             The minimum number of seconds that an example can have.
         max_seconds_per_example:
             The maximum number of seconds that an example can have.
+        remove_numeric_words:
+            Whether to remove numeric words (such as "et hundrede og to").
         is_main_process:
             Whether the current process is the main process.
         num_proc (optional):
@@ -318,9 +328,11 @@ def filter_dataset(
 
     filter_fn = partial(
         filter_example,
+        text_column=text_column,
         audio_column=audio_column,
         min_seconds_per_example=min_seconds_per_example,
         max_seconds_per_example=max_seconds_per_example,
+        remove_numeric_words=remove_numeric_words,
     )
     if isinstance(dataset, Dataset | DatasetDict):
         filtered = dataset.filter(
@@ -345,31 +357,81 @@ def filter_dataset(
 
 def filter_example(
     sample: dict[str, Any],
+    text_column: str,
     audio_column: str,
     min_seconds_per_example: int,
     max_seconds_per_example: int,
+    remove_numeric_words: bool,
 ) -> bool:
     """Filter samples based on the validation status.
 
     Args:
         sample:
             The sample to filter.
+        text_column:
+            The name of the column containing the text.
         audio_column:
             The name of the column containing the audio.
         min_seconds_per_example:
             The minimum number of seconds that an example can have.
         max_seconds_per_example:
             The maximum number of seconds that an example can
+        remove_numeric_words:
+            Whether to remove numeric words (such as "et hundrede og to").
 
     Returns:
         Whether the sample should be kept.
     """
+    # Filtering based on audio
     audio = sample[audio_column]
     if audio["array"].shape[0] <= audio["sampling_rate"] * min_seconds_per_example:
         return False
     if audio["array"].shape[0] >= audio["sampling_rate"] * max_seconds_per_example:
         return False
-    return "validated" not in sample or sample["validated"] != "rejected"
+
+    # Filtering based on text
+    if remove_numeric_words:
+        numeric_words = [
+            "nul",
+            "en",
+            "to",
+            "tre",
+            "fire",
+            "fem",
+            "seks",
+            "syv",
+            "otte",
+            "ni",
+            "ti",
+            "elleve",
+            "tolv",
+            "tretten",
+            "fjorten",
+            "femten",
+            "seksten",
+            "sytten",
+            "atten",
+            "nitten",
+            "tyve",
+            "tredive",
+            "fyrre",
+            "halvtreds",
+            "tres",
+            "halvfjerds",
+            "firs",
+            "halvfems",
+            "hundrede",
+            "tusind",
+            "million",
+        ]
+        if any(word in sample[text_column] for word in numeric_words):
+            return False
+
+    # Filtering based on validation
+    if "validated" in sample and sample["validated"] == "rejected":
+        return False
+
+    return True
 
 
 def process_dataset(
