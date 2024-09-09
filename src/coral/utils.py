@@ -3,6 +3,7 @@
 import contextlib
 import logging
 import multiprocessing as mp
+import os
 import warnings
 from functools import partialmethod
 from pathlib import Path
@@ -17,7 +18,9 @@ from datasets import (
     disable_progress_bar,
     enable_progress_bar,
 )
+from huggingface_hub import CommitInfo, upload_folder
 from tqdm.auto import tqdm
+from transformers import Trainer
 
 
 def block_terminal_output() -> None:
@@ -202,3 +205,76 @@ def interpret_dataset_name(dataset_name: str) -> tuple[str, str | None, str | No
             dataset_revision = None
 
     return dataset_id, dataset_subset, dataset_revision
+
+
+def push_model_to_hub(
+    trainer: Trainer,
+    model_name: str,
+    finetuned_from: str,
+    language: str = "da",
+    license: str = "openrail",
+    tasks: list[str] = ["automatic-speech-recognition"],
+    branch_name: str | None = None,
+    create_pr: bool = False,
+    commit_message: str = "Finished finetuning 🎉",
+) -> CommitInfo | None:
+    """Upload model and tokenizer to the Hugging Face Hub.
+
+    This uses the model stored as `trainer.model` and the tokenizer stored as
+    `trainer.tokenizer`, and uploads them to the model ID stored in
+    `trainer.args.hub_model_id`.
+
+    Args:
+        trainer:
+            The Trainer object containing the model and tokenizer to upload.
+        model_name:
+            The name of the model.
+        finetuned_from:
+            The ID of the model that was finetuned.
+        language (optional):
+            The language of the model. Defaults to "da" (Danish).
+        license (optional):
+            The license of the model. Defaults to "openrail".
+        tasks (optional):
+            The tasks the model is fine-tuned for. Defaults to
+            ["automatic-speech-recognition"].
+        branch_name (optional):
+            The name of the branch to push to. Defaults to None, which means the
+            default branch is used.
+        create_pr (optional):
+            Whether to create a pull request. Defaults to False.
+        commit_message (optional):
+            Message to commit while pushing. Defaults to "Finished finetuning 🎉".
+
+    Returns:
+        The commit information, or None if the process is not the main process.
+    """
+    token = os.getenv("HUGGINGFACE_HUB_TOKEN", None)
+
+    # In case the user calls this method with trainer.args.push_to_hub = False
+    if trainer.hub_model_id is None:
+        trainer.init_hf_repo(token=token)
+
+    # Only push from one node
+    if not trainer.is_world_process_zero():
+        return None
+
+    trainer.create_model_card(
+        model_name=model_name,
+        language=language,
+        license=license,
+        tasks=tasks,
+        finetuned_from=finetuned_from,
+    )
+
+    # Wait for the current upload to be finished.
+    trainer._finish_current_push()
+    return upload_folder(
+        repo_id=trainer.hub_model_id or "",
+        revision=branch_name,
+        create_pr=create_pr,
+        folder_path=trainer.args.output_dir,
+        commit_message=commit_message,
+        token=token or True,
+        ignore_patterns=["_*", "checkpoint-*"],
+    )
