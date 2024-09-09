@@ -67,6 +67,8 @@ class WhisperModelSetup(ModelSetup):
                 mask_time_length=self.config.model.mask_time_length,
                 mask_feature_prob=self.config.model.mask_feature_prob,
                 mask_feature_length=self.config.model.mask_feature_length,
+                encoder_layerdrop=self.config.model.layerdrop,
+                decoder_layerdrop=self.config.model.layerdrop,
             )
             assert isinstance(model, WhisperForConditionalGeneration)
 
@@ -156,7 +158,6 @@ class WhisperModelSetup(ModelSetup):
             ignore_data_skip=self.config.ignore_data_skip,
             save_safetensors=True,
             predict_with_generate=True,
-            generation_max_length=self.config.model.generation_max_length,
             use_cpu=hasattr(sys, "_called_from_test"),
             dataloader_num_workers=self.config.dataloader_num_workers,
             ddp_find_unused_parameters=False,
