@@ -244,7 +244,9 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
             Path(config.cache_dir) / "test-sets" / dataset_id.replace("/", "--")
         )
         if eval_dataset_path.exists():
-            return Dataset.load_from_disk(dataset_path=eval_dataset_path)
+            dataset = Dataset.load_from_disk(dataset_path=eval_dataset_path)
+            breakpoint()
+            return dataset
 
     dataset = load_dataset(
         path=dataset_id,
