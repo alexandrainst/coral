@@ -2,7 +2,6 @@
 
 import logging
 import os
-import re
 from collections.abc import Iterable
 
 import numpy as np
@@ -17,6 +16,7 @@ from transformers import (
 )
 from transformers.pipelines.pt_utils import KeyDataset
 
+from .data import DEFAULT_CONVERSION_DICT, process_example
 from .data_models import Processor
 from .utils import transformers_output_ignored
 
@@ -153,13 +153,6 @@ def compute_metrics_of_dataset_using_pipeline(
     """
     characters_to_keep = "".join(characters_to_keep)
 
-    # This contains all the punctuation characters that will be removed from the
-    # transcriptions, as they do not have an influence on the pronunciation of the
-    # words.
-    non_standard_characters_regex = re.compile(
-        f"[^{re.escape(characters_to_keep + ' |')}]"
-    )
-
     labels: list[str] = [lbl.strip().lower() for lbl in dataset[text_column]]
     predictions: list[str] = list()
 
@@ -170,12 +163,19 @@ def compute_metrics_of_dataset_using_pipeline(
         for out in transcriber(
             KeyDataset(dataset=dataset, key=audio_column), batch_size=batch_size
         ):
-            prediction = re.sub(
-                pattern=non_standard_characters_regex,
-                repl="",
-                string=out["text"].strip().lower(),
-            )
-            predictions.append(prediction.strip())
+            prediction = process_example(
+                example=dict(text=out["text"]),
+                characters_to_keep=characters_to_keep,
+                conversion_dict=DEFAULT_CONVERSION_DICT,
+                text_column="text",
+                audio_column=None,
+                clean_text=True,
+                lower_case=True,
+                convert_numerals=True,
+                processor=None,
+            )["text"]
+            breakpoint()
+            predictions.append(prediction)
             pbar.update()
 
     all_scores: dict[str, list[float]] = dict()

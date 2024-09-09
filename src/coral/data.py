@@ -31,6 +31,48 @@ from .utils import (
 logger = logging.getLogger(__package__)
 
 
+# Dictionary that contains characters to be converted (from the key to the value). Some
+# values contain spaces to ensure that they're separated from other characters, and
+# superfluous spaces are removed later. Note also that these are converted in the order
+# they appear in the dictionary.
+DEFAULT_CONVERSION_DICT = {
+    "aa": "å",
+    "ğ": "g",
+    "ñ": "n",
+    "ń": "n",
+    "è": "e",
+    "kg": " kilo ",
+    "μg": " mikrogram ",
+    "-": " minus ",
+    "+": " plus ",
+    "μ": " mikro ",
+    "§": " paragraf ",
+    "%": " procent ",
+    "‰": " promille ",
+    "ú": "u",
+    "ş": "s",
+    "ê": "e",
+    "ã": "a",
+    "ë": "e",
+    "ć": "c",
+    "ä": "æ",
+    "í": "i",
+    "š": "s",
+    "î": "i",
+    "ě": "e",
+    "ð": "d",
+    "á": "a",
+    "ó": "o",
+    "þ": "th",
+    "ı": "i",
+    "ö": "ø",
+    "ç": "c",
+    "ș": "s",
+    "\u0301": " ",  # Empty whitespace symbol
+    "\u200b": " ",  # Empty whitespace symbol
+}
+
+
 def load_data_for_finetuning(
     config: DictConfig, processor: Callable | None = None
 ) -> IterableDatasetDict:
@@ -244,9 +286,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
             Path(config.cache_dir) / "test-sets" / dataset_id.replace("/", "--")
         )
         if eval_dataset_path.exists():
-            dataset = Dataset.load_from_disk(dataset_path=eval_dataset_path)
-            breakpoint()
-            return dataset
+            return Dataset.load_from_disk(dataset_path=eval_dataset_path)
 
     dataset = load_dataset(
         path=dataset_id,
@@ -490,47 +530,6 @@ def process_dataset(
             column=audio_column, feature=Audio(sampling_rate=cast_to_sampling_rate)
         )
 
-    # Dictionary that contains characters to be converted (from the key to the value).
-    # Some values contain spaces to ensure that they're separated from other
-    # characters, and superfluous spaces are removed later. Note also that these are
-    # converted in the order they appear in the dictionary.
-    conversion_dict = {
-        "aa": "å",
-        "ğ": "g",
-        "ñ": "n",
-        "ń": "n",
-        "è": "e",
-        "kg": " kilo ",
-        "μg": " mikrogram ",
-        "-": " minus ",
-        "+": " plus ",
-        "μ": " mikro ",
-        "§": " paragraf ",
-        "%": " procent ",
-        "‰": " promille ",
-        "ú": "u",
-        "ş": "s",
-        "ê": "e",
-        "ã": "a",
-        "ë": "e",
-        "ć": "c",
-        "ä": "æ",
-        "í": "i",
-        "š": "s",
-        "î": "i",
-        "ě": "e",
-        "ð": "d",
-        "á": "a",
-        "ó": "o",
-        "þ": "th",
-        "ı": "i",
-        "ö": "ø",
-        "ç": "c",
-        "ș": "s",
-        "\u0301": " ",  # Empty whitespace symbol
-        "\u200b": " ",  # Empty whitespace symbol
-    }
-
     if isinstance(dataset, Dataset) or isinstance(dataset, IterableDataset):
         column_names = dataset.column_names
     elif isinstance(dataset, DatasetDict) or isinstance(dataset, IterableDatasetDict):
@@ -539,7 +538,7 @@ def process_dataset(
     map_fn = partial(
         process_example,
         characters_to_keep=characters_to_keep,
-        conversion_dict=conversion_dict,
+        conversion_dict=DEFAULT_CONVERSION_DICT,
         text_column=text_column,
         audio_column=audio_column,
         clean_text=clean_text,
