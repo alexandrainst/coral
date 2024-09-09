@@ -271,6 +271,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         audio_column=config.audio_column,
         remove_input_dataset_columns=False,
         cast_to_sampling_rate=config.sampling_rate,
+        convert_numerals=True,
     )
 
     if config.cache_dir:
@@ -375,6 +376,7 @@ def process_dataset(
     text_column: str,
     remove_input_dataset_columns: bool,
     audio_column: str | None,
+    convert_numerals: bool = False,
     num_proc: int | None = None,
     cast_to_sampling_rate: int | None = None,
     processor: Callable | None = None,
@@ -400,6 +402,8 @@ def process_dataset(
         audio_column:
             The name of the column containing the audio. Can be `None` if the dataset
             does not have an audio column.
+        convert_numerals (optional):
+            Whether to convert numerals to words. Defaults to False.
         num_proc (optional):
             The number of processes to use for processing the dataset. If `None`, then
             no multiprocessing is used. Defaults to `None`.
@@ -495,6 +499,7 @@ def process_example(
     audio_column: str | None,
     clean_text: bool,
     lower_case: bool,
+    convert_numerals: bool,
     processor: Callable | None,
 ) -> dict:
     """Helper function which cleans a single example.
@@ -516,6 +521,8 @@ def process_example(
             Whether to clean the text.
         lower_case:
             Whether to make the text lower case.
+        convert_numerals:
+            Whether to convert numerals to words.
         processor:
             The processor to use for processing the audio and transcriptions. If `None`,
             then the processor is not used. Requires `audio_column` to be specified.
@@ -524,6 +531,12 @@ def process_example(
         The cleaned example.
     """
     doc = example[text_column]
+
+    if convert_numerals:
+        doc = "".join(
+            convert_numeral_to_words(numeral=maybe_numeral)
+            for maybe_numeral in re.split(pattern=r"(\d+)", string=doc)
+        )
 
     if lower_case:
         doc = doc.lower()
@@ -578,3 +591,174 @@ def process_example(
     example["input_length"] = len(example["labels"])
 
     return example
+
+
+def convert_numeral_to_words(numeral: str, inside_larger_numeral: bool = False) -> str:
+    """Convert numerals to words.
+
+    Args:
+        numeral:
+            The numeral to convert.
+        inside_larger_numeral (optional):
+            Whether the numeral is inside a larger numeral. For instance, if `numeral`
+            is 10, but is part of the larger numeral 1,010, then this should be `True`.
+
+    Returns:
+        The text with numerals converted to words.
+    """
+    if not re.match(pattern=r"^[\d.,]+$", string=numeral) or numeral == "":
+        return numeral
+
+    numeral = numeral.replace(".", "")
+    if "," in numeral:
+        assert numeral.count(",") == 1, f"Too many commas in {numeral!r}"
+        major, minor = numeral.split(",")
+        major = convert_numeral_to_words(numeral=major)
+        minor = " ".join(convert_numeral_to_words(numeral=char) for char in minor)
+        return f"{major} komma {minor.replace('en', 'et')}"
+
+    match len(numeral):
+        case 1:
+            mapping = {
+                "0": "nul",
+                "1": "en",
+                "2": "to",
+                "3": "tre",
+                "4": "fire",
+                "5": "fem",
+                "6": "seks",
+                "7": "syv",
+                "8": "otte",
+                "9": "ni",
+            }
+            result = mapping[numeral]
+
+        case 2:
+            mapping = {
+                "10": "ti",
+                "11": "elleve",
+                "12": "tolv",
+                "13": "tretten",
+                "14": "fjorten",
+                "15": "femten",
+                "16": "seksten",
+                "17": "sytten",
+                "18": "atten",
+                "19": "nitten",
+                "20": "tyve",
+                "30": "tredive",
+                "40": "fyrre",
+                "50": "halvtreds",
+                "60": "tres",
+                "70": "halvfjerds",
+                "80": "firs",
+                "90": "halvfems",
+            }
+            if numeral in mapping:
+                return mapping[numeral]
+            minor = convert_numeral_to_words(
+                numeral=numeral[1], inside_larger_numeral=True
+            )
+            major = convert_numeral_to_words(
+                numeral=numeral[0] + "0", inside_larger_numeral=True
+            )
+            result = f"{minor}og{major}"
+
+        case 3:
+            mapping = {"100": "hundrede"}
+            if not inside_larger_numeral and numeral in mapping:
+                return mapping[numeral]
+            major = convert_numeral_to_words(
+                numeral=numeral[0], inside_larger_numeral=True
+            ).replace("en", "et")
+            minor = convert_numeral_to_words(
+                numeral=numeral[1:].lstrip("0"), inside_larger_numeral=True
+            )
+            infix = "hundrede"
+            if minor:
+                infix += " og"
+            result = f"{major} {infix} {minor}"
+
+        case 4:
+            mapping = {"1000": "tusind"}
+            if not inside_larger_numeral and numeral in mapping:
+                return mapping[numeral]
+            major = convert_numeral_to_words(
+                numeral=numeral[0], inside_larger_numeral=True
+            ).replace("en", "et")
+            minor = convert_numeral_to_words(
+                numeral=numeral[1:].lstrip("0"), inside_larger_numeral=True
+            )
+            infix = "tusind"
+            if minor and len(str(int(numeral[1:]))) <= 2:
+                infix += " og"
+            result = f"{major} {infix} {minor}".strip()
+
+        case 5:
+            major = convert_numeral_to_words(
+                numeral=numeral[:2], inside_larger_numeral=True
+            )
+            minor = convert_numeral_to_words(
+                numeral=numeral[2:].lstrip("0"), inside_larger_numeral=True
+            )
+            infix = "tusind"
+            if minor and len(str(int(numeral[2:]))) <= 2:
+                infix += " og"
+            result = f"{major} {infix} {minor}"
+
+        case 6:
+            major = convert_numeral_to_words(
+                numeral=numeral[:3], inside_larger_numeral=True
+            )
+            minor = convert_numeral_to_words(
+                numeral=numeral[3:].lstrip("0"), inside_larger_numeral=True
+            )
+            infix = "tusind"
+            if minor and len(str(int(numeral[3:]))) <= 2:
+                infix += " og"
+            result = f"{major} {infix} {minor}"
+
+        case 7:
+            major = convert_numeral_to_words(
+                numeral=numeral[0], inside_larger_numeral=True
+            )
+            minor = convert_numeral_to_words(
+                numeral=numeral[1:].lstrip("0"), inside_larger_numeral=True
+            )
+            infix = "million" if int(numeral[0]) == 1 else "millioner"
+            if minor and len(str(int(numeral[1:]))) <= 2:
+                infix += " og"
+            result = f"{major} {infix} {minor}"
+
+        case 8:
+            major = convert_numeral_to_words(
+                numeral=numeral[:2], inside_larger_numeral=True
+            )
+            minor = convert_numeral_to_words(
+                numeral=numeral[2:].lstrip("0"), inside_larger_numeral=True
+            )
+            infix = "millioner"
+            if minor and len(str(int(numeral[2:]))) <= 2:
+                infix += " og"
+            result = f"{major} {infix} {minor}"
+
+        case 9:
+            major = convert_numeral_to_words(
+                numeral=numeral[:3], inside_larger_numeral=True
+            )
+            minor = convert_numeral_to_words(
+                numeral=numeral[3:].lstrip("0"), inside_larger_numeral=True
+            )
+            infix = "millioner"
+            if minor and len(str(int(numeral[3:]))) <= 2:
+                infix += " og"
+            result = f"{major} {infix} {minor}"
+
+        case _:
+            logger.warning(
+                "Cannot convert numerals greater than 999,999,999 to words. Received "
+                f"{numeral!r}"
+            )
+            return numeral
+
+    return re.sub(r" +", " ", result).strip()
