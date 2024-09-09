@@ -1,6 +1,0 @@
-fleurs_nb:
-  id: google/fleurs
-  subset: nb_no
-  train_name: train
-  text_column: raw_transcription
-  audio_column: audio

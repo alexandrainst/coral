@@ -1,6 +1,0 @@
-common_voice_13_sv:
-  id: mozilla-foundation/common_voice_13_0
-  subset: sv-SE
-  train_name: train
-  text_column: sentence
-  audio_column: audio

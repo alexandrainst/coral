@@ -1,5 +1,5 @@
-common_voice_13_da:
-  id: mozilla-foundation/common_voice_13_0
+common_voice_17_da:
+  id: mozilla-foundation/common_voice_17_0
   subset: da
   train_name: train
   text_column: sentence

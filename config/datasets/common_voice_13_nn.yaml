@@ -1,6 +1,0 @@
-common_voice_13_nn:
-  id: mozilla-foundation/common_voice_13_0
-  subset: nn-NO
-  train_name: train
-  text_column: sentence
-  audio_column: audio
