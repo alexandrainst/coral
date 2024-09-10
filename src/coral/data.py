@@ -185,9 +185,6 @@ def load_data_for_finetuning(
             num_proc=config.dataset_num_workers,
         )
 
-        # TEMP
-        ds.save_to_disk(dataset_path=Path("/mnt/vol_b/coral2"))
-
         all_datasets.append(ds)
 
     assert len(all_datasets) > 0, "No datasets were loaded"
