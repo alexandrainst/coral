@@ -4,3 +4,4 @@ coral:
   train_name: train
   text_column: text
   audio_column: audio
+  filter_dataset: false

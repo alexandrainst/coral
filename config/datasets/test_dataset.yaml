@@ -4,3 +4,4 @@ test_dataset:
   train_name: train
   text_column: sentence
   audio_column: audio
+  filter_dataset: true
