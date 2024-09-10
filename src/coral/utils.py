@@ -27,6 +27,11 @@ logger = logging.getLogger(__package__)
 
 
 NUMERAL_REGEX = re.compile(r"^[\d\.,]+$")
+NUMERIC_WORD_REGEX = re.compile(
+    r"\b(elleve|tolv|tretten|fjorten|femten|seksten|sytten|atten|nitten|tyve"
+    r"|tredive|fyrre|halvtreds|tres|halvfjerds|firs|halvfems"
+    r"|hundrede|tusind|million)\b"
+)
 
 
 def block_terminal_output() -> None:

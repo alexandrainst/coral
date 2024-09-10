@@ -24,6 +24,7 @@ from omegaconf import DictConfig
 from .types import Data
 from .utils import (
     NUMERAL_REGEX,
+    NUMERIC_WORD_REGEX,
     convert_iterable_dataset_to_dataset,
     convert_numeral_to_words,
     interpret_dataset_name,
@@ -433,42 +434,11 @@ def filter_example(
         return False
 
     # Filtering based on text
-    if remove_numeric_words:
-        numeric_words = [
-            "nul",
-            "en",
-            "to",
-            "tre",
-            "fire",
-            "fem",
-            "seks",
-            "syv",
-            "otte",
-            "ni",
-            "ti",
-            "elleve",
-            "tolv",
-            "tretten",
-            "fjorten",
-            "femten",
-            "seksten",
-            "sytten",
-            "atten",
-            "nitten",
-            "tyve",
-            "tredive",
-            "fyrre",
-            "halvtreds",
-            "tres",
-            "halvfjerds",
-            "firs",
-            "halvfems",
-            "hundrede",
-            "tusind",
-            "million",
-        ]
-        if any(word in sample[text_column] for word in numeric_words):
-            return False
+    if remove_numeric_words and re.search(
+        pattern=NUMERIC_WORD_REGEX, string=sample[text_column]
+    ):
+        logger.info(f"Removing sample with numeric words: {sample[text_column]!r}")
+        return False
 
     # Filtering based on validation
     if "validated" in sample and sample["validated"] == "rejected":
