@@ -23,6 +23,7 @@ from omegaconf import DictConfig
 
 from .types import Data
 from .utils import (
+    NUMERAL_REGEX,
     convert_iterable_dataset_to_dataset,
     convert_numeral_to_words,
     interpret_dataset_name,
@@ -600,10 +601,10 @@ def process_example(
     """
     doc = example[text_column]
 
-    if convert_numerals and re.search(pattern=r"\d", string=doc):
+    if convert_numerals and re.search(pattern=NUMERAL_REGEX, string=doc):
         doc = "".join(
             convert_numeral_to_words(numeral=maybe_numeral)
-            for maybe_numeral in re.split(pattern=r"(\d+)", string=doc)
+            for maybe_numeral in re.split(pattern=NUMERAL_REGEX, string=doc)
         )
 
     if lower_case:

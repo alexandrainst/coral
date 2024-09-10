@@ -26,6 +26,9 @@ from transformers import Trainer
 logger = logging.getLogger(__package__)
 
 
+NUMERAL_REGEX = re.compile(r"[\d\.,]+")
+
+
 def block_terminal_output() -> None:
     """Blocks undesired terminal output.
 
@@ -296,10 +299,10 @@ def convert_numeral_to_words(numeral: str, inside_larger_numeral: bool = False) 
     Returns:
         The text with numerals converted to words.
     """
-    if re.match(pattern=r"^(\d|\.|\,)+$", string=numeral) is None:
+    if re.match(pattern=NUMERAL_REGEX, string=numeral) is None:
         return numeral
 
-    numeral = numeral.replace(".", "")
+    numeral = numeral.replace(".", "").strip(",")
     if "," in numeral:
         assert numeral.count(",") == 1, f"Too many commas in {numeral!r}"
         major, minor = numeral.split(",")
