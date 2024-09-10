@@ -24,7 +24,6 @@ from omegaconf import DictConfig
 from .types import Data
 from .utils import (
     NUMERAL_REGEX,
-    NUMERIC_WORD_REGEX,
     convert_iterable_dataset_to_dataset,
     convert_numeral_to_words,
     interpret_dataset_name,
@@ -170,7 +169,6 @@ def load_data_for_finetuning(
                 audio_column="audio",
                 min_seconds_per_example=config.min_seconds_per_example,
                 max_seconds_per_example=config.max_seconds_per_example,
-                remove_numeric_words=config.remove_numeric_words,
                 is_main_process=is_main_process,
                 num_proc=config.dataset_num_workers,
             )
@@ -311,7 +309,6 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         audio_column=config.audio_column,
         min_seconds_per_example=config.min_seconds_per_example,
         max_seconds_per_example=config.max_seconds_per_example,
-        remove_numeric_words=False,
         is_main_process=is_main_process,
     )
     dataset = process_dataset(
@@ -338,7 +335,6 @@ def filter_dataset(
     audio_column: str,
     min_seconds_per_example: int,
     max_seconds_per_example: int,
-    remove_numeric_words: bool,
     is_main_process: bool,
     num_proc: int | None = None,
 ) -> Data:
@@ -357,8 +353,6 @@ def filter_dataset(
             The minimum number of seconds that an example can have.
         max_seconds_per_example:
             The maximum number of seconds that an example can have.
-        remove_numeric_words:
-            Whether to remove numeric words (such as "et hundrede og to").
         is_main_process:
             Whether the current process is the main process.
         num_proc (optional):
@@ -376,7 +370,6 @@ def filter_dataset(
         audio_column=audio_column,
         min_seconds_per_example=min_seconds_per_example,
         max_seconds_per_example=max_seconds_per_example,
-        remove_numeric_words=remove_numeric_words,
     )
     if isinstance(dataset, Dataset | DatasetDict):
         filtered = dataset.filter(
@@ -405,7 +398,6 @@ def filter_example(
     audio_column: str,
     min_seconds_per_example: int,
     max_seconds_per_example: int,
-    remove_numeric_words: bool,
 ) -> bool:
     """Filter samples based on the validation status.
 
@@ -420,8 +412,6 @@ def filter_example(
             The minimum number of seconds that an example can have.
         max_seconds_per_example:
             The maximum number of seconds that an example can
-        remove_numeric_words:
-            Whether to remove numeric words (such as "et hundrede og to").
 
     Returns:
         Whether the sample should be kept.
@@ -431,13 +421,6 @@ def filter_example(
     if audio["array"].shape[0] <= audio["sampling_rate"] * min_seconds_per_example:
         return False
     if audio["array"].shape[0] >= audio["sampling_rate"] * max_seconds_per_example:
-        return False
-
-    # Filtering based on text
-    if remove_numeric_words and re.search(
-        pattern=NUMERIC_WORD_REGEX, string=sample[text_column]
-    ):
-        logger.info(f"Removing sample with numeric words: {sample[text_column]!r}")
         return False
 
     # Filtering based on validation
