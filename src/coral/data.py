@@ -165,7 +165,6 @@ def load_data_for_finetuning(
         if config.filter_dataset:
             ds = filter_dataset(
                 dataset=ds,
-                text_column="text",
                 audio_column="audio",
                 min_seconds_per_example=config.min_seconds_per_example,
                 max_seconds_per_example=config.max_seconds_per_example,
@@ -305,7 +304,6 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     assert isinstance(dataset, Dataset)
     dataset = filter_dataset(
         dataset=dataset,
-        text_column=config.text_column,
         audio_column=config.audio_column,
         min_seconds_per_example=config.min_seconds_per_example,
         max_seconds_per_example=config.max_seconds_per_example,
@@ -331,7 +329,6 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
 
 def filter_dataset(
     dataset: Data,
-    text_column: str,
     audio_column: str,
     min_seconds_per_example: int,
     max_seconds_per_example: int,
@@ -345,8 +342,6 @@ def filter_dataset(
     Args:
         dataset:
             The dataset to filter.
-        text_column:
-            The name of the column containing the text.
         audio_column:
             The name of the column containing the audio.
         min_seconds_per_example:
@@ -366,7 +361,6 @@ def filter_dataset(
 
     filter_fn = partial(
         filter_example,
-        text_column=text_column,
         audio_column=audio_column,
         min_seconds_per_example=min_seconds_per_example,
         max_seconds_per_example=max_seconds_per_example,
@@ -394,7 +388,6 @@ def filter_dataset(
 
 def filter_example(
     sample: dict[str, Any],
-    text_column: str,
     audio_column: str,
     min_seconds_per_example: int,
     max_seconds_per_example: int,
@@ -404,8 +397,6 @@ def filter_example(
     Args:
         sample:
             The sample to filter.
-        text_column:
-            The name of the column containing the text.
         audio_column:
             The name of the column containing the audio.
         min_seconds_per_example:
