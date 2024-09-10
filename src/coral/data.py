@@ -572,10 +572,15 @@ def process_example(
     doc = example[text_column]
 
     if convert_numerals and re.search(pattern=NUMERAL_REGEX, string=doc):
-        doc = "".join(
-            convert_numeral_to_words(numeral=maybe_numeral)
-            for maybe_numeral in re.split(pattern=NUMERAL_REGEX, string=doc)
-        )
+        try:
+            doc = "".join(
+                convert_numeral_to_words(numeral=maybe_numeral)
+                for maybe_numeral in re.split(pattern=NUMERAL_REGEX, string=doc)
+            )
+        except RecursionError:
+            logger.warning(f"Failed to convert numerals in {doc!r}")
+            breakpoint()
+            pass
 
     if lower_case:
         doc = doc.lower()
