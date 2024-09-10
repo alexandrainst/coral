@@ -2,7 +2,9 @@
 
 import logging
 import os
+from collections import defaultdict
 from collections.abc import Iterable
+from typing import DefaultDict
 
 import numpy as np
 from datasets import Dataset
@@ -155,13 +157,17 @@ def compute_metrics_of_dataset_using_pipeline(
 
     labels: list[str] = [lbl.strip().lower() for lbl in dataset[text_column]]
     predictions: list[str] = list()
+    metrics = {metric_name: load_metric(metric_name) for metric_name in metric_names}
+    all_scores: DefaultDict = defaultdict(list)
 
     with (
         tqdm(total=len(dataset), desc="Transcribing") as pbar,
         transformers_output_ignored(),
     ):
-        for out in transcriber(
-            KeyDataset(dataset=dataset, key=audio_column), batch_size=batch_size
+        for idx, out in enumerate(
+            transcriber(
+                KeyDataset(dataset=dataset, key=audio_column), batch_size=batch_size
+            )
         ):
             prediction = process_example(
                 example=dict(text=out["text"]),
@@ -174,28 +180,25 @@ def compute_metrics_of_dataset_using_pipeline(
                 convert_numerals=True,
                 processor=None,
             )["text"]
+
+            scores = {
+                metric_name: metric.compute(
+                    predictions=[prediction], references=[labels[idx]]
+                )
+                for metric_name, metric in metrics.items()
+            }
+            assert all(
+                isinstance(score, float) for score in scores.values()
+            ), f"Expected the scores to be floats, but found {scores}"
+
+            # TEMP
+            logger.info(
+                f"\nLabel: {labels[idx]!r}\nPrediction: {prediction!r}\nScores: {scores}"
+            )
+
+            for metric, score in scores.items():
+                all_scores[metric].append(score)
             predictions.append(prediction)
             pbar.update()
-
-    all_scores: dict[str, list[float]] = dict()
-    for metric_name in metric_names:
-        metric = load_metric(metric_name)
-        scores = [
-            metric.compute(predictions=[pred], references=[ref])
-            for pred, ref in zip(
-                tqdm(predictions, desc=f"Computing {metric_name.upper()}s"), labels
-            )
-        ]
-
-        # Ensure that the scores are indeed floats, as `compute` returns a dictionary
-        # for some metrics
-        scores = [score if isinstance(score, float) else -100.0 for score in scores]
-        assert all(score >= 0 for score in scores), (
-            f"The number of {metric_name.upper()}s should be equal to the number "
-            f"of predictions - found {len(scores):,} {metric_name.upper()}s and "
-            f"{len(predictions):,} predictions."
-        )
-
-        all_scores[metric_name] = scores
 
     return predictions, labels, all_scores
