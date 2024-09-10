@@ -191,12 +191,6 @@ def compute_metrics_of_dataset_using_pipeline(
                 isinstance(score, float) for score in scores.values()
             ), f"Expected the scores to be floats, but found {scores}"
 
-            # TEMP
-            if scores["cer"] > 0.1:
-                logger.info(
-                    f"\nLabel: {labels[idx]!r}\nPrediction: {prediction!r}\nScores: {scores}"
-                )
-
             for metric, score in scores.items():
                 all_scores[metric].append(score)
             predictions.append(prediction)
