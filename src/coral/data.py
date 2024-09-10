@@ -231,10 +231,18 @@ def load_data_for_finetuning(
         name=config.evaluation_dataset.subset,
         split=config.evaluation_dataset.val_name,
         token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-        streaming=config.streaming,
+        streaming=True,
         trust_remote_code=True,
         cache_dir=config.cache_dir,
     )
+    assert isinstance(val, IterableDataset)
+    if not config.streaming:
+        val = convert_iterable_dataset_to_dataset(
+            iterable_dataset=val,
+            split_name="val",
+            dataset_id=config.evaluation_dataset.id.replace("/", "--") + "-validation",
+            cache_dir=config.cache_dir,
+        )
     if config.evaluation_dataset.text_column != "text":
         val = val.rename_column(config.evaluation_dataset.text_column, "text")
     if config.evaluation_dataset.audio_column != "audio":
@@ -299,7 +307,9 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     )
     assert isinstance(dataset, IterableDataset)
     dataset = convert_iterable_dataset_to_dataset(
-        iterable_dataset=dataset, split_name=config.eval_split_name
+        iterable_dataset=dataset,
+        split_name=config.eval_split_name,
+        cache_dir=config.cache_dir,
     )
     assert isinstance(dataset, Dataset)
     dataset = filter_dataset(

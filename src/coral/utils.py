@@ -96,6 +96,7 @@ def convert_iterable_dataset_to_dataset(
     iterable_dataset: IterableDataset,
     split_name: str = "train",
     dataset_id: str | None = None,
+    cache_dir: Path | None = None,
 ) -> Dataset:
     """Convert an IterableDataset to a Dataset.
 
@@ -107,12 +108,18 @@ def convert_iterable_dataset_to_dataset(
         dataset_id (optional):
             The ID of the dataset, which is used to store and re-load the dataset. If
             None then the dataset is not stored. Defaults to None.
+        cache_dir (optional):
+            The directory to store the dataset. If None then the default cache
+            `~/.cache/huggingface/datasets` is used. Defaults to None.
 
     Returns:
         The converted Dataset.
     """
+    if cache_dir is None:
+        cache_dir = Path.home() / ".cache" / "huggingface" / "datasets"
+
     if dataset_id is not None:
-        dataset_dir = Path.home() / ".cache" / "huggingface" / "datasets" / dataset_id
+        dataset_dir = cache_dir / dataset_id
         if dataset_dir.exists():
             return Dataset.load_from_disk(str(dataset_dir))
 
