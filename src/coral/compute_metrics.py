@@ -192,10 +192,10 @@ def compute_metrics_of_dataset_using_pipeline(
             ), f"Expected the scores to be floats, but found {scores}"
 
             # TEMP
-            logger.info(
-                f"\nLabel: {labels[idx]!r}\nPrediction: {prediction!r}\nScores: {scores}"
-            )
-            breakpoint()
+            if scores["cer"] > 0.1:
+                logger.info(
+                    f"\nLabel: {labels[idx]!r}\nPrediction: {prediction!r}\nScores: {scores}"
+                )
 
             for metric, score in scores.items():
                 all_scores[metric].append(score)
