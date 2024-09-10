@@ -26,7 +26,7 @@ from transformers import Trainer
 logger = logging.getLogger(__package__)
 
 
-NUMERAL_REGEX = re.compile(r"^[\d\.,]+$")
+NUMERAL_REGEX = re.compile(r"([\d\.,])+$")
 NUMERIC_WORD_REGEX = re.compile(
     r"\b(elleve|tolv|tretten|fjorten|femten|seksten|sytten|atten|nitten|tyve"
     r"|tredive|fyrre|halvtreds|tres|halvfjerds|firs|halvfems"
