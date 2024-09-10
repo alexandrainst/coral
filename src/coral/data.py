@@ -162,7 +162,7 @@ def load_data_for_finetuning(
             ]
         ).shuffle(seed=config.seed)
 
-        if config.filter_dataset:
+        if dataset_config.filter_dataset:
             ds = filter_dataset(
                 dataset=ds,
                 audio_column="audio",
@@ -184,6 +184,9 @@ def load_data_for_finetuning(
             processor=processor,
             num_proc=config.dataset_num_workers,
         )
+
+        ds.save_to_disk(dataset_path=Path("/mnt/vol_b") / dataset_name.split("/")[-1])
+        breakpoint()
 
         all_datasets.append(ds)
 
