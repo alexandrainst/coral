@@ -168,7 +168,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
             warmup_steps=self.config.warmup_steps,
             max_steps=self.config.max_steps,
             fp16=self.config.fp16 and not mps_is_available(),
-            push_to_hub=self.config.push_to_hub,
+            push_to_hub=False,
             eval_strategy="steps",
             eval_steps=self.config.eval_steps,
             save_steps=self.config.save_steps,
