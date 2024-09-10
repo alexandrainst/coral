@@ -172,6 +172,9 @@ def load_data_for_finetuning(
                 num_proc=config.dataset_num_workers,
             )
 
+        breakpoint()
+        ds.save_to_disk(dataset_path=Path("/mnt/vol_b") / dataset_name.split("/")[-1])
+
         ds = process_dataset(
             dataset=ds,
             clean_text=config.model.clean_text,
