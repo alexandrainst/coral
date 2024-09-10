@@ -195,6 +195,7 @@ def compute_metrics_of_dataset_using_pipeline(
             logger.info(
                 f"\nLabel: {labels[idx]!r}\nPrediction: {prediction!r}\nScores: {scores}"
             )
+            breakpoint()
 
             for metric, score in scores.items():
                 all_scores[metric].append(score)
