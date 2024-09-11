@@ -361,9 +361,13 @@ class EvalDataset:
             # TEMP
             big_enough = "Large enough" if len(self) > self.min_samples else "Too small"
             pct_of_max = len(self) / self.max_samples
+            normalised_counts = {
+                key: {k: v / len(self) for k, v in count.items()}
+                for key, count in self.counts.items()
+            }
             logger.info(
                 f"[{big_enough}] {len(self):,} samples, {pct_of_max:.0%} of max.\n"
-                f"Distribution: {self.counts}"
+                f"Distribution: {normalised_counts}"
             )
             breakpoint()
 
