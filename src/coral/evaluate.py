@@ -93,8 +93,6 @@ def convert_evaluation_dataset_to_df(
     df = dataset.to_pandas()
     assert isinstance(df, pd.DataFrame)
 
-    df["accent"] = df.country_birth.map(lambda x: "native" if x == "DK" else "foreign")
-
     age_group_mapping = {"0-25": (0, 25), "25-50": (26, 50), "50+": (50, None)}
     df["age_group"] = df.age.map(
         lambda x: next(
@@ -105,6 +103,11 @@ def convert_evaluation_dataset_to_df(
     )
 
     df.dialect = df.dialect.map(sub_dialect_to_dialect_mapping)
+
+    # For non-native speakers, we use the accent as the dialect
+    df.country_birth = df.country_birth.map(lambda x: "DK" if x is None else x)
+    df.loc[df.country_birth != "DK", "dialect"] = "Non-native"
+
     return df
 
 

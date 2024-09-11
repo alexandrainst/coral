@@ -5,7 +5,7 @@ The test set is subject to the following constraints:
     - At least 40% of the test set must be of each gender
     - At least 20% of the test set must be of each age group (0-24, 25-49, 50+)
     - At least 10% of the test set must be of each dialect group
-    - At least 5% of the test set must be of speakers with a foreign accent
+    - At least 10% of the test set must be of speakers with a non-native accent
 
 The validation split has no formal criteria, but must be significantly smaller than the
 test set and should have roughly the same distribution.
@@ -76,14 +76,12 @@ def main(config: DictConfig) -> None:
                 gender=config.requirements.test.gender_pct,
                 dialect=config.requirements.test.dialect_pct,
                 age_group=config.requirements.test.age_group_pct,
-                accent=config.requirements.test.accent_pct,
             ),
             banned_speakers=set(),
             seed=seed,
             genders=config.genders,
             dialects=config.dialects,
             age_groups=config.age_groups,
-            accents=config.accents,
             mean_seconds_per_sample=mean_seconds_per_sample,
         )
         test_candidates.append(test_candidate)
@@ -121,7 +119,6 @@ def main(config: DictConfig) -> None:
             genders=config.genders,
             dialects=config.dialects,
             age_groups=config.age_groups,
-            accents=config.accents,
             mean_seconds_per_sample=mean_seconds_per_sample,
         )
         val_candidates.append(val_candidate)
@@ -210,7 +207,6 @@ class EvalDataset:
         genders: list[str],
         dialects: list[str],
         age_groups: list[tuple[int, int]],
-        accents: list[str],
         mean_seconds_per_sample: float,
     ) -> None:
         """Initialise the Dataset class.
@@ -234,8 +230,6 @@ class EvalDataset:
                 A list of possible dialect values.
             age_groups:
                 A list of tuples with the minimum and maximum age of each age group.
-            accents:
-                A list of possible accent values.
             mean_seconds_per_sample:
                 The mean duration of a sample in seconds. Only used for logging.
         """
@@ -255,7 +249,6 @@ class EvalDataset:
             gender={gender: 0 for gender in genders},
             dialect={dialect: 0 for dialect in dialects},
             age_group={str(age_group): 0 for age_group in self.age_groups},
-            accent={accent: 0 for accent in accents},
         )
         self.weights: dict[str, dict[str, float]] = {
             key: self._make_weights(count, beta=0) for key, count in self.counts.items()
@@ -427,6 +420,7 @@ def load_coral_metadata_df(
     age_groups: list[tuple[int, int]],
     max_cer: float,
     streaming: bool = False,
+    revision: str = "main",
 ) -> pd.DataFrame:
     """Load the metadata of the CoRal dataset.
 
@@ -442,6 +436,8 @@ def load_coral_metadata_df(
         streaming:
             Whether to load the dataset in streaming mode. Only relevant if `dataset` is
             None.
+        revision (str, optional):
+            The revision of the dataset to load. If None, the latest revision is used.
 
     Returns:
         The metadata of the CoRal dataset.
@@ -452,7 +448,11 @@ def load_coral_metadata_df(
         return pd.read_csv(metadata_path, low_memory=False)
 
     dataset = load_dataset(
-        path="alexandrainst/coral", split="train", streaming=streaming
+        path="alexandrainst/coral",
+        name="read_aloud",
+        revision=revision,
+        split="train",
+        streaming=streaming,
     ).remove_columns("audio")
 
     if streaming:
@@ -488,11 +488,9 @@ def load_coral_metadata_df(
         )
     df.dialect = df.dialect.map(sub_dialect_to_dialect)
 
-    # Aggregate accents into binary "native" and "foreign" categories, as there are
-    # too few non-native speakers to have a separate category for each accent.
-    df["accent"] = df.country_birth.apply(
-        lambda x: "native" if x == "DK" or x is None else "foreign"
-    )
+    # For non-native speakers, we use the accent as the dialect
+    df.country_birth = df.country_birth.map(lambda x: "DK" if x is None else x)
+    df.loc[df.country_birth != "DK", "dialect"] = "Non-native"
 
     # We remove the nonbinary speakers from being in the validation and test sets,
     # since there are only 3 such speakers in the dataset - they will be part of the

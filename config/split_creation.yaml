@@ -16,15 +16,12 @@ dialects:
   - Sønderjysk
   - Vestjysk
   - Østjysk
+  - Non-native
 
 age_groups:
   - [0, 25]
   - [25, 50]
   - [50, null]
-
-accents:
-  - native
-  - foreign
 
 sub_dialect_to_dialect:
   midtøstjysk: Østjysk

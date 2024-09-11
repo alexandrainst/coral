@@ -92,7 +92,7 @@ Dialect distribution:
 
 Accent distribution:
 - native: 97%
-- foreign: 3%
+- non-native: 3%
 
 Age group distribution:
 - 0-24: 6%
@@ -121,7 +121,7 @@ Dialect distribution:
 
 Accent distribution:
 - native: 81%
-- foreign: 19%
+- non-native: 19%
 
 Age group distribution:
 - 0-24: 11%
@@ -150,7 +150,7 @@ Dialect distribution:
 
 Accent distribution:
 - native: 90%
-- foreign: 10%
+- non-native: 10%
 
 Age group distribution:
   - 0-24: 28%

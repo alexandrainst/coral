@@ -41,7 +41,7 @@ hub_id: alexandrainst/coral
 # - 50-: 29%
 # Accent distribution:
 # - native: 88%
-# - foreign: 12%
+# - non-native: 12%
 test_speakers:
  - spe_f52921e1e787609ab99623340c5dd212
  - spe_cdb17db7c331cbb89e40dcbbecf4d560
@@ -89,7 +89,7 @@ test_speakers:
 # - 50-: 35%
 # Accent distribution:
 # - native: 68%
-# - foreign: 32%
+# - non-native: 32%
 val_speakers:
  - spe_9c4dc6be57f6c63860331813a71417e5
  - spe_4a7e760bd0a2775337880155e8ac0ec2
