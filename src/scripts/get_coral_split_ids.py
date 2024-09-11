@@ -365,6 +365,7 @@ class EvalDataset:
                 f"[{big_enough}] {len(self):,} samples, {pct_of_max:.0%} of max.\n"
                 f"Distribution: {self.counts}"
             )
+            breakpoint()
 
         if len(self) > self.max_samples:
             self.satisfies_requirements = False
