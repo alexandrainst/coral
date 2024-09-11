@@ -105,6 +105,7 @@ def load_data_for_finetuning(
         if Path(dataset_config.id).exists():
             train_path = Path(dataset_config.id) / dataset_config.train_name
             data_files = list(map(str, train_path.glob("data-*.arrow")))
+            breakpoint()
             if len(data_files) == 0:
                 ds = load_dataset(
                     path=dataset_config.id,
