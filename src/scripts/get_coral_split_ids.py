@@ -276,7 +276,7 @@ class EvalDataset:
         }
         self.betas = dict(dialect=100.0, age_group=5.0)
         self.satisfies_requirements = True
-        self.add_dialect_samples()
+        self.populate()
 
     @property
     def difficulty(self) -> float:
@@ -314,11 +314,11 @@ class EvalDataset:
             for key, weight in self.weights.items()
         )
 
-    def add_dialect_samples(self) -> "EvalDataset":
-        """Get samples of dialects each dialect.
+    def populate(self) -> "EvalDataset":
+        """Populate the dataset with samples.
 
         Returns:
-            EvalDataset object with samples of each dialect.
+            EvalDataset object with samples.
         """
         df_speaker = self.df.drop_duplicates(subset="id_speaker").query(
             "id_speaker not in @self.banned_speakers"
@@ -356,6 +356,7 @@ class EvalDataset:
                 index_to_change_if_sum_not_one -= 1
 
             speaker = self.rng.choice(speakers, p=probs)
+            breakpoint()
             self.add_speaker_samples(speaker=speaker)
 
         if len(self) > self.max_samples:
