@@ -391,13 +391,11 @@ class EvalDataset:
         Returns:
             Weight mapping for the feature.
         """
-        inv_count = {key: 1 / (1 + value) for key, value in count.items()}
-        normalizer = sum(inv_count.values())
-        weights = {key: value / normalizer for key, value in inv_count.items()}
+        weights = {key: 1 / (1 + value) for key, value in count.items()}
 
         # Increase chance of sampling the least represented feature
-        max_key = max(weights, key=weights.get)  # type: ignore[arg-type]
-        weights[max_key] += weights[max_key] * beta
+        max_key = min(count, key=count.get)  # type: ignore[arg-type]
+        weights[max_key] *= beta
 
         return weights
 
