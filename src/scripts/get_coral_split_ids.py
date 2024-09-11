@@ -366,9 +366,12 @@ class EvalDataset:
                 for key, count in self.counts.items()
             }
             logger.info(
-                f"[{big_enough}] {len(self):,} samples, {pct_of_max:.0%} of max.\n"
-                f"Distribution: {normalised_counts}"
+                f"[{big_enough}] {len(self):,} samples, {pct_of_max:.0%} of max."
             )
+            for key, count in normalised_counts.items():
+                logger.info(f"{key.capitalize()} distribution:")
+                for feature, feature_pct in count.items():
+                    logger.info(f"- {feature}: {feature_pct:.0%}")
             breakpoint()
 
         if len(self) > self.max_samples:
