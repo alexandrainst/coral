@@ -105,15 +105,19 @@ def load_data_for_finetuning(
         if Path(dataset_config.id).exists():
             train_path = Path(dataset_config.id) / dataset_config.train_name
             data_files = list(map(str, train_path.glob("data-*.arrow")))
-            breakpoint()
             if len(data_files) == 0:
-                ds = load_dataset(
-                    path=dataset_config.id,
-                    name=dataset_config.subset,
-                    split=dataset_config.train_name,
-                    streaming=config.streaming,
-                    cache_dir=config.cache_dir,
-                )
+                try:
+                    ds = load_dataset(
+                        path=dataset_config.id,
+                        name=dataset_config.subset,
+                        split=dataset_config.train_name,
+                        streaming=config.streaming,
+                        cache_dir=config.cache_dir,
+                    )
+                except ValueError as e:
+                    if "load_from_disk" not in str(e):
+                        raise e
+                    ds = Dataset.load_from_disk(dataset_path=dataset_config.id)
             else:
                 try:
                     ds = load_dataset(
