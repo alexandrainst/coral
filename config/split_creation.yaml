@@ -1,3 +1,4 @@
+dataset_path: alexandrainst/coral
 dataset_revision: main
 streaming: true
 num_split_attempts: 1000

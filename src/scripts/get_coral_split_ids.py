@@ -65,6 +65,7 @@ def main(config: DictConfig) -> None:
         age_groups=config.age_groups,
         max_cer=config.requirements.max_cer,
         streaming=config.streaming,
+        dataset_path=config.dataset_path,
         revision=config.dataset_revision,
     )
     logger.info(f"Loaded processed CoRal metadata with {len(df):,} samples.")
@@ -424,8 +425,9 @@ def load_coral_metadata_df(
     sub_dialect_to_dialect: dict[str, str],
     age_groups: list[tuple[int, int]],
     max_cer: float,
-    streaming: bool = False,
-    revision: str = "main",
+    streaming: bool,
+    dataset_path: str,
+    revision: str,
 ) -> pd.DataFrame:
     """Load the metadata of the CoRal dataset.
 
@@ -441,7 +443,9 @@ def load_coral_metadata_df(
         streaming:
             Whether to load the dataset in streaming mode. Only relevant if `dataset` is
             None.
-        revision (str, optional):
+        dataset_path:
+            The path to the dataset to load.
+        revision:
             The revision of the dataset to load. If None, the latest revision is used.
 
     Returns:
@@ -453,10 +457,7 @@ def load_coral_metadata_df(
         return pd.read_csv(metadata_path, low_memory=False)
 
     dataset = load_dataset(
-        path="alexandrainst/coral",
-        name="read_aloud",
-        revision=revision,
-        streaming=streaming,
+        path=dataset_path, name="read_aloud", revision=revision, streaming=streaming
     ).remove_columns("audio")
 
     if streaming:
