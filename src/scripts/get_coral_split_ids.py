@@ -122,9 +122,6 @@ def main(config: DictConfig) -> None:
         ]
         seed_start += num_attempts
 
-    if not test_candidates:
-        raise ValueError("No test candidate satisfy the requirements!")
-
     # Pick the test dataset that is both short and difficult
     difficulty_sorted_candidates = sorted(
         test_candidates, key=lambda x: x.difficulty, reverse=True
@@ -164,9 +161,6 @@ def main(config: DictConfig) -> None:
             candidate for candidate in val_candidates if candidate is not None
         ]
         seed_start += num_attempts
-
-    if not val_candidates:
-        raise ValueError("No validation candidate satisfy the requirements!")
 
     # Pick the test dataset that is both short and difficult
     difficulty_sorted_candidates = sorted(
