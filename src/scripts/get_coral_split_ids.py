@@ -35,6 +35,7 @@ from datasets import (
     concatenate_datasets,
     load_dataset,
 )
+from joblib import Parallel, delayed
 from omegaconf import DictConfig
 from pandas.errors import SettingWithCopyWarning
 from tqdm.auto import tqdm
@@ -74,9 +75,13 @@ def main(config: DictConfig) -> None:
     test_candidates: list[EvalDataset] = list()
     min_test_hours = config.requirements.test.min_hours
     max_test_hours = config.requirements.test.max_hours
-    with tqdm(range(4242, 4242 + num_attempts), desc="Computing test splits") as pbar:
-        for seed in pbar:
-            test_candidate = EvalDataset(
+    with (
+        tqdm(range(4242, 4242 + num_attempts), desc="Computing test splits") as pbar,
+        Parallel(n_jobs=-1, backend="loky") as parallel,
+    ):
+
+        def compute_test_candidate(seed: int) -> EvalDataset:
+            candidate = EvalDataset(
                 df=df,
                 min_samples=int(min_test_hours * 60 * 60 / mean_seconds_per_sample),
                 max_samples=int(max_test_hours * 60 * 60 / mean_seconds_per_sample),
@@ -92,12 +97,15 @@ def main(config: DictConfig) -> None:
                 age_groups=config.age_groups,
                 mean_seconds_per_sample=mean_seconds_per_sample,
             )
-            if test_candidate.satisfies_requirements:
-                test_candidates.append(test_candidate)
             pct_satisfied_requirements = len(test_candidates) / num_attempts
             pbar.set_postfix(
                 pct_satisfied_requirements=f"{pct_satisfied_requirements:.0%}"
             )
+            return candidate
+
+        test_candidates = parallel(
+            delayed(function=compute_test_candidate)(seed=seed) for seed in pbar
+        )
 
     # Pick the test dataset that is both short and difficult
     difficulty_sorted_candidates = sorted(
