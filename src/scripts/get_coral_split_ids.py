@@ -387,6 +387,21 @@ class EvalDataset:
     def _compute_weights(self, count: dict[str, int], min_value: float) -> dict:
         """Compute weights for a feature, based on counts.
 
+        The weights are computed as follows:
+            1. We first normalise the counts to probabilities. This is because we want
+               to sum up these weights for the different features, and using
+               probabilities instead of counts ensures that they're on the same scale,
+               making each feature equally important.
+            2. Next, we divide the normalised counts by the minimum value required for
+               the feature that we're currently computing the weights for. This will
+               yield values that are 1 when the feature is at the minimum value.
+            3. We next subtract these values from 1, which results in values that are 1
+               when the feature is near zero, and less than or equal to zero when the
+               feature is at the minimum required value.
+            4. Since we don't want negative weights, we clamp the values to be at least
+               a small positive value. We don't clamp to zero here, as we might dividing
+               by zero later on in that case.
+
         Args:
             count:
                 Counts for a feature.
