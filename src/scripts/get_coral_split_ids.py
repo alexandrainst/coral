@@ -210,8 +210,6 @@ class EvalDataset:
             Count of each feature in the dataset.
         weights (dict):
             Weights of each feature in the dataset.
-        betas (dict):
-            Shift the weights of the least represented feature.
         satisfies_requirements (bool):
             If the dataset satisfies all the requirements.
     """
@@ -271,9 +269,9 @@ class EvalDataset:
             age_group={str(age_group): 0 for age_group in self.age_groups},
         )
         self.weights: dict[str, dict[str, float]] = {
-            key: self._make_weights(count, beta=0) for key, count in self.counts.items()
+            key: self._make_weights(count=count, min_value=self.requirements[key])
+            for key, count in self.counts.items()
         }
-        self.betas: dict[str, float] = dict()  # dialect=5.0, age_group=5.0)
         self.satisfies_requirements = True
         self.populate()
 
@@ -379,28 +377,31 @@ class EvalDataset:
     def _update_weights(self) -> "EvalDataset":
         """Update the weights."""
         self.weights = {
-            key: self._make_weights(count, beta=self.betas.get(key, 1.0))
+            key: self._make_weights(count=count, min_value=self.requirements[key])
             for key, count in self.counts.items()
         }
         return self
 
-    def _make_weights(self, count: dict[str, int], beta: float) -> dict:
+    def _make_weights(self, count: dict[str, int], min_value: float) -> dict:
         """Make a weight mapping for a feature, based on counts.
 
         Args:
             count:
                 Counts for a feature.
-            beta:
-                Shift the weights of the least represented feature.
+            min_value:
+                The minimally required value for the feature.
 
         Returns:
             Weight mapping for the feature.
         """
         weights = {key: 1 / (1 + value) for key, value in count.items()}
 
-        # Increase chance of sampling the least represented feature
-        max_key = min(count, key=count.get)  # type: ignore[arg-type]
-        weights[max_key] *= beta
+        # If there are values below the minimum, then we set all weights for values
+        # above the minimum to 0
+        if min_value is not None:
+            for key, value in count.items():
+                if value < min_value:
+                    weights[key] = 0
 
         return weights
 
