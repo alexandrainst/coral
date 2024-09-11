@@ -334,7 +334,6 @@ class EvalDataset:
         ):
             speakers = df_speaker["id_speaker"].tolist()
             scores = df_speaker.apply(func=self._give_score, axis=1).tolist()
-            breakpoint()
 
             # Normalise the scores to probabilities
             probs = [score / sum(scores) for score in scores]
