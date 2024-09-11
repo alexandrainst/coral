@@ -75,25 +75,30 @@ def main(config: DictConfig) -> None:
     test_candidates: list[EvalDataset] = list()
     min_test_hours = config.requirements.test.min_hours
     max_test_hours = config.requirements.test.max_hours
-    for seed in tqdm(range(4242, 4242 + num_attempts), desc="Computing test splits"):
-        test_candidate = EvalDataset(
-            df=df,
-            min_samples=int(min_test_hours * 60 * 60 / mean_seconds_per_sample),
-            max_samples=int(max_test_hours * 60 * 60 / mean_seconds_per_sample),
-            requirements=dict(
-                gender=config.requirements.test.gender_pct,
-                dialect=config.requirements.test.dialect_pct,
-                age_group=config.requirements.test.age_group_pct,
-            ),
-            banned_speakers=set(),
-            seed=seed,
-            genders=config.genders,
-            dialects=config.dialects,
-            age_groups=config.age_groups,
-            mean_seconds_per_sample=mean_seconds_per_sample,
-        )
-        if test_candidate.satisfies_requirements:
-            test_candidates.append(test_candidate)
+    with tqdm(range(4242, 4242 + num_attempts), desc="Computing test splits") as pbar:
+        for seed in pbar:
+            test_candidate = EvalDataset(
+                df=df,
+                min_samples=int(min_test_hours * 60 * 60 / mean_seconds_per_sample),
+                max_samples=int(max_test_hours * 60 * 60 / mean_seconds_per_sample),
+                requirements=dict(
+                    gender=config.requirements.test.gender_pct,
+                    dialect=config.requirements.test.dialect_pct,
+                    age_group=config.requirements.test.age_group_pct,
+                ),
+                banned_speakers=set(),
+                seed=seed,
+                genders=config.genders,
+                dialects=config.dialects,
+                age_groups=config.age_groups,
+                mean_seconds_per_sample=mean_seconds_per_sample,
+            )
+            if test_candidate.satisfies_requirements:
+                test_candidates.append(test_candidate)
+            pct_satisfied_requirements = len(test_candidates) / num_attempts
+            pbar.set_postfix(
+                pct_satisfied_requirements=f"{pct_satisfied_requirements:.0%}"
+            )
 
     # Pick the test dataset that is both short and difficult
     difficulty_sorted_candidates = sorted(
@@ -112,25 +117,30 @@ def main(config: DictConfig) -> None:
     val_candidates: list[EvalDataset] = list()
     min_val_hours = config.requirements.val.min_hours
     max_val_hours = config.requirements.val.max_hours
-    for seed in tqdm(range(4242, 4242 + num_attempts), desc="Computing val splits"):
-        val_candidate = EvalDataset(
-            df=df,
-            min_samples=int(min_val_hours * 60 * 60 / mean_seconds_per_sample),
-            max_samples=int(max_val_hours * 60 * 60 / mean_seconds_per_sample),
-            requirements=dict(
-                gender=config.requirements.val.gender_pct,
-                dialect=config.requirements.val.dialect_pct,
-                age_group=config.requirements.val.age_group_pct,
-            ),
-            banned_speakers=test_dataset.speakers,
-            seed=seed,
-            genders=config.genders,
-            dialects=config.dialects,
-            age_groups=config.age_groups,
-            mean_seconds_per_sample=mean_seconds_per_sample,
-        )
-        if val_candidate.satisfies_requirements:
-            val_candidates.append(val_candidate)
+    with tqdm(range(4242, 4242 + num_attempts), desc="Computing val splits") as pbar:
+        for seed in pbar:
+            val_candidate = EvalDataset(
+                df=df,
+                min_samples=int(min_val_hours * 60 * 60 / mean_seconds_per_sample),
+                max_samples=int(max_val_hours * 60 * 60 / mean_seconds_per_sample),
+                requirements=dict(
+                    gender=config.requirements.val.gender_pct,
+                    dialect=config.requirements.val.dialect_pct,
+                    age_group=config.requirements.val.age_group_pct,
+                ),
+                banned_speakers=test_dataset.speakers,
+                seed=seed,
+                genders=config.genders,
+                dialects=config.dialects,
+                age_groups=config.age_groups,
+                mean_seconds_per_sample=mean_seconds_per_sample,
+            )
+            if val_candidate.satisfies_requirements:
+                val_candidates.append(val_candidate)
+            pct_satisfied_requirements = len(val_candidates) / num_attempts
+            pbar.set_postfix(
+                pct_satisfied_requirements=f"{pct_satisfied_requirements:.0%}"
+            )
 
     # Pick the test dataset that is both short and difficult
     difficulty_sorted_candidates = sorted(
