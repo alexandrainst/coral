@@ -354,19 +354,19 @@ class EvalDataset:
             self.add_speaker_samples(speaker=speaker)
 
             # TEMP
-            big_enough = "Large enough" if len(self) > self.min_samples else "Too small"
-            pct_of_max = len(self) / self.max_samples
-            normalised_counts = {
-                key: {k: v / len(self) for k, v in count.items()}
-                for key, count in self.counts.items()
-            }
-            logger.info(
-                f"[{big_enough}] {len(self):,} samples, {pct_of_max:.0%} of max."
-            )
-            for key, count in normalised_counts.items():
-                logger.info(f"{key.capitalize()} distribution:")
-                for feature, feature_pct in count.items():
-                    logger.info(f"- {feature}: {feature_pct:.0%}")
+            # big_enough = "Large enough" if len(self) > self.min_samples else "Too small"
+            # pct_of_max = len(self) / self.max_samples
+            # normalised_counts = {
+            #     key: {k: v / len(self) for k, v in count.items()}
+            #     for key, count in self.counts.items()
+            # }
+            # logger.info(
+            #     f"[{big_enough}] {len(self):,} samples, {pct_of_max:.0%} of max."
+            # )
+            # for key, count in normalised_counts.items():
+            #     logger.info(f"{key.capitalize()} distribution:")
+            #     for feature, feature_pct in count.items():
+            #         logger.info(f"- {feature}: {feature_pct:.0%}")
 
         if len(self) > self.max_samples:
             self.satisfies_requirements = False
