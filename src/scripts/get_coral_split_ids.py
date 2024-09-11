@@ -71,40 +71,34 @@ def main(config: DictConfig) -> None:
     )
     logger.info(f"Loaded processed CoRal metadata with {len(df):,} samples.")
 
+    def compute_test_candidate(seed: int) -> EvalDataset:
+        return EvalDataset(
+            df=df,
+            min_samples=int(min_test_hours * 60 * 60 / mean_seconds_per_sample),
+            max_samples=int(max_test_hours * 60 * 60 / mean_seconds_per_sample),
+            requirements=dict(
+                gender=config.requirements.test.gender_pct,
+                dialect=config.requirements.test.dialect_pct,
+                age_group=config.requirements.test.age_group_pct,
+            ),
+            banned_speakers=set(),
+            seed=seed,
+            genders=config.genders,
+            dialects=config.dialects,
+            age_groups=config.age_groups,
+            mean_seconds_per_sample=mean_seconds_per_sample,
+        )
+
     # Build test split
     test_candidates: list[EvalDataset] = list()
     min_test_hours = config.requirements.test.min_hours
     max_test_hours = config.requirements.test.max_hours
-    with (
-        tqdm(range(4242, 4242 + num_attempts), desc="Computing test splits") as pbar,
-        Parallel(n_jobs=-1, backend="loky") as parallel,
-    ):
-
-        def compute_test_candidate(seed: int) -> EvalDataset:
-            candidate = EvalDataset(
-                df=df,
-                min_samples=int(min_test_hours * 60 * 60 / mean_seconds_per_sample),
-                max_samples=int(max_test_hours * 60 * 60 / mean_seconds_per_sample),
-                requirements=dict(
-                    gender=config.requirements.test.gender_pct,
-                    dialect=config.requirements.test.dialect_pct,
-                    age_group=config.requirements.test.age_group_pct,
-                ),
-                banned_speakers=set(),
-                seed=seed,
-                genders=config.genders,
-                dialects=config.dialects,
-                age_groups=config.age_groups,
-                mean_seconds_per_sample=mean_seconds_per_sample,
-            )
-            pct_satisfied_requirements = len(test_candidates) / num_attempts
-            pbar.set_postfix(
-                pct_satisfied_requirements=f"{pct_satisfied_requirements:.0%}"
-            )
-            return candidate
-
+    with Parallel(n_jobs=-1, backend="loky") as parallel:
         test_candidates = parallel(
-            delayed(function=compute_test_candidate)(seed=seed) for seed in pbar
+            delayed(function=compute_test_candidate)(seed=seed)
+            for seed in tqdm(
+                range(4242, 4242 + num_attempts), desc="Computing test splits"
+            )
         )
 
     # Pick the test dataset that is both short and difficult
