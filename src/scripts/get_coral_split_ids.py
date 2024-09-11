@@ -97,7 +97,7 @@ def main(config: DictConfig) -> None:
 
     # Build test split
     test_candidates: list[EvalDataset] = list()
-    seed = 4242
+    seed_start = 4242
     while len(test_candidates) == 0:
         with Parallel(n_jobs=-1, batch_size=10) as parallel:
             test_candidates = parallel(
@@ -113,13 +113,14 @@ def main(config: DictConfig) -> None:
                     max_hours=config.requirements.test.max_hours,
                 )
                 for seed in tqdm(
-                    range(4242, 4242 + num_attempts), desc="Computing test splits"
+                    range(seed_start, seed_start + num_attempts),
+                    desc=f"Computing test splits with seed starting at {seed_start}",
                 )
             )
         test_candidates = [
             candidate for candidate in test_candidates if candidate is not None
         ]
-        seed += num_attempts
+        seed_start += num_attempts
 
     if not test_candidates:
         raise ValueError("No test candidate satisfy the requirements!")
@@ -139,7 +140,7 @@ def main(config: DictConfig) -> None:
 
     # Build validation split
     val_candidates: list[EvalDataset] = list()
-    seed = 4242
+    seed_start = 4242
     while len(val_candidates) == 0:
         with Parallel(n_jobs=-1, batch_size=10) as parallel:
             val_candidates = parallel(
@@ -155,13 +156,14 @@ def main(config: DictConfig) -> None:
                     max_hours=config.requirements.val.max_hours,
                 )
                 for seed in tqdm(
-                    range(4242, 4242 + num_attempts), desc="Computing val splits"
+                    range(seed_start, seed_start + num_attempts),
+                    desc=f"Computing val splits with seed starting at {seed_start}",
                 )
             )
         val_candidates = [
             candidate for candidate in val_candidates if candidate is not None
         ]
-        seed += num_attempts
+        seed_start += num_attempts
 
     if not val_candidates:
         raise ValueError("No validation candidate satisfy the requirements!")
