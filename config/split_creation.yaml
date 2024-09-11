@@ -1,6 +1,10 @@
+# Dataset parameters
 dataset_path: alexandrainst/coral
 dataset_revision: main
 streaming: true
+cache_dir: null
+
+# Splitting parameters
 num_split_attempts: 1000
 mean_seconds_per_sample: 5.5
 

@@ -67,6 +67,7 @@ def main(config: DictConfig) -> None:
         streaming=config.streaming,
         dataset_path=config.dataset_path,
         revision=config.dataset_revision,
+        cache_dir=config.cache_dir,
     )
     logger.info(f"Loaded processed CoRal metadata with {len(df):,} samples.")
 
@@ -428,6 +429,7 @@ def load_coral_metadata_df(
     streaming: bool,
     dataset_path: str,
     revision: str,
+    cache_dir: str | None,
 ) -> pd.DataFrame:
     """Load the metadata of the CoRal dataset.
 
@@ -447,6 +449,9 @@ def load_coral_metadata_df(
             The path to the dataset to load.
         revision:
             The revision of the dataset to load. If None, the latest revision is used.
+        cache_dir:
+            The directory to cache the dataset in. If None then the standard cache
+            directory is used.
 
     Returns:
         The metadata of the CoRal dataset.
@@ -457,7 +462,11 @@ def load_coral_metadata_df(
         return pd.read_csv(metadata_path, low_memory=False)
 
     dataset = load_dataset(
-        path=dataset_path, name="read_aloud", revision=revision, streaming=streaming
+        path=dataset_path,
+        name="read_aloud",
+        revision=revision,
+        streaming=streaming,
+        cache_dir=cache_dir,
     ).remove_columns("audio")
 
     if streaming:
