@@ -30,7 +30,12 @@ import hydra
 import numpy as np
 import pandas as pd
 import torch
-from datasets import Dataset, IterableDataset, load_dataset
+from datasets import (
+    DatasetDict,
+    IterableDatasetDict,
+    concatenate_datasets,
+    load_dataset,
+)
 from omegaconf import DictConfig
 from pandas.errors import SettingWithCopyWarning
 from tqdm.auto import tqdm
@@ -451,12 +456,11 @@ def load_coral_metadata_df(
         path="alexandrainst/coral",
         name="read_aloud",
         revision=revision,
-        split="train",
         streaming=streaming,
     ).remove_columns("audio")
 
     if streaming:
-        assert isinstance(dataset, IterableDataset)
+        assert isinstance(dataset, IterableDatasetDict)
 
         dataset_splits: dict | None = dataset.info.splits
         assert dataset_splits is not None, "No splits found in CoRal dataset."
@@ -465,17 +469,21 @@ def load_coral_metadata_df(
         # column along the way, to save memory.
         metadata = [
             sample
+            for split_name in dataset_splits.keys()
             for sample in tqdm(
                 dataset,
-                total=dataset_splits["train"].num_examples,
+                total=dataset_splits[split_name].num_examples,
                 desc="Downloading CoRal dataset",
             )
         ]
         df = pd.DataFrame(metadata)
 
     else:
-        assert isinstance(dataset, Dataset)
-        df = pd.DataFrame(dataset.to_pandas())
+        assert isinstance(dataset, DatasetDict)
+        merged_dataset = concatenate_datasets(
+            dsets=[split for split in dataset.values() if split is not None]
+        )
+        df = pd.DataFrame(merged_dataset.to_pandas())
 
     logger.info(f"Downloaded CoRal metadata with {len(df):,} raw samples.")
 
