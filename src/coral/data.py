@@ -114,6 +114,8 @@ def load_data_for_finetuning(
                         streaming=config.streaming,
                         cache_dir=config.cache_dir,
                     )
+
+                # In case a single split has been stored to disk, we load it directly
                 except ValueError as e:
                     if "load_from_disk" not in str(e):
                         raise e
