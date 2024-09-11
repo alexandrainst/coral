@@ -99,7 +99,7 @@ def main(config: DictConfig) -> None:
     test_candidates: list[EvalDataset] = list()
     seed_start = 4242
     while len(test_candidates) == 0:
-        with Parallel(n_jobs=-1, batch_size=10) as parallel:
+        with Parallel(n_jobs=-2, batch_size=10) as parallel:
             test_candidates = parallel(
                 delayed(function=compute_test_candidate)(
                     seed=seed,
@@ -139,7 +139,7 @@ def main(config: DictConfig) -> None:
     val_candidates: list[EvalDataset] = list()
     seed_start = 4242
     while len(val_candidates) == 0:
-        with Parallel(n_jobs=-1, batch_size=10) as parallel:
+        with Parallel(n_jobs=-2, batch_size=10) as parallel:
             val_candidates = parallel(
                 delayed(function=compute_test_candidate)(
                     seed=seed,
