@@ -93,7 +93,7 @@ def main(config: DictConfig) -> None:
     test_candidates: list[EvalDataset] = list()
     min_test_hours = config.requirements.test.min_hours
     max_test_hours = config.requirements.test.max_hours
-    with Parallel(n_jobs=-1, backend="loky") as parallel:
+    with Parallel(n_jobs=-1, backend="threading", batch_size=10) as parallel:
         test_candidates = parallel(
             delayed(function=compute_test_candidate)(seed=seed)
             for seed in tqdm(
