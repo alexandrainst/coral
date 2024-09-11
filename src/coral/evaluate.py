@@ -69,9 +69,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     )
     df["score"] = all_scores[config.metric]
     score_df = get_score_df(
-        df=df,
-        categories=["age_group", "gender", "dialect", "accent"],
-        metric_name=config.metric,
+        df=df, categories=["age_group", "gender", "dialect"], metric_name=config.metric
     )
     return score_df
 

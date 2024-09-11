@@ -112,7 +112,6 @@ def main(config: DictConfig) -> None:
                 gender=config.requirements.val.gender_pct,
                 dialect=config.requirements.val.dialect_pct,
                 age_group=config.requirements.val.age_group_pct,
-                accent=config.requirements.val.accent_pct,
             ),
             banned_speakers=test_dataset.speakers,
             seed=seed,
