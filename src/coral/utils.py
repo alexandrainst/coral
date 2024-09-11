@@ -119,7 +119,7 @@ def convert_iterable_dataset_to_dataset(
         cache_dir = Path.home() / ".cache" / "huggingface" / "datasets"
 
     if dataset_id is not None:
-        dataset_dir = cache_dir / dataset_id
+        dataset_dir = Path(cache_dir) / dataset_id
         if dataset_dir.exists():
             return Dataset.load_from_disk(str(dataset_dir))
 
