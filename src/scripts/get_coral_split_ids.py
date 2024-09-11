@@ -105,12 +105,8 @@ def main(config: DictConfig) -> None:
         + length_sorted_candidates.index(candidate)
         for candidate in test_candidates
     }
-    shortest_test_dataset = length_sorted_candidates[0]
-    most_difficult_test_dataset = difficulty_sorted_candidates[0]
-    balanced_test_dataset = min(test_candidates, key=lambda x: candidate_scores[x])
-    logger.info(f"Shortest test dataset:\n{shortest_test_dataset}")
-    logger.info(f"Most difficult test dataset:\n{most_difficult_test_dataset}")
-    logger.info(f"Balanced test dataset:\n{balanced_test_dataset}")
+    test_dataset = min(test_candidates, key=lambda x: candidate_scores[x])
+    logger.info(f"Balanced test dataset:\n{test_dataset}")
 
     # Build validation split
     val_candidates: list[EvalDataset] = list()
@@ -126,7 +122,7 @@ def main(config: DictConfig) -> None:
                 dialect=config.requirements.val.dialect_pct,
                 age_group=config.requirements.val.age_group_pct,
             ),
-            banned_speakers=balanced_test_dataset.speakers,
+            banned_speakers=test_dataset.speakers,
             seed=seed,
             genders=config.genders,
             dialects=config.dialects,
@@ -146,17 +142,10 @@ def main(config: DictConfig) -> None:
         + length_sorted_candidates.index(candidate)
         for candidate in val_candidates
     }
-    shortest_val_dataset = length_sorted_candidates[0]
-    most_difficult_val_dataset = difficulty_sorted_candidates[0]
-    balanced_val_dataset = min(val_candidates, key=lambda x: candidate_scores[x])
-    logger.info(f"Shortest validation dataset:\n{shortest_val_dataset}")
-    logger.info(f"Most difficult validation dataset:\n{most_difficult_val_dataset}")
-    logger.info(f"Balanced validation dataset:\n{balanced_val_dataset}")
+    val_dataset = min(val_candidates, key=lambda x: candidate_scores[x])
+    logger.info(f"Balanced validation dataset:\n{val_dataset}")
 
-    assert (
-        set(balanced_test_dataset.speakers).intersection(balanced_val_dataset.speakers)
-        == set()
-    )
+    assert set(test_dataset.speakers).intersection(val_dataset.speakers) == set()
 
 
 class AgeGroup(NamedTuple):
