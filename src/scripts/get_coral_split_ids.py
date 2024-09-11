@@ -396,15 +396,14 @@ class EvalDataset:
         Returns:
             Weight mapping for the feature.
         """
-        weights = {key: 1 / (1 + value) for key, value in count.items()}
-
-        # If there are values below the minimum, then we set all weights for values
-        # above the minimum to 0.
-        if any(value < min_value for value in count.values()):
-            for key, value in count.items():
-                if value >= min_value:
-                    weights[key] = 0
-
+        normalised_counts = {
+            key: 0 if len(self) == 0 else value / len(self)
+            for key, value in count.items()
+        }
+        weights = {
+            key: max(1 - value / min_value, 1e-6)
+            for key, value in normalised_counts.items()
+        }
         return weights
 
     def __repr__(self) -> str:
