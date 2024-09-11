@@ -2,7 +2,7 @@ dataset_path: alexandrainst/coral
 dataset_revision: main
 streaming: true
 num_split_attempts: 1000
-mean_seconds_per_sample: 5.0
+mean_seconds_per_sample: 5.5
 
 genders:
   - female
