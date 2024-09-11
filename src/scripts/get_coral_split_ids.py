@@ -472,17 +472,15 @@ def load_coral_metadata_df(
     if streaming:
         assert isinstance(dataset, IterableDatasetDict)
 
-        dataset_splits: dict | None = dataset.info.splits
-        assert dataset_splits is not None, "No splits found in CoRal dataset."
-
+        breakpoint()
         # This will download the dataset with a progress bar, and remove the audio
         # column along the way, to save memory.
         metadata = [
             sample
-            for split_name in dataset_splits.keys()
+            for split in dataset.values()
             for sample in tqdm(
-                dataset,
-                total=dataset_splits[split_name].num_examples,
+                split,
+                # total=dataset_splits[split_name].num_examples,
                 desc="Downloading CoRal dataset",
             )
         ]
