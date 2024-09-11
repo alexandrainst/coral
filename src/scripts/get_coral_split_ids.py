@@ -349,6 +349,7 @@ class EvalDataset:
             # probabilities sum to slightly more than 1, making the new probability
             # negative. In this case we clamp it to 0, and change the second last
             # probability to 1 - the sum of the other probabilities, and so on.
+            breakpoint()
             index_to_change_if_sum_not_one = -1
             while sum(probs) != 1:
                 sum_of_others = sum(probs) - probs[index_to_change_if_sum_not_one]
