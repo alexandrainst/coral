@@ -472,16 +472,17 @@ def load_coral_metadata_df(
     if streaming:
         assert isinstance(dataset, IterableDatasetDict)
 
-        breakpoint()
         # This will download the dataset with a progress bar, and remove the audio
         # column along the way, to save memory.
+        num_samples = sum(
+            split.info.splits[split_name].num_examples
+            for split_name, split in dataset.items()
+        )
         metadata = [
             sample
             for split in dataset.values()
             for sample in tqdm(
-                split,
-                # total=dataset_splits[split_name].num_examples,
-                desc="Downloading CoRal dataset",
+                split, total=num_samples, desc="Downloading CoRal dataset"
             )
         ]
         df = pd.DataFrame(metadata)
