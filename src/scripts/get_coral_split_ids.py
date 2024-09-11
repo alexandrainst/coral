@@ -382,7 +382,7 @@ class EvalDataset:
     def _update_weights(self) -> "EvalDataset":
         """Update the weights."""
         self.weights = {
-            key: self._make_weights(count, beta=self.betas.get(key, 0))
+            key: self._make_weights(count, beta=self.betas.get(key, 1.0))
             for key, count in self.counts.items()
         }
         return self
