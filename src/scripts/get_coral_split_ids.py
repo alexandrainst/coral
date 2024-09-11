@@ -398,9 +398,9 @@ class EvalDataset:
 
         # If there are values below the minimum, then we set all weights for values
         # above the minimum to 0
-        if min_value is not None:
+        if any(value < min_value for value in count.values()):
             for key, value in count.items():
-                if value < min_value:
+                if value >= min_value:
                     weights[key] = 0
 
         return weights
