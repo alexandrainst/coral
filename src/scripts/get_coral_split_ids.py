@@ -336,7 +336,7 @@ class EvalDataset:
             and len(self) < self.max_samples
         ):
             speakers = df_speaker["id_speaker"].tolist()
-            scores = df_speaker.apply(func=self._give_score, axis=1).tolist()
+            scores = df_speaker.map(self._give_score).tolist()
             probs = (
                 torch.softmax(torch.tensor(scores), dim=0)
                 .clamp(min=torch.tensor(0), max=torch.tensor(1))
