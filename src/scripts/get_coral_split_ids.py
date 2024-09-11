@@ -92,7 +92,8 @@ def main(config: DictConfig) -> None:
             age_groups=config.age_groups,
             mean_seconds_per_sample=mean_seconds_per_sample,
         )
-        test_candidates.append(test_candidate)
+        if test_candidate.satisfies_requirements:
+            test_candidates.append(test_candidate)
 
     # Pick the test dataset that is both short and difficult
     difficulty_sorted_candidates = sorted(
@@ -132,7 +133,8 @@ def main(config: DictConfig) -> None:
             age_groups=config.age_groups,
             mean_seconds_per_sample=mean_seconds_per_sample,
         )
-        val_candidates.append(val_candidate)
+        if val_candidate.satisfies_requirements:
+            val_candidates.append(val_candidate)
 
     # Pick the test dataset that is both short and difficult
     difficulty_sorted_candidates = sorted(
@@ -212,6 +214,8 @@ class EvalDataset:
             Weights of each feature in the dataset.
         betas (dict):
             Shift the weights of the least represented feature.
+        satisfies_requirements (bool):
+            If the dataset satisfies all the requirements.
     """
 
     def __init__(
@@ -272,6 +276,7 @@ class EvalDataset:
             key: self._make_weights(count, beta=0) for key, count in self.counts.items()
         }
         self.betas = dict(dialect=100.0, age_group=5.0)
+        self.satisfies_requirements = True
         self.add_dialect_samples()
 
     @property
@@ -353,6 +358,9 @@ class EvalDataset:
 
             speaker = self.rng.choice(speakers, p=probs)
             self.add_speaker_samples(speaker=speaker)
+
+        if len(self) > self.max_samples:
+            self.satisfies_requirements = False
 
         return self
 
