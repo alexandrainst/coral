@@ -60,6 +60,7 @@ def main(config: DictConfig) -> None:
         age_groups=config.age_groups,
         max_cer=config.requirements.max_cer,
         streaming=config.streaming,
+        revision=config.dataset_revision,
     )
     logger.info(f"Loaded processed CoRal metadata with {len(df):,} samples.")
 

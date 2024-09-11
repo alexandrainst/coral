@@ -1,3 +1,4 @@
+dataset_revision: main
 streaming: true
 num_split_attempts: 1000
 mean_seconds_per_sample: 5.0
