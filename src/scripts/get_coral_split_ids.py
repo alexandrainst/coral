@@ -370,11 +370,6 @@ class EvalDataset:
 
         if len(self) > self.max_samples:
             self.satisfies_requirements = False
-            normalised_counts = {
-                key: {k: v / len(self) for k, v in count.items()}
-                for key, count in self.counts.items()
-            }
-            logger.info(f"Didn't satisfy requirements:\n{normalised_counts}")
 
         return self
 
@@ -402,10 +397,10 @@ class EvalDataset:
 
         # If there are values below the minimum, then we set all weights for values
         # above the minimum to 0
-        if any(value < min_value for value in count.values()):
-            for key, value in count.items():
-                if value >= min_value:
-                    weights[key] = 0
+        # if any(value < min_value for value in count.values()):
+        #     for key, value in count.items():
+        #         if value >= min_value:
+        #             weights[key] = 0
 
         return weights
 
