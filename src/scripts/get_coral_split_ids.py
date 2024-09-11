@@ -48,6 +48,7 @@ logging.basicConfig(
 logger = logging.getLogger("get_coral_split_ids")
 
 warnings.filterwarnings("ignore", category=SettingWithCopyWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
 
 
 @hydra.main(config_path="../../config", config_name="split_creation", version_base=None)
@@ -71,35 +72,53 @@ def main(config: DictConfig) -> None:
     )
     logger.info(f"Loaded processed CoRal metadata with {len(df):,} samples.")
 
-    def compute_test_candidate(seed: int) -> EvalDataset:
-        return EvalDataset(
+    def compute_test_candidate(
+        seed: int,
+        requirements: dict[str, float],
+        banned_speakers: set[str],
+        min_hours: float,
+        max_hours: float,
+    ) -> EvalDataset | None:
+        candidate = EvalDataset(
             df=df,
-            min_samples=int(min_test_hours * 60 * 60 / mean_seconds_per_sample),
-            max_samples=int(max_test_hours * 60 * 60 / mean_seconds_per_sample),
-            requirements=dict(
-                gender=config.requirements.test.gender_pct,
-                dialect=config.requirements.test.dialect_pct,
-                age_group=config.requirements.test.age_group_pct,
-            ),
-            banned_speakers=set(),
+            min_samples=int(min_hours * 60 * 60 / mean_seconds_per_sample),
+            max_samples=int(max_hours * 60 * 60 / mean_seconds_per_sample),
+            requirements=requirements,
+            banned_speakers=banned_speakers,
             seed=seed,
             genders=config.genders,
             dialects=config.dialects,
             age_groups=config.age_groups,
             mean_seconds_per_sample=mean_seconds_per_sample,
         )
+        if not candidate.satisfies_requirements:
+            return None
+        return candidate
 
     # Build test split
-    test_candidates: list[EvalDataset] = list()
-    min_test_hours = config.requirements.test.min_hours
-    max_test_hours = config.requirements.test.max_hours
     with Parallel(n_jobs=-1, batch_size=10) as parallel:
         test_candidates = parallel(
-            delayed(function=compute_test_candidate)(seed=seed)
+            delayed(function=compute_test_candidate)(
+                seed=seed,
+                requirements=dict(
+                    gender=config.requirements.test.gender_pct,
+                    dialect=config.requirements.test.dialect_pct,
+                    age_group=config.requirements.test.age_group_pct,
+                ),
+                banned_speakers=set(),
+                min_hours=config.requirements.test.min_hours,
+                max_hours=config.requirements.test.max_hours,
+            )
             for seed in tqdm(
                 range(4242, 4242 + num_attempts), desc="Computing test splits"
             )
         )
+    test_candidates = [
+        candidate for candidate in test_candidates if candidate is not None
+    ]
+
+    if not test_candidates:
+        raise ValueError("No test candidate satisfy the requirements!")
 
     # Pick the test dataset that is both short and difficult
     difficulty_sorted_candidates = sorted(
@@ -115,33 +134,30 @@ def main(config: DictConfig) -> None:
     logger.info(f"Test dataset:\n{test_dataset}")
 
     # Build validation split
-    val_candidates: list[EvalDataset] = list()
-    min_val_hours = config.requirements.val.min_hours
-    max_val_hours = config.requirements.val.max_hours
-    with tqdm(range(4242, 4242 + num_attempts), desc="Computing val splits") as pbar:
-        for seed in pbar:
-            val_candidate = EvalDataset(
-                df=df,
-                min_samples=int(min_val_hours * 60 * 60 / mean_seconds_per_sample),
-                max_samples=int(max_val_hours * 60 * 60 / mean_seconds_per_sample),
+    with Parallel(n_jobs=-1, batch_size=10) as parallel:
+        val_candidates = parallel(
+            delayed(function=compute_test_candidate)(
+                seed=seed,
                 requirements=dict(
                     gender=config.requirements.val.gender_pct,
                     dialect=config.requirements.val.dialect_pct,
                     age_group=config.requirements.val.age_group_pct,
                 ),
                 banned_speakers=test_dataset.speakers,
-                seed=seed,
-                genders=config.genders,
-                dialects=config.dialects,
-                age_groups=config.age_groups,
-                mean_seconds_per_sample=mean_seconds_per_sample,
+                min_hours=config.requirements.val.min_hours,
+                max_hours=config.requirements.val.max_hours,
             )
-            if val_candidate.satisfies_requirements:
-                val_candidates.append(val_candidate)
-            pct_satisfied_requirements = len(val_candidates) / num_attempts
-            pbar.set_postfix(
-                pct_satisfied_requirements=f"{pct_satisfied_requirements:.0%}"
+            for seed in tqdm(
+                range(4242, 4242 + num_attempts), desc="Computing val splits"
             )
+        )
+
+    val_candidates = [
+        candidate for candidate in val_candidates if candidate is not None
+    ]
+
+    if not val_candidates:
+        raise ValueError("No validation candidate satisfy the requirements!")
 
     # Pick the test dataset that is both short and difficult
     difficulty_sorted_candidates = sorted(
@@ -271,7 +287,7 @@ class EvalDataset:
             age_group={str(age_group): 0 for age_group in self.age_groups},
         )
         self.weights: dict[str, dict[str, float]] = {
-            key: self._make_weights(count=count, min_value=self.requirements[key])
+            key: self._compute_weights(count=count, min_value=self.requirements[key])
             for key, count in self.counts.items()
         }
         self.satisfies_requirements = True
@@ -355,22 +371,7 @@ class EvalDataset:
             speaker = self.rng.choice(speakers, p=probs)
             self.add_speaker_samples(speaker=speaker)
 
-            # TEMP
-            # big_enough = "Large enough" if len(self) > self.min_samples else "Too small"
-            # pct_of_max = len(self) / self.max_samples
-            # normalised_counts = {
-            #     key: {k: v / len(self) for k, v in count.items()}
-            #     for key, count in self.counts.items()
-            # }
-            # logger.info(
-            #     f"[{big_enough}] {len(self):,} samples, {pct_of_max:.0%} of max."
-            # )
-            # for key, count in normalised_counts.items():
-            #     logger.info(f"{key.capitalize()} distribution:")
-            #     for feature, feature_pct in count.items():
-            #         logger.info(f"- {feature}: {feature_pct:.0%}")
-
-        if len(self) > self.max_samples:
+        if len(self) >= self.max_samples:
             self.satisfies_requirements = False
 
         return self
@@ -378,13 +379,13 @@ class EvalDataset:
     def _update_weights(self) -> "EvalDataset":
         """Update the weights."""
         self.weights = {
-            key: self._make_weights(count=count, min_value=self.requirements[key])
+            key: self._compute_weights(count=count, min_value=self.requirements[key])
             for key, count in self.counts.items()
         }
         return self
 
-    def _make_weights(self, count: dict[str, int], min_value: float) -> dict:
-        """Make a weight mapping for a feature, based on counts.
+    def _compute_weights(self, count: dict[str, int], min_value: float) -> dict:
+        """Compute weights for a feature, based on counts.
 
         Args:
             count:
@@ -398,11 +399,11 @@ class EvalDataset:
         weights = {key: 1 / (1 + value) for key, value in count.items()}
 
         # If there are values below the minimum, then we set all weights for values
-        # above the minimum to 0
-        # if any(value < min_value for value in count.values()):
-        #     for key, value in count.items():
-        #         if value >= min_value:
-        #             weights[key] = 0
+        # above the minimum to 0.
+        if any(value < min_value for value in count.values()):
+            for key, value in count.items():
+                if value >= min_value:
+                    weights[key] = 0
 
         return weights
 

@@ -75,7 +75,7 @@ requirements:
     age_group_pct: 0.2
   val:
     min_hours: 1.0
-    max_hours: 10.0
+    max_hours: 5.0
     gender_pct: 0.4
     dialect_pct: 0.05
     age_group_pct: 0.1
