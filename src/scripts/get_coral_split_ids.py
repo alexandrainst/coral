@@ -96,26 +96,30 @@ def main(config: DictConfig) -> None:
         return candidate
 
     # Build test split
-    with Parallel(n_jobs=-1, batch_size=10) as parallel:
-        test_candidates = parallel(
-            delayed(function=compute_test_candidate)(
-                seed=seed,
-                requirements=dict(
-                    gender=config.requirements.test.gender_pct,
-                    dialect=config.requirements.test.dialect_pct,
-                    age_group=config.requirements.test.age_group_pct,
-                ),
-                banned_speakers=set(),
-                min_hours=config.requirements.test.min_hours,
-                max_hours=config.requirements.test.max_hours,
+    test_candidates: list[EvalDataset] = list()
+    seed = 4242
+    while len(test_candidates) == 0:
+        with Parallel(n_jobs=-1, batch_size=10) as parallel:
+            test_candidates = parallel(
+                delayed(function=compute_test_candidate)(
+                    seed=seed,
+                    requirements=dict(
+                        gender=config.requirements.test.gender_pct,
+                        dialect=config.requirements.test.dialect_pct,
+                        age_group=config.requirements.test.age_group_pct,
+                    ),
+                    banned_speakers=set(),
+                    min_hours=config.requirements.test.min_hours,
+                    max_hours=config.requirements.test.max_hours,
+                )
+                for seed in tqdm(
+                    range(4242, 4242 + num_attempts), desc="Computing test splits"
+                )
             )
-            for seed in tqdm(
-                range(4242, 4242 + num_attempts), desc="Computing test splits"
-            )
-        )
-    test_candidates = [
-        candidate for candidate in test_candidates if candidate is not None
-    ]
+        test_candidates = [
+            candidate for candidate in test_candidates if candidate is not None
+        ]
+        seed += num_attempts
 
     if not test_candidates:
         raise ValueError("No test candidate satisfy the requirements!")
@@ -134,27 +138,30 @@ def main(config: DictConfig) -> None:
     logger.info(f"Test dataset:\n{test_dataset}")
 
     # Build validation split
-    with Parallel(n_jobs=-1, batch_size=10) as parallel:
-        val_candidates = parallel(
-            delayed(function=compute_test_candidate)(
-                seed=seed,
-                requirements=dict(
-                    gender=config.requirements.val.gender_pct,
-                    dialect=config.requirements.val.dialect_pct,
-                    age_group=config.requirements.val.age_group_pct,
-                ),
-                banned_speakers=test_dataset.speakers,
-                min_hours=config.requirements.val.min_hours,
-                max_hours=config.requirements.val.max_hours,
+    val_candidates: list[EvalDataset] = list()
+    seed = 4242
+    while len(val_candidates) == 0:
+        with Parallel(n_jobs=-1, batch_size=10) as parallel:
+            val_candidates = parallel(
+                delayed(function=compute_test_candidate)(
+                    seed=seed,
+                    requirements=dict(
+                        gender=config.requirements.val.gender_pct,
+                        dialect=config.requirements.val.dialect_pct,
+                        age_group=config.requirements.val.age_group_pct,
+                    ),
+                    banned_speakers=test_dataset.speakers,
+                    min_hours=config.requirements.val.min_hours,
+                    max_hours=config.requirements.val.max_hours,
+                )
+                for seed in tqdm(
+                    range(4242, 4242 + num_attempts), desc="Computing val splits"
+                )
             )
-            for seed in tqdm(
-                range(4242, 4242 + num_attempts), desc="Computing val splits"
-            )
-        )
-
-    val_candidates = [
-        candidate for candidate in val_candidates if candidate is not None
-    ]
+        val_candidates = [
+            candidate for candidate in val_candidates if candidate is not None
+        ]
+        seed += num_attempts
 
     if not val_candidates:
         raise ValueError("No validation candidate satisfy the requirements!")
@@ -286,10 +293,6 @@ class EvalDataset:
             dialect={dialect: 0 for dialect in dialects},
             age_group={str(age_group): 0 for age_group in self.age_groups},
         )
-        self.weights: dict[str, dict[str, float]] = {
-            key: self._compute_weights(count=count, min_value=self.requirements[key])
-            for key, count in self.counts.items()
-        }
         self.satisfies_requirements = True
         self.populate()
 
@@ -298,91 +301,13 @@ class EvalDataset:
         """Return the difficulty of the dataset."""
         return self.df.loc[self.indices].asr_cer.mean()
 
-    def add_speaker_samples(self, speaker: str) -> "EvalDataset":
-        """Add all samples of a speaker to the dataset.
-
-        Args:
-            speaker:
-                The id of the speaker
-        """
-        self.speakers.add(speaker)
-
-        speaker_samples = self.df.query("id_speaker == @speaker")
-        n_samples = len(speaker_samples)
-        indices = speaker_samples.index.tolist()
-        self.indices.extend(indices)
-
-        # Assuming that all samples of a speaker have the same gender, dialect,
-        # age_group, and native_language
-        row = speaker_samples.iloc[0]
-        for key, count in self.counts.items():
-            count[row[key]] += n_samples
-
-        self._update_weights()
-
-        return self
-
-    def _give_score(self, row: pd.Series) -> float:
-        """Return a score of a speaker in a row."""
-        return sum(
-            weight[row[key]]  # type: ignore[index]
-            for key, weight in self.weights.items()
-        )
-
-    def populate(self) -> "EvalDataset":
-        """Populate the dataset with samples.
-
-        Returns:
-            EvalDataset object with samples.
-        """
-        df_speaker = self.df.drop_duplicates(subset="id_speaker").query(
-            "id_speaker not in @self.banned_speakers"
-        )
-        while (
-            (
-                len(self) < self.min_samples
-                or any(
-                    count < len(self) * requirement
-                    for key, requirement in self.requirements.items()
-                    for count in self.counts[key].values()  # type: ignore[literal-required]
-                )
-            )
-            and set(df_speaker.id_speaker.tolist()) - self.speakers != set()
-            and len(self) < self.max_samples
-        ):
-            speakers = df_speaker["id_speaker"].tolist()
-            scores = df_speaker.apply(func=self._give_score, axis=1).tolist()
-
-            # Normalise the scores to probabilities
-            probs = [score / sum(scores) for score in scores]
-
-            # Ensure that the probabilities sum to 1, as this is required by the
-            # `choice` function. We do this by changing the last probability to 1 - the
-            # sum of the other probabilities. Sometimes, for some reason the other
-            # probabilities sum to slightly more than 1, making the new probability
-            # negative. In this case we clamp it to 0, and change the second last
-            # probability to 1 - the sum of the other probabilities, and so on.
-            index_to_change_if_sum_not_one = -1
-            while sum(probs) != 1:
-                sum_of_others = sum(probs) - probs[index_to_change_if_sum_not_one]
-                probs[index_to_change_if_sum_not_one] = max(1 - sum_of_others, 0)
-                index_to_change_if_sum_not_one -= 1
-
-            speaker = self.rng.choice(speakers, p=probs)
-            self.add_speaker_samples(speaker=speaker)
-
-        if len(self) >= self.max_samples:
-            self.satisfies_requirements = False
-
-        return self
-
-    def _update_weights(self) -> "EvalDataset":
-        """Update the weights."""
-        self.weights = {
+    @property
+    def weights(self) -> dict[str, dict[str, float]]:
+        """Return the weights of the dataset."""
+        return {
             key: self._compute_weights(count=count, min_value=self.requirements[key])
             for key, count in self.counts.items()
         }
-        return self
 
     def _compute_weights(self, count: dict[str, int], min_value: float) -> dict:
         """Compute weights for a feature, based on counts.
@@ -420,6 +345,89 @@ class EvalDataset:
             for key, value in normalised_counts.items()
         }
         return weights
+
+    def populate(self) -> "EvalDataset":
+        """Populate the dataset with samples.
+
+        Returns:
+            EvalDataset object with samples.
+        """
+        df_speaker = self.df.drop_duplicates(subset="id_speaker").query(
+            "id_speaker not in @self.banned_speakers"
+        )
+        while (
+            (
+                len(self) < self.min_samples
+                or any(
+                    count < len(self) * requirement
+                    for key, requirement in self.requirements.items()
+                    for count in self.counts[key].values()  # type: ignore[literal-required]
+                )
+            )
+            and set(df_speaker.id_speaker.tolist()) - self.speakers != set()
+            and len(self) < self.max_samples
+        ):
+            speakers = df_speaker["id_speaker"].tolist()
+            scores = df_speaker.apply(func=self._compute_score, axis=1).tolist()
+
+            # Normalise the scores to probabilities
+            probs = [score / sum(scores) for score in scores]
+
+            # Ensure that the probabilities sum to 1, as this is required by the
+            # `choice` function. We do this by changing the last probability to 1 - the
+            # sum of the other probabilities. Sometimes, for some reason the other
+            # probabilities sum to slightly more than 1, making the new probability
+            # negative. In this case we clamp it to 0, and change the second last
+            # probability to 1 - the sum of the other probabilities, and so on.
+            index_to_change_if_sum_not_one = -1
+            while sum(probs) != 1:
+                sum_of_others = sum(probs) - probs[index_to_change_if_sum_not_one]
+                probs[index_to_change_if_sum_not_one] = max(1 - sum_of_others, 0)
+                index_to_change_if_sum_not_one -= 1
+
+            speaker = self.rng.choice(speakers, p=probs)
+            self.add_speaker_samples(speaker=speaker)
+
+        if len(self) >= self.max_samples:
+            self.satisfies_requirements = False
+
+        return self
+
+    def add_speaker_samples(self, speaker: str) -> "EvalDataset":
+        """Add all samples of a speaker to the dataset.
+
+        Args:
+            speaker:
+                The ID of the speaker
+        """
+        self.speakers.add(speaker)
+
+        speaker_samples = self.df.query("id_speaker == @speaker")
+        n_samples = len(speaker_samples)
+        indices = speaker_samples.index.tolist()
+        self.indices.extend(indices)
+
+        # Assuming that all samples of a speaker have the same gender, dialect,
+        # age_group, and native_language
+        row = speaker_samples.iloc[0]
+        for key, count in self.counts.items():
+            count[row[key]] += n_samples
+
+        return self
+
+    def _compute_score(self, row: pd.Series) -> float:
+        """Compute the score of a speaker in a row.
+
+        The score is computed as the sum of the weights of the features of the speaker.
+
+        Args:
+            row:
+                The row of the dataframe.
+
+        Returns:
+            The score of the speaker.
+        """
+        return sum(weight[row[key]] for key, weight in self.weights.items())
 
     def __repr__(self) -> str:
         """Return the string representation of the EvalDataset class."""
