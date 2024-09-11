@@ -29,7 +29,6 @@ from typing import NamedTuple
 import hydra
 import numpy as np
 import pandas as pd
-import torch
 from datasets import (
     DatasetDict,
     IterableDatasetDict,
@@ -338,11 +337,9 @@ class EvalDataset:
             speakers = df_speaker["id_speaker"].tolist()
             scores = df_speaker.apply(func=self._give_score, axis=1).tolist()
             breakpoint()
-            probs = (
-                torch.softmax(torch.tensor(scores), dim=0)
-                .clamp(min=torch.tensor(0), max=torch.tensor(1))
-                .tolist()
-            )
+
+            # Normalise the scores to probabilities
+            probs = [score / sum(scores) for score in scores]
 
             # Ensure that the probabilities sum to 1, as this is required by the
             # `choice` function. We do this by changing the last probability to 1 - the
