@@ -5,3 +5,4 @@ fleurs:
   text_column: raw_transcription
   audio_column: audio
   filter_dataset: true
+  process_dataset: true

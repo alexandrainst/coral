@@ -154,14 +154,6 @@ def load_data_for_finetuning(
         if dataset_config.audio_column != "audio":
             ds = ds.rename_column(dataset_config.audio_column, "audio")
 
-        ds = ds.remove_columns(
-            column_names=[
-                column
-                for column in ds.column_names or list()
-                if column not in ["audio", "text"]
-            ]
-        ).shuffle(seed=config.seed)
-
         if dataset_config.filter_dataset:
             ds = filter_dataset(
                 dataset=ds,
@@ -172,18 +164,26 @@ def load_data_for_finetuning(
                 num_proc=config.dataset_num_workers,
             )
 
-        ds = process_dataset(
-            dataset=ds,
-            clean_text=config.model.clean_text,
-            lower_case=config.model.lower_case,
-            characters_to_keep=config.characters_to_keep,
-            text_column="text",
-            audio_column="audio",
-            remove_input_dataset_columns=True,
-            cast_to_sampling_rate=config.model.sampling_rate,
-            processor=processor,
-            num_proc=config.dataset_num_workers,
-        )
+        if dataset_config.process_dataset:
+            ds = ds.remove_columns(
+                column_names=[
+                    column
+                    for column in ds.column_names or list()
+                    if column not in ["audio", "text"]
+                ]
+            ).shuffle(seed=config.seed)
+            ds = process_dataset(
+                dataset=ds,
+                clean_text=config.model.clean_text,
+                lower_case=config.model.lower_case,
+                characters_to_keep=config.characters_to_keep,
+                text_column="text",
+                audio_column="audio",
+                remove_input_dataset_columns=True,
+                cast_to_sampling_rate=config.model.sampling_rate,
+                processor=processor,
+                num_proc=config.dataset_num_workers,
+            )
 
         all_datasets.append(ds)
 
