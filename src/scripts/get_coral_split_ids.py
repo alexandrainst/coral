@@ -274,7 +274,7 @@ class EvalDataset:
         self.weights: dict[str, dict[str, float]] = {
             key: self._make_weights(count, beta=0) for key, count in self.counts.items()
         }
-        self.betas: dict[str, float] = dict()  # dialect=100.0, age_group=5.0)
+        self.betas: dict[str, float] = dict(dialect=5.0, age_group=5.0)
         self.satisfies_requirements = True
         self.populate()
 
