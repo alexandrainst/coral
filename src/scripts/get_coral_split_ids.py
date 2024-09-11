@@ -356,8 +356,15 @@ class EvalDataset:
                 index_to_change_if_sum_not_one -= 1
 
             speaker = self.rng.choice(speakers, p=probs)
-            breakpoint()
             self.add_speaker_samples(speaker=speaker)
+
+            # TEMP
+            big_enough = "Large enough" if len(self) > self.min_samples else "Too small"
+            pct_of_max = len(self) / self.max_samples
+            logger.info(
+                f"[{big_enough}] {len(self):,} samples, {pct_of_max:.0%} of max.\n"
+                f"Distribution: {self.counts}"
+            )
 
         if len(self) > self.max_samples:
             self.satisfies_requirements = False
