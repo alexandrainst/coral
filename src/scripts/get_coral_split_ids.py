@@ -135,7 +135,7 @@ def main(config: DictConfig) -> None:
         test_candidates |= new_test_candidates
 
         logger.info(
-            f"Found {len(new_test_candidates):,} new test candidates, now at "
+            f"Found {len(new_test_candidates):,} new test candidate(s), now at "
             f"{len(test_candidates):,} in total. Finding validation splits to match..."
         )
 
