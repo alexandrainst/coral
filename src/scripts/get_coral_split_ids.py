@@ -137,7 +137,6 @@ def main(config: DictConfig) -> None:
             for candidate in test_candidates
         }
         test_dataset = min(test_candidates, key=lambda x: candidate_scores[x])
-        logger.info(f"Test dataset:\n{test_dataset}")
 
         # Build validation split
         val_candidates: list[EvalDataset] = list()
@@ -182,9 +181,11 @@ def main(config: DictConfig) -> None:
             for candidate in val_candidates
         }
         val_dataset = min(val_candidates, key=lambda x: candidate_scores[x])
-        logger.info(f"Validation dataset:\n{val_dataset}")
 
         assert set(test_dataset.speakers).intersection(val_dataset.speakers) == set()
+
+        logger.info(f"Test dataset:\n{test_dataset}")
+        logger.info(f"Validation dataset:\n{val_dataset}")
 
 
 class AgeGroup(NamedTuple):
