@@ -118,7 +118,10 @@ def main(config: DictConfig) -> None:
                         )
                         for seed in tqdm(
                             range(seed_start, seed_start + num_attempts),
-                            desc=f"Computing test splits with seed starting at {seed_start}",
+                            desc=(
+                                f"Computing test splits with seed starting at "
+                                f"{seed_start}"
+                            ),
                         )
                     )
                 )
@@ -130,6 +133,11 @@ def main(config: DictConfig) -> None:
             seed_start += num_attempts
 
         test_candidates |= new_test_candidates
+
+        logger.info(
+            f"Found {len(new_test_candidates):,} new test candidates, now at "
+            f"{len(test_candidates):,} in total. Finding validation splits to match..."
+        )
 
         # Pick the test dataset that is both short, difficult and equally distributed
         difficulty_sorted_candidates = sorted(
@@ -157,12 +165,11 @@ def main(config: DictConfig) -> None:
             idx = best_test_candidates.index(test_dataset)
             best_test_candidates = best_test_candidates[:idx]
             if len(best_test_candidates) == 0:
+                logger.info(
+                    "The best test candidate is still the same we found last time. "
+                    "Finding more test candidates..."
+                )
                 continue
-
-        logger.info(
-            f"Found {len(new_test_candidates):,} new test candidates, now at "
-            f"{len(test_candidates):,} in total. Finding validation splits to match..."
-        )
 
         # Build validation split
         val_candidates: list[EvalDataset] = list()
