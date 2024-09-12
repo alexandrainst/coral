@@ -102,7 +102,7 @@ def main(config: DictConfig) -> None:
         new_test_candidates: list[EvalDataset] = list()
         while len(new_test_candidates) == 0:
             with Parallel(n_jobs=-2, batch_size=10) as parallel:
-                test_candidates = parallel(
+                new_test_candidates = parallel(
                     delayed(function=compute_test_candidate)(
                         seed=seed,
                         requirements=dict(
@@ -119,8 +119,10 @@ def main(config: DictConfig) -> None:
                         desc=f"Computing test splits with seed starting at {seed_start}",
                     )
                 )
-            test_candidates = [
-                candidate for candidate in new_test_candidates if candidate is not None
+            new_test_candidates = [
+                candidate
+                for candidate in new_test_candidates
+                if candidate is not None and candidate not in test_candidates
             ]
             seed_start += num_attempts
 
@@ -170,14 +172,25 @@ def main(config: DictConfig) -> None:
             val_seed_start += num_attempts
             val_attempts_remaining -= 1
 
-        # Pick the test dataset that is both short and difficult
+        if val_attempts_remaining == 0:
+            continue
+
+        # Pick the test dataset that is both short, difficult and equally distributed
+        length_sorted_candidates = sorted(val_candidates, key=len)
         difficulty_sorted_candidates = sorted(
             val_candidates, key=lambda x: x.difficulty, reverse=True
         )
-        length_sorted_candidates = sorted(val_candidates, key=len)
+        equal_distribution_sorted_candidates = sorted(
+            val_candidates,
+            key=lambda candidate: sum(
+                np.var(list(pct_dict.values()))
+                for pct_dict in candidate.normalised_counts.values()
+            ),
+        )
         candidate_scores = {
             candidate: difficulty_sorted_candidates.index(candidate)
             + length_sorted_candidates.index(candidate)
+            + equal_distribution_sorted_candidates.index(candidate)
             for candidate in val_candidates
         }
         val_dataset = min(val_candidates, key=lambda x: candidate_scores[x])
@@ -308,15 +321,19 @@ class EvalDataset:
         return self.df.loc[self.indices].asr_cer.mean()
 
     @property
-    def weights(self) -> dict[str, dict[str, float]]:
-        """Return the weights of the dataset."""
+    def normalised_counts(self) -> dict[str, dict[str, float]]:
+        """Return the normalised counts of the dataset."""
         return {
-            key: self._compute_weights(count=count, min_value=self.requirements[key])
-            for key, count in self.counts.items()
+            key: {
+                feature: count / len(self) if len(self) > 0 else 0
+                for feature, count in count_list.items()
+            }
+            for key, count_list in self.counts.items()
         }
 
-    def _compute_weights(self, count: dict[str, int], min_value: float) -> dict:
-        """Compute weights for a feature, based on counts.
+    @property
+    def weights(self) -> dict[str, dict[str, float]]:
+        """The weights of the different features (such as dialect and age group).
 
         The weights are computed as follows:
             1. We first normalise the counts to probabilities. This is because we want
@@ -333,24 +350,16 @@ class EvalDataset:
                a small positive value. We don't clamp to zero here, as we might dividing
                by zero later on in that case.
 
-        Args:
-            count:
-                Counts for a feature.
-            min_value:
-                The minimally required value for the feature.
-
         Returns:
-            Weight mapping for the feature.
+            The weights
         """
-        normalised_counts = {
-            key: 0 if len(self) == 0 else value / len(self)
-            for key, value in count.items()
+        return {
+            feature: {
+                feature_value: max(1 - pct / self.requirements[feature], 1e-6)
+                for feature_value, pct in pct_dict.items()
+            }
+            for feature, pct_dict in self.normalised_counts.items()
         }
-        weights = {
-            key: max(1 - value / min_value, 1e-6)
-            for key, value in normalised_counts.items()
-        }
-        return weights
 
     def populate(self) -> "EvalDataset":
         """Populate the dataset with samples.
