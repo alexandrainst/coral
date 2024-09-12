@@ -1,18 +1,5 @@
 """Get the speaker IDs for the CoRal test and validation splits.
 
-The test set is subject to the following constraints:
-    - At least 7.5 hours
-    - At least 40% of the test set must be of each gender
-    - At least 20% of the test set must be of each age group (0-24, 25-49, 50+)
-    - At least 10% of the test set must be of each dialect group
-    - At least 10% of the test set must be of speakers with a non-native accent
-
-The validation split has no formal criteria, but must be significantly smaller than the
-test set and should have roughly the same distribution.
-
-These constraints, along with all the other hyperparameters related to the creation of
-the splits, are defined in the `dataset_creation` configuration file.
-
 Developers:
     - Oliver Kinch (oliver.kinch@alexandra.dk)
     - Dan Saattrup Nielsen (dan.nielsen@alexandra.dk)
