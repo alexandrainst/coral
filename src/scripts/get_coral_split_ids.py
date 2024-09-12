@@ -131,11 +131,6 @@ def main(config: DictConfig) -> None:
 
         test_candidates |= new_test_candidates
 
-        logger.info(
-            f"Found {len(new_test_candidates):,} new test candidates, now at "
-            f"{len(test_candidates):,} in total. Finding validation splits to match..."
-        )
-
         # Pick the test dataset that is both short, difficult and equally distributed
         difficulty_sorted_candidates = sorted(
             test_candidates, key=lambda x: x.difficulty, reverse=True
@@ -163,6 +158,11 @@ def main(config: DictConfig) -> None:
             best_test_candidates = best_test_candidates[:idx]
             if len(best_test_candidates) == 0:
                 continue
+
+        logger.info(
+            f"Found {len(new_test_candidates):,} new test candidates, now at "
+            f"{len(test_candidates):,} in total. Finding validation splits to match..."
+        )
 
         # Build validation split
         val_candidates: list[EvalDataset] = list()
