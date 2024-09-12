@@ -97,6 +97,7 @@ def main(config: DictConfig) -> None:
 
     # Build test split
     test_candidates: list[EvalDataset] = list()
+    test_dataset: EvalDataset | None = None
     seed_start = 0
     while True:
         new_test_candidates: list[EvalDataset] = list()
@@ -138,7 +139,11 @@ def main(config: DictConfig) -> None:
             + length_sorted_candidates.index(candidate)
             for candidate in test_candidates
         }
-        test_dataset = min(test_candidates, key=lambda x: candidate_scores[x])
+        new_test_dataset = min(test_candidates, key=lambda x: candidate_scores[x])
+
+        if new_test_dataset == test_dataset:
+            continue
+        test_dataset = new_test_dataset
 
         # Build validation split
         val_candidates: list[EvalDataset] = list()
