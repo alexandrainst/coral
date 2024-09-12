@@ -96,61 +96,78 @@ def main(config: DictConfig) -> None:
         return candidate
 
     # Build test split
-    test_candidates: list[EvalDataset] = list()
+    test_candidates: set[EvalDataset] = set()
     test_dataset: EvalDataset | None = None
     seed_start = 0
     while True:
-        new_test_candidates: list[EvalDataset] = list()
+        new_test_candidates: set[EvalDataset] = set()
         while len(new_test_candidates) == 0:
             with Parallel(n_jobs=-2, batch_size=10) as parallel:
-                new_test_candidates = parallel(
-                    delayed(function=compute_test_candidate)(
-                        seed=seed,
-                        requirements=dict(
-                            gender=config.requirements.test.gender_pct,
-                            dialect=config.requirements.test.dialect_pct,
-                            age_group=config.requirements.test.age_group_pct,
-                        ),
-                        banned_speakers=set(),
-                        min_hours=config.requirements.test.min_hours,
-                        max_hours=config.requirements.test.max_hours,
-                    )
-                    for seed in tqdm(
-                        range(seed_start, seed_start + num_attempts),
-                        desc=f"Computing test splits with seed starting at {seed_start}",
+                new_test_candidates = set(
+                    parallel(
+                        delayed(function=compute_test_candidate)(
+                            seed=seed,
+                            requirements=dict(
+                                gender=config.requirements.test.gender_pct,
+                                dialect=config.requirements.test.dialect_pct,
+                                age_group=config.requirements.test.age_group_pct,
+                            ),
+                            banned_speakers=set(config.banned_speakers),
+                            min_hours=config.requirements.test.min_hours,
+                            max_hours=config.requirements.test.max_hours,
+                        )
+                        for seed in tqdm(
+                            range(seed_start, seed_start + num_attempts),
+                            desc=f"Computing test splits with seed starting at {seed_start}",
+                        )
                     )
                 )
-            new_test_candidates = [
+            new_test_candidates = {
                 candidate
                 for candidate in new_test_candidates
                 if candidate is not None and candidate not in test_candidates
-            ]
+            }
             seed_start += num_attempts
 
-        test_candidates.extend(new_test_candidates)
+        test_candidates |= new_test_candidates
 
-        # Pick the test dataset that is both short and difficult
+        logger.info(
+            f"Found {len(new_test_candidates):,} new test candidates, now at "
+            f"{len(test_candidates):,} in total. Finding validation splits to match..."
+        )
+
+        # Pick the test dataset that is both short, difficult and equally distributed
         difficulty_sorted_candidates = sorted(
             test_candidates, key=lambda x: x.difficulty, reverse=True
         )
         length_sorted_candidates = sorted(test_candidates, key=len)
-        candidate_scores = {
+        equal_distribution_sorted_candidates = sorted(
+            test_candidates,
+            key=lambda candidate: sum(
+                np.var(list(pct_dict.values()))
+                for pct_dict in candidate.normalised_counts.values()
+            ),
+        )
+        candidate_ranks = {
             candidate: difficulty_sorted_candidates.index(candidate)
             + length_sorted_candidates.index(candidate)
+            + equal_distribution_sorted_candidates.index(candidate)
             for candidate in test_candidates
         }
-        new_test_dataset = min(test_candidates, key=lambda x: candidate_scores[x])
+        best_test_candidates = sorted(
+            test_candidates, key=lambda x: candidate_ranks[x]
+        )[: config.val_attempts]
 
-        if new_test_dataset == test_dataset:
-            continue
-        test_dataset = new_test_dataset
+        if test_dataset in best_test_candidates:
+            idx = best_test_candidates.index(test_dataset)
+            best_test_candidates = best_test_candidates[:idx]
+            if len(best_test_candidates) == 0:
+                continue
 
         # Build validation split
         val_candidates: list[EvalDataset] = list()
-        val_seed_start = 0
-        val_attempts_remaining = 10
-        while len(val_candidates) == 0 and val_attempts_remaining > 0:
-            with Parallel(n_jobs=-2, batch_size=10) as parallel:
+        with Parallel(n_jobs=-2, batch_size=10) as parallel:
+            for idx, best_test_candidate in enumerate(best_test_candidates):
                 val_candidates = parallel(
                     delayed(function=compute_test_candidate)(
                         seed=seed,
@@ -159,28 +176,34 @@ def main(config: DictConfig) -> None:
                             dialect=config.requirements.val.dialect_pct,
                             age_group=config.requirements.val.age_group_pct,
                         ),
-                        banned_speakers=test_dataset.speakers,
+                        banned_speakers=(
+                            best_test_candidate.speakers | set(config.banned_speakers)
+                        ),
                         min_hours=config.requirements.val.min_hours,
                         max_hours=config.requirements.val.max_hours,
                     )
                     for seed in tqdm(
-                        range(val_seed_start, val_seed_start + num_attempts),
-                        desc=(
-                            f"Computing val splits with seed starting at "
-                            f"{val_seed_start}"
-                        ),
+                        range(num_attempts),
+                        desc=f"Computing val splits for test candidate {idx}",
                     )
                 )
-            val_candidates = [
-                candidate for candidate in val_candidates if candidate is not None
-            ]
-            val_seed_start += num_attempts
-            val_attempts_remaining -= 1
+                val_candidates = [
+                    candidate for candidate in val_candidates if candidate is not None
+                ]
+                if len(val_candidates) > 0:
+                    test_dataset = best_test_candidate
+                    break
+                test_candidates.remove(best_test_candidate)
+            else:
+                logger.info(
+                    f"Could not find a suitable validation split for any of the "
+                    f"{len(best_test_candidates):,} test splits. Resuming to find "
+                    "more test splits..."
+                )
+                continue
 
-        if val_attempts_remaining == 0:
-            continue
-
-        # Pick the test dataset that is both short, difficult and equally distributed
+        # Pick the validation dataset that is both short, difficult and equally
+        # distributed
         length_sorted_candidates = sorted(val_candidates, key=len)
         difficulty_sorted_candidates = sorted(
             val_candidates, key=lambda x: x.difficulty, reverse=True
@@ -192,15 +215,18 @@ def main(config: DictConfig) -> None:
                 for pct_dict in candidate.normalised_counts.values()
             ),
         )
-        candidate_scores = {
+        candidate_ranks = {
             candidate: difficulty_sorted_candidates.index(candidate)
             + length_sorted_candidates.index(candidate)
             + equal_distribution_sorted_candidates.index(candidate)
             for candidate in val_candidates
         }
-        val_dataset = min(val_candidates, key=lambda x: candidate_scores[x])
+        val_dataset = min(val_candidates, key=lambda x: candidate_ranks[x])
 
-        assert set(test_dataset.speakers).intersection(val_dataset.speakers) == set()
+        assert (
+            test_dataset is not None
+            and set(test_dataset.speakers).intersection(val_dataset.speakers) == set()
+        )
 
         logger.info(f"Test dataset:\n{test_dataset}")
         logger.info(f"Validation dataset:\n{val_dataset}")
