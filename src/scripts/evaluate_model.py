@@ -6,6 +6,7 @@ Usage:
 
 import logging
 from pathlib import Path
+from shutil import rmtree
 
 import hydra
 import pandas as pd
@@ -29,13 +30,25 @@ def main(config: DictConfig) -> None:
             The Hydra configuration object.
     """
     score_df = evaluate(config=config)
+
+    # Loading the pipeline stores it to the default HF cache, and they don't allow
+    # changing it for pipelines. So we remove the models stored in the cache manually,
+    # to avoid running out of disk space.
+    model_cache_dir = Path.home() / ".cache" / "huggingface" / "hub"
+    model_dirs = list(
+        model_cache_dir.glob(f"model--{config.model_id.replace('/', '--')}")
+    )
+    if model_dirs:
+        for model_dir in model_dirs:
+            rmtree(path=model_dir)
+
     if config.store_results:
-        model_id_without_slashes = config.model_id.replace("/", "__")
+        model_id_without_slashes = config.model_id.replace("/", "--")
         if "coral" in config.dataset:
-            filename = Path(f"{model_id_without_slashes}_coral_scores.csv")
+            filename = Path(f"{model_id_without_slashes}-coral-scores.csv")
             score_df.to_csv(filename, index=False)
         else:
-            filename = Path(f"{model_id_without_slashes}_scores.csv")
+            filename = Path(f"{model_id_without_slashes}-scores.csv")
             if filename.exists():
                 existing_score_df = pd.read_csv(filename)
                 score_df = pd.merge(
