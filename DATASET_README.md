@@ -70,92 +70,84 @@ print(f"Text: {transcription}")
 
 ## Read-aloud Data Statistics
 
-### Train Split
-
-There are ~365 hours of audio in the train split, with ~565 speakers, reading ~152,000
-unique sentences aloud.
-
-Gender distribution:
-- female: 74%
-- male: 26%
-
-Dialect distribution:
-- Bornholmsk: 2%
-- Fynsk: 5%
-- Københavnsk: 15%
-- Nordjysk: 16%
-- Sjællandsk: 14%
-- Sydømål: 0.2%
-- Sønderjysk: 5%
-- Vestjysk: 11%
-- Østjysk: 33%
-
-Accent distribution:
-- native: 97%
-- non-native: 3%
-
-Age group distribution:
-- 0-24: 6%
-- 25-49: 36%
-- 50-: 57%
-
-### Validation Split
-
-There are 2.97 hours of audio in the validation split, with 10 speakers, reading 1,789
-unique sentences aloud.
-
-Gender distribution:
-- female: 45%
-- male: 55%
-
-Dialect distribution:
-- Bornholmsk: 7%
-- Fynsk: 11%
-- Københavnsk: 9%
-- Nordjysk: 8%
-- Sjællandsk: 12%
-- Sydømål: 23%
-- Sønderjysk: 13%
-- Vestjysk: 8%
-- Østjysk: 9%
-
-Accent distribution:
-- native: 81%
-- non-native: 19%
-
-Age group distribution:
-- 0-24: 11%
-- 25-49: 39%
-- 50-: 51%
-
 ### Test Split
 
-There are 8.44 hours of audio in the test split, with 22 speakers, reading 5,287 unique
+There are 12.8 hours of audio in the test split, with 35 speakers, reading 7,853 unique
 sentences aloud.
 
 Gender distribution:
-  - female: 58%
-  - male: 42%
+  - female: 50.6%
+  - male: 49.4%
 
-Dialect distribution:
-  - Bornholmsk: 10%
-  - Fynsk: 10%
-  - Københavnsk: 10%
-  - Nordjysk: 11%
-  - Sjællandsk: 11%
-  - Sydømål: 14%
-  - Sønderjysk: 10%
-  - Vestjysk: 12%
-  - Østjysk: 11%
-
-Accent distribution:
-- native: 90%
-- non-native: 10%
+Dialect and accent distribution:
+  - Bornholmsk: 10.3%
+  - Fynsk: 10.0%
+  - Københavnsk: 10.5%
+  - Nordjysk: 9.1%
+  - Sjællandsk: 8.3%
+  - Sydømål: 7.5%
+  - Sønderjysk: 12.0%
+  - Vestjysk: 10.2%
+  - Østjysk: 11.4%
+  - Non-native accent: 10.6%
 
 Age group distribution:
-  - 0-24: 28%
-  - 25-49: 32%
-  - 50-: 40%
+  - 0-24: 18.8%
+  - 25-49: 37.2%
+  - 50-: 44.1%
+
+### Validation Split
+
+There are 3.06 hours of audio in the validation split, with 11 speakers, reading 1,987
+unique sentences aloud.
+
+Gender distribution:
+- female: 53.4%
+- male: 46.6%
+
+Dialect and accent distribution:
+- Bornholmsk: 8.8%
+- Fynsk: 10.8%
+- Københavnsk: 3.1%
+- Nordjysk: 3.4%
+- Sjællandsk: 6.8%
+- Sydømål: 14.9%
+- Sønderjysk: 5.7%
+- Vestjysk: 15.3%
+- Østjysk: 26.3%
+- Non-native accent: 4.9%
+
+Age group distribution:
+- 0-24: 35.4%
+- 25-49: 40.8%
+- 50-: 23.8%
+
+### Train Split
+
+There are 361 hours of audio in the train split, with 547 speakers, reading 150,159
+unique sentences aloud.
+
+Gender distribution:
+- female: 71.9%
+- male: 25.8%
+- non-binary: 2.2%
+
+Dialect distribution:
+- Bornholmsk: 2.4%
+- Fynsk: 4.7%
+- Københavnsk: 14.6%
+- Nordjysk: 15.8%
+- Sjællandsk: 15.6%
+- Sydømål: 0.2%
+- Sønderjysk: 4.1%
+- Vestjysk: 10.7%
+- Østjysk: 29.3%
+- Non-native accent: 2.5%
+
+Age group distribution:
+- 0-24: 6.6%
+- 25-49: 39.0%
+- 50-: 54.4%
 
 
 ## Conversational Data Statistics
@@ -205,7 +197,7 @@ your research or development, please cite it as follows:
 
 ```bibtex
 @dataset{coral2024,
-  author    = {Sif Bernstorff Lehmann, Dan Saattrup Nielsen, Simon Leminen Madsen, Anders Jess Pedersen, Anna Katrine van Zee and Torben Blach},
+  author    = {Dan Saattrup Nielsen, Sif Bernstorff Lehmann, Simon Leminen Madsen, Anders Jess Pedersen, Anna Katrine van Zee and Torben Blach},
   title     = {CoRal: A Diverse Danish ASR Dataset Covering Dialects, Accents, Genders, and Age Groups},
   year      = {2024},
   url       = {https://hf.co/datasets/alexandrainst/coral},
