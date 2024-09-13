@@ -227,7 +227,6 @@ def push_model_to_hub(
     language: str = "da",
     license: str = "openrail",
     tasks: list[str] = ["automatic-speech-recognition"],
-    branch_name: str | None = None,
     create_pr: bool = False,
     commit_message: str = "Finished finetuning 🎉",
 ) -> CommitInfo | None:
@@ -251,9 +250,6 @@ def push_model_to_hub(
         tasks (optional):
             The tasks the model is fine-tuned for. Defaults to
             ["automatic-speech-recognition"].
-        branch_name (optional):
-            The name of the branch to push to. Defaults to None, which means the
-            default branch is used.
         create_pr (optional):
             Whether to create a pull request. Defaults to False.
         commit_message (optional):
@@ -284,7 +280,6 @@ def push_model_to_hub(
     trainer._finish_current_push()
     return upload_folder(
         repo_id=trainer.hub_model_id or "",
-        revision=branch_name,
         create_pr=create_pr,
         folder_path=trainer.args.output_dir,
         commit_message=commit_message,
