@@ -89,12 +89,12 @@ banned_speakers:
   - spe_e33e46611f54ae91ed7b235c11ef2628
   - spe_647d4e905427d45ab699abe73d80ef1d
   - spe_ffc1068fc082deac40144691e1ae754c
-  - spe_33c2d48e34ee4f850fc72ac2f9f778be  # Maybe
+  - spe_33c2d48e34ee4f850fc72ac2f9f778be
   - spe_14f9de3b11c6bc2bd09e57f72441dc38
   - spe_436e439616edf662c232486b3face2f1
   - spe_fa55995471e8df4e949d2100b3510032
-  - spe_e01017cbabe39aa19980d30b022947dc  # Maybe
-  - spe_77bd0892b99c44afa817915f6e8595b2  # Maybe
+  - spe_e01017cbabe39aa19980d30b022947dc
+  - spe_77bd0892b99c44afa817915f6e8595b2
   - spe_abad80046cdb930d9e11c61018000313
   - spe_e3c1a4700f6664db151a72006b46e1a0
   - spe_f12d05b9fc910ce87ec976370dbaf3be
@@ -104,22 +104,22 @@ banned_speakers:
   - spe_d147969fc79b1ba50c56e5adb9f662af
   - spe_bb1d0e9d3f2bca18658975b3073924cb
   - spe_4ffc43e6c8560c24ffc762d0f11409e0
-  - spe_97d9a5d95c0672843a9c6de4dd595e18  # Maybe
-  - spe_d17de6c090f6fae8951df3b0de8723ca  # Maybe
+  - spe_97d9a5d95c0672843a9c6de4dd595e18
+  - spe_d17de6c090f6fae8951df3b0de8723ca
   - spe_0651d7fb3765aa732d2c570123c1109b
   - spe_7902a69e777bf0fa15ae75c7ce913503
   - spe_975f1fbb9c429bed2eedaa8d0241856d
   - spe_20b91d51f72ee56930ca778cb16c29da
   - spe_327d513c687f71868724576c21b65b01
-  - spe_e87281b9b53622f604be24f78cbdc219  # Maybe
-  - spe_febd821c38af1d15b79098495091190e  # Maybe
+  - spe_e87281b9b53622f604be24f78cbdc219
+  - spe_febd821c38af1d15b79098495091190e
   - spe_2e055a387a11f03c906ceb5a3b9ae48b
-  - spe_f3e1f119eb6c7c2e9eadaa7f3d67431e  # Maybe
+  - spe_f3e1f119eb6c7c2e9eadaa7f3d67431e
   - spe_04e81a4ccbc9ecf50ef8fb12729065cf
   - spe_161bade1ed44b0b13620576cd544692b
-  - spe_0fb83d22e153c8f21c47ced255debe8d  # Maybe
+  - spe_0fb83d22e153c8f21c47ced255debe8d
   - spe_09d1a4039eccd0453459380b8e23aab8
-  - spe_4d03787c2092b6bee053e75e2cfa4aa3  # Maybe
+  - spe_4d03787c2092b6bee053e75e2cfa4aa3
   - spe_35864fc11ebcdf8e7c11ef21a576362e
   - spe_0a531653d15a79f97c28519ee3d024a0
 
