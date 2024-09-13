@@ -40,6 +40,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
 
     logger.info(f"Loading the {config.model_id!r} ASR model...")
     transcriber = load_asr_pipeline(model_id=config.model_id)
+    breakpoint()
 
     logger.info("Computing the scores...")
     _, _, all_scores = compute_metrics_of_dataset_using_pipeline(
