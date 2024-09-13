@@ -2,6 +2,7 @@
 
 import itertools as it
 import logging
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -39,7 +40,9 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     dataset = load_dataset_for_evaluation(config=config)
 
     logger.info(f"Loading the {config.model_id!r} ASR model...")
-    transcriber = load_asr_pipeline(model_id=config.model_id)
+    transcriber = load_asr_pipeline(
+        model_id=config.model_id, cache_dir=config.cache_dir
+    )
 
     logger.info("Computing the scores...")
     _, _, all_scores = compute_metrics_of_dataset_using_pipeline(
@@ -109,23 +112,31 @@ def convert_evaluation_dataset_to_df(
     return df
 
 
-def load_asr_pipeline(model_id: str) -> AutomaticSpeechRecognitionPipeline:
+def load_asr_pipeline(
+    model_id: str, cache_dir: str | Path
+) -> AutomaticSpeechRecognitionPipeline:
     """Load the ASR pipeline.
 
     Args:
         model_id:
             The model ID to load.
+        cache_dir:
+            The cache directory to store the model files.
 
     Returns:
         The ASR pipeline.
     """
+    cache_dir = Path(cache_dir)
     if torch.cuda.is_available():
         device = torch.device("cuda")
     else:
         device = torch.device("cpu")
     with transformers_output_ignored():
         transcriber = pipeline(
-            task="automatic-speech-recognition", model=model_id, device=device
+            task="automatic-speech-recognition",
+            model=model_id,
+            device=device,
+            cache_dir=cache_dir,
         )
     assert isinstance(transcriber, AutomaticSpeechRecognitionPipeline)
     return transcriber
