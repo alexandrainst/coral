@@ -61,18 +61,20 @@ def finetune(config: DictConfig) -> None:
 
     if config.wandb and is_main_process:
         wandb_finish()
-        model.save_pretrained(model_dir)
-        if config.push_to_hub:
-            push_model_to_hub(
-                trainer=trainer,
-                model_name=config.model_id,
-                finetuned_from=config.model.pretrained_model_id,
-                branch_name=config.branch_name,
-                create_pr=config.create_pr,
-            )
+
+    model.save_pretrained(model_dir)
 
     if hasattr(config.model, "decoder") and config.model.decoder is not None:
         train_ngram_model(config=config)
+
+    if config.push_to_hub:
+        push_model_to_hub(
+            trainer=trainer,
+            model_name=config.model_id,
+            finetuned_from=config.model.pretrained_model_id,
+            branch_name=config.branch_name,
+            create_pr=config.create_pr,
+        )
 
 
 def load_early_stopping_callback(config: DictConfig) -> list[TrainerCallback]:

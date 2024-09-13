@@ -6,9 +6,7 @@ import os
 import subprocess
 import tarfile
 import tempfile
-from copy import deepcopy
 from pathlib import Path
-from types import MethodType
 
 import requests
 from datasets import Dataset, load_dataset
@@ -29,7 +27,9 @@ def train_ngram_model(config: DictConfig) -> None:
             Hydra configuration dictionary.
     """
     # Ensure that the `kenlm` directory exists, and download if otherwise
-    cache_dir = Path.home() / ".cache"
+    cache_dir = (
+        Path.home() / ".cache" if config.cache_dir is None else Path(config.cache_dir)
+    )
     kenlm_dir = cache_dir / "kenlm"
     if not kenlm_dir.exists():
         download_and_extract(
@@ -162,25 +162,6 @@ def train_ngram_model(config: DictConfig) -> None:
     # Remove the uncompressed ngram model, as we only need the compressed version
     if new_ngram_path.exists():
         new_ngram_path.unlink()
-
-    if config.push_to_hub:
-        logger.info("Pushing n-gram language model to hub...")
-
-        # Hotfix related to pushing Wav2Vec2ProcessorWithLM to the hub, since the
-        # `push_to_hub` method calls `save_pretrained` with extra kwargs, which is not
-        # allowed with that method. Here we simply allow such extra kwargs, and ignore
-        # them all.
-        processor_with_lm._save_pretrained = deepcopy(processor_with_lm.save_pretrained)
-        processor_with_lm.save_pretrained = MethodType(
-            lambda self, save_directory, **kwargs: self._save_pretrained(
-                save_directory
-            ),
-            processor_with_lm,
-        )
-
-        processor_with_lm.push_to_hub(
-            repo_id=f"{config.hub_organisation}/{config.model_id}", max_shard_size=None
-        )
 
 
 def download_and_extract(url: str, target_dir: str | Path) -> None:
