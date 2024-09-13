@@ -39,6 +39,7 @@ models_dir: models
 model_dir: ${models_dir}/${model_id}
 hub_organisation: alexandrainst
 push_to_hub: false
+branch_name: main
 create_pr: false
 fp16: true
 
