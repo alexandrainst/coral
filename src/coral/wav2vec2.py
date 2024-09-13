@@ -250,9 +250,10 @@ def dump_vocabulary(config: DictConfig) -> None:
     """
     # Build the set of all unique characters in the dataset
     unique_characters: set[str] = set(config.characters_to_keep + "|")
+    sorted_unique_characters: list[str] = sorted(unique_characters)
 
     # Build vocabulary
-    vocab = {char: idx for idx, char in enumerate(unique_characters)}
+    vocab = {char: idx for idx, char in enumerate(sorted_unique_characters)}
 
     # Dump the vocabulary to a json file
     model_dir = Path(config.model_dir)
