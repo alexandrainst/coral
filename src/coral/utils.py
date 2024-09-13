@@ -224,7 +224,6 @@ def push_model_to_hub(
     trainer: Trainer,
     model_name: str,
     finetuned_from: str,
-    branch_name: str,
     create_pr: bool,
     language: str = "da",
     license: str = "openrail",
@@ -244,9 +243,6 @@ def push_model_to_hub(
             The name of the model.
         finetuned_from:
             The ID of the model that was finetuned.
-        branch_name:
-            The name of the branch that the model should be pushed to. If `create_pr` is
-            True then this argument is ignored.
         create_pr:
             Whether to create a pull request.
         language (optional):
@@ -284,7 +280,6 @@ def push_model_to_hub(
     trainer._finish_current_push()
     return upload_folder(
         repo_id=trainer.hub_model_id or "",
-        revision=branch_name,
         create_pr=create_pr,
         folder_path=trainer.args.output_dir,
         commit_message=commit_message,

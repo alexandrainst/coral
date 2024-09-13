@@ -71,7 +71,6 @@ def finetune(config: DictConfig) -> None:
             trainer=trainer,
             model_name=config.model_id,
             finetuned_from=config.model.pretrained_model_id,
-            branch_name=config.branch_name,
             create_pr=config.create_pr,
         )
 
