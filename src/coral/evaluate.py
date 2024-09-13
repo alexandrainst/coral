@@ -48,7 +48,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     _, _, all_scores = compute_metrics_of_dataset_using_pipeline(
         dataset=dataset,
         transcriber=transcriber,
-        metric_names=[config.metric],
+        metric_names=config.metrics,
         characters_to_keep=config.characters_to_keep,
         text_column=config.text_column,
         audio_column=config.audio_column,
@@ -70,9 +70,12 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     df = convert_evaluation_dataset_to_df(
         dataset=dataset, sub_dialect_to_dialect_mapping=config.sub_dialect_to_dialect
     )
-    df["score"] = all_scores[config.metric]
+    for metric_name in config.metrics:
+        df[metric_name] = all_scores[metric_name]
     score_df = get_score_df(
-        df=df, categories=["age_group", "gender", "dialect"], metric_name=config.metric
+        df=df,
+        categories=["age_group", "gender", "dialect"],
+        metric_names=config.metrics,
     )
     return score_df
 
@@ -127,34 +130,33 @@ def load_asr_pipeline(
         The ASR pipeline.
     """
     cache_dir = Path(cache_dir)
+
     if torch.cuda.is_available():
         device = torch.device("cuda")
     else:
         device = torch.device("cpu")
+
     with transformers_output_ignored():
         transcriber = pipeline(
-            task="automatic-speech-recognition",
-            model=model_id,
-            device=device,
-            cache_dir=cache_dir,
+            task="automatic-speech-recognition", model=model_id, device=device
         )
     assert isinstance(transcriber, AutomaticSpeechRecognitionPipeline)
     return transcriber
 
 
 def get_score_df(
-    df: pd.DataFrame, categories: list[str], metric_name: str
+    df: pd.DataFrame, categories: list[str], metric_names: list[str]
 ) -> pd.DataFrame:
     """Get the score DataFrame for the evaluation dataset.
 
     Args:
         df:
-            The evaluation dataframe, containing all the metadata columns and a 'score'
-            column.
+            The evaluation dataframe, containing all the metadata columns and columns
+            for each metric.
         categories:
             The categories to evaluate.
-        metric_name:
-            The name of the metric to evaluate.
+        metric_names:
+            The names of the metrics to use for evaluation.
 
     Returns:
         The score DataFrame.
@@ -181,7 +183,10 @@ def get_score_df(
 
         # Add the combination to the records
         named_combination = dict(zip(categories, combination))
-        records.append(named_combination | {"score": df_filtered.score.mean()})
+        score_dict = {
+            metric_name: df_filtered[metric_name].mean() for metric_name in metric_names
+        }
+        records.append(named_combination | score_dict)
 
         # Log the scores
         combination_str = ", ".join(
@@ -191,7 +196,10 @@ def get_score_df(
         )
         if combination_str == "":
             combination_str = "entire dataset"
-        score_str = f"{metric_name}={df_filtered.score.mean():.2f}"
+        score_str = ", ".join(
+            f"{metric_name.upper()}={df_filtered[metric_name].mean():.2f}"
+            for metric_name in metric_names
+        )
         logger.info(f"Scores for {combination_str}: {score_str}")
 
     score_df = pd.DataFrame.from_records(data=records)

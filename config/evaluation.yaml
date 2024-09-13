@@ -17,7 +17,9 @@ characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
 # Evaluation parameters
 model_id: null
 sampling_rate: 16_000
-metric: cer
+metrics:
+  - cer
+  - wer
 batch_size: 16
 store_results: true
 detailed: true  # Only relevant if the evaluation dataset is CoRal
