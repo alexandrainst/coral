@@ -301,10 +301,11 @@ def convert_numeral_to_words(numeral: str, inside_larger_numeral: bool = False) 
     Returns:
         The text with numerals converted to words.
     """
+    numeral = numeral.replace(".", "").strip(",").lstrip("0")
+
     if re.match(pattern=NUMERAL_REGEX, string=numeral) is None:
         return numeral
 
-    numeral = numeral.replace(".", "").strip(",").lstrip("0")
     if "," in numeral:
         assert numeral.count(",") == 1, f"Too many commas in {numeral!r}"
         major, minor = numeral.split(",")
