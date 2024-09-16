@@ -27,16 +27,16 @@ Next you can use the model using the `transformers` Python package as follows:
 Mean character error rates on various test sets, compared to other models (lower is
 better; best scores in **bold**, second-best in *italics*):
 
-| Model | Number of parameters | [CoRal](https://huggingface.co/datasets/alexandrainst/coral/viewer/read_aloud/test) | [Danish Common Voice 17](https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0/viewer/da/test) |
-|:---|---:|---:|---:|
-| Røst-315m (this model) | 315M | X | X |
-| [chcaa/xls-r-300m-danish-nst-cv9](https://hf.co/chcaa/xls-r-300m-danish-nst-cv9) | 315M | X | 4.1% |
-| [mhenrichsen/hviske](https://hf.co/mhenrichsen/hviske) | 1540M | X | 5.3% |
-| [openai/whisper-large-v3](https://hf.co/openai/whisper-large-v3) | 1540M | X | 7.7% |
-| [openai/whisper-large-v2](https://hf.co/openai/whisper-large-v2) | 1540M | X | 10.7% |
-| [openai/whisper-large](https://hf.co/openai/whisper-large) | 1540M | X | 12.8% |
-| [openai/whisper-medium](https://hf.co/openai/whisper-medium) | 764M | X | 13.2% |
-| [openai/whisper-small](https://hf.co/openai/whisper-small) | 242M | X | 22.2% |
+| Model | Number of parameters | [CoRal](https://huggingface.co/datasets/alexandrainst/coral/viewer/read_aloud/test) CER | [CoRal](https://huggingface.co/datasets/alexandrainst/coral/viewer/read_aloud/test) WER | [Danish Common Voice 17](https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0/viewer/da/test) CER | [Danish Common Voice 17](https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0/viewer/da/test) WER |
+|:---|---:|---:|---:|---:|---:|
+| Røst-315m (this model) | 315M | X | X | X | X |
+| [chcaa/xls-r-300m-danish-nst-cv9](https://hf.co/chcaa/xls-r-300m-danish-nst-cv9) | 315M | X | X | 4.1% | 12.0% |
+| [mhenrichsen/hviske](https://hf.co/mhenrichsen/hviske) | 1540M | X | 5.3% | X |
+| [openai/whisper-large-v3](https://hf.co/openai/whisper-large-v3) | 1540M | X | X | 7.7% | X |
+| [openai/whisper-large-v2](https://hf.co/openai/whisper-large-v2) | 1540M | X | X | 10.7% | X |
+| [openai/whisper-large](https://hf.co/openai/whisper-large) | 1540M | X | X | 12.8% | X |
+| [openai/whisper-medium](https://hf.co/openai/whisper-medium) | 764M | X | X | 13.2% | X |
+| [openai/whisper-small](https://hf.co/openai/whisper-small) | 242M | X | X | 22.2% | X |
 
 
 ### Detailed Evaluation Across Demographics on the CoRal Test Set
