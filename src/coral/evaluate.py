@@ -188,7 +188,7 @@ def get_score_df(
         if combination_str == "":
             combination_str = "entire dataset"
         score_str = ", ".join(
-            f"{metric_name.upper()}={df_filtered[metric_name].mean():.2f}"
+            f"{metric_name.upper()}={df_filtered[metric_name].mean():.1%}"
             for metric_name in metric_names
         )
         logger.info(f"Scores for {combination_str}: {score_str}")
