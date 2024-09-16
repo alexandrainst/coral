@@ -42,7 +42,7 @@ better; best scores in **bold**, second-best in *italics*):
 ### Detailed Evaluation Across Demographics on the CoRal Test Set
 
 | Dialect | CER | WER |
-|:---|---:|
+|:---|---:|---:|
 | Københavnsk | X | X |
 | Sjællandsk | X | X |
 | Fynsk | X | X |
@@ -55,12 +55,12 @@ better; best scores in **bold**, second-best in *italics*):
 | Non-native | X | X |
 
 | Gender | CER | WER |
-|:---|---:|
+|:---|---:|---:|
 | Female | X | X |
 | Male | X | X |
 
 | Age group | CER | WER |
-|:---|---:|
+|:---|---:|---:|
 | 0-25 | X | X |
 | 25-50 | X | X |
 | 50+ | X | X |
