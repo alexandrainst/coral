@@ -268,7 +268,6 @@ def load_data_for_finetuning(
         num_proc=config.dataset_num_workers,
     )
     dataset["val"] = val
-    breakpoint()
 
     return dataset
 
