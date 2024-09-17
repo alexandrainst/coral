@@ -54,7 +54,7 @@ def main(config: DictConfig) -> None:
                     objs=[pd.read_csv(filename, index_col=False), score_df],
                     ignore_index=True,
                 )
-            score_df.to_csv(filename)
+            score_df.to_csv(filename, index=False)
 
 
 if __name__ == "__main__":
