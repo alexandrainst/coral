@@ -563,11 +563,13 @@ def process_example(
     doc = example[text_column]
 
     if convert_numerals and re.search(pattern=NUMERAL_REGEX, string=doc):
+        breakpoint()
         doc = "".join(
             convert_numeral_to_words(numeral=maybe_numeral)
             for maybe_numeral in re.split(pattern=NUMERAL_REGEX, string=doc)
             if maybe_numeral is not None
         )
+        breakpoint()
 
     if lower_case:
         doc = doc.lower()
