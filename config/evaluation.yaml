@@ -21,6 +21,7 @@ metrics:
   - cer
   - wer
 batch_size: 16
+bootstrap_samples: 1000
 store_results: true
 detailed: true  # Only relevant if the evaluation dataset is CoRal
 

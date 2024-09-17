@@ -2,6 +2,7 @@
 
 import itertools as it
 import logging
+from collections import defaultdict
 
 import numpy as np
 import pandas as pd
@@ -9,6 +10,7 @@ import torch
 from datasets import Dataset
 from dotenv import load_dotenv
 from omegaconf import DictConfig
+from tqdm.auto import tqdm
 from transformers import AutomaticSpeechRecognitionPipeline, pipeline
 
 from .compute_metrics import compute_metrics_of_dataset_using_pipeline
@@ -52,12 +54,49 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
         batch_size=config.batch_size,
     )
 
-    if "coral" not in config.dataset or not config.detailed:
+    if not config.detailed or "coral" not in config.dataset:
+        bootstrap_scores = defaultdict(list)
+        bootstrap_std_errs = defaultdict(list)
+        for metric in config.metrics:
+            for bidx in tqdm(range(config.bootstrap_iterations), desc="Bootstrapping"):
+                rng = np.random.default_rng(seed=bidx)
+                bootstrap_sample = rng.choice(
+                    all_scores[metric], size=len(all_scores[metric]), replace=True
+                )
+                mean_score = np.mean(bootstrap_sample)
+                std_error = np.std(bootstrap_sample) / np.sqrt(len(bootstrap_sample))
+                bootstrap_scores[metric].append(mean_score)
+                bootstrap_std_errs[metric].append(std_error)
         mean_scores = {
-            metric: sum(scores) / len(scores) for metric, scores in all_scores.items()
+            metric: np.mean(bootstrap_scores[metric]) for metric in config.metrics
         }
-        logger.info(f"Scores of {config.model_id} on {config.dataset}: {mean_scores}")
-        df = pd.DataFrame(mean_scores, index=np.array([config.dataset]))
+        std_errs = {
+            metric: np.mean(bootstrap_std_errs[metric]) for metric in config.metrics
+        }
+        score_string = "\n- ".join(
+            [
+                f"{metric.upper()}={mean_score:.1%} ± {1.96 * std_err:.1%}"
+                for metric, mean_score, std_err in zip(
+                    config.metrics, mean_scores.values(), std_errs.values()
+                )
+            ]
+        )
+        logger.info(
+            f"Bootstrap scores of {config.model_id} on {config.dataset}:\n"
+            f"- {score_string}"
+        )
+        df = pd.DataFrame(
+            {
+                "model": [config.model_id],
+                "dataset": [config.dataset],
+                **{
+                    f"{metric}_mean": [mean_scores[metric]] for metric in config.metrics
+                },
+                **{
+                    f"{metric}_std_err": [std_errs[metric]] for metric in config.metrics
+                },
+            }
+        )
         return df
 
     logger.info(
