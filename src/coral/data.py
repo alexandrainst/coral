@@ -186,6 +186,7 @@ def load_data_for_finetuning(
                 characters_to_keep=config.characters_to_keep,
                 text_column="text",
                 audio_column="audio",
+                convert_numerals=False,
                 remove_input_dataset_columns=True,
                 cast_to_sampling_rate=config.model.sampling_rate,
                 processor=processor,
@@ -262,6 +263,7 @@ def load_data_for_finetuning(
         characters_to_keep=config.characters_to_keep,
         text_column="text",
         audio_column="audio",
+        convert_numerals=False,
         remove_input_dataset_columns=True,
         cast_to_sampling_rate=config.model.sampling_rate,
         processor=processor,
@@ -446,7 +448,7 @@ def process_dataset(
     text_column: str,
     remove_input_dataset_columns: bool,
     audio_column: str | None,
-    convert_numerals: bool = False,
+    convert_numerals: bool,
     num_proc: int | None = None,
     cast_to_sampling_rate: int | None = None,
     processor: Callable | None = None,
@@ -472,8 +474,8 @@ def process_dataset(
         audio_column:
             The name of the column containing the audio. Can be `None` if the dataset
             does not have an audio column.
-        convert_numerals (optional):
-            Whether to convert numerals to words. Defaults to False.
+        convert_numerals:
+            Whether to convert numerals to words.
         num_proc (optional):
             The number of processes to use for processing the dataset. If `None`, then
             no multiprocessing is used. Defaults to `None`.
