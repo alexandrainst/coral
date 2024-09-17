@@ -10,7 +10,6 @@ import torch
 from datasets import Dataset
 from dotenv import load_dotenv
 from omegaconf import DictConfig
-from tqdm.auto import tqdm
 from transformers import AutomaticSpeechRecognitionPipeline, pipeline
 
 from .compute_metrics import compute_metrics_of_dataset_using_pipeline
@@ -54,11 +53,13 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
         batch_size=config.batch_size,
     )
 
+    logger.info("Bootstrapping the scores...")
+    breakpoint()
     if not config.detailed or "coral" not in config.dataset:
         bootstrap_scores = defaultdict(list)
         bootstrap_std_errs = defaultdict(list)
         for metric in config.metrics:
-            for bidx in tqdm(range(config.bootstrap_iterations), desc="Bootstrapping"):
+            for bidx in range(config.bootstrap_iterations):
                 rng = np.random.default_rng(seed=bidx)
                 bootstrap_sample = rng.choice(
                     all_scores[metric], size=len(all_scores[metric]), replace=True
