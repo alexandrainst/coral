@@ -26,7 +26,7 @@ from transformers import Trainer
 logger = logging.getLogger(__package__)
 
 
-NUMERAL_REGEX = re.compile(r"([\d\.]+(,\d+)?)")
+NUMERAL_REGEX = re.compile(r"\b(0|[1-9]\d{0,2}((\.\d{3})*|\d*)(,\d+)?)\b")
 
 
 def block_terminal_output() -> None:
@@ -301,10 +301,11 @@ def convert_numeral_to_words(numeral: str, inside_larger_numeral: bool = False) 
     Returns:
         The text with numerals converted to words.
     """
-    numeral = numeral.replace(".", "").strip(",").lstrip("0")
-
-    if re.match(pattern=NUMERAL_REGEX, string=numeral) is None:
+    numeral_regex_with_ending = rf"{NUMERAL_REGEX.pattern}$"
+    if re.match(pattern=numeral_regex_with_ending, string=numeral) is None:
         return numeral
+
+    numeral = numeral.replace(".", "")
 
     if "," in numeral:
         assert numeral.count(",") == 1, f"Too many commas in {numeral!r}"
