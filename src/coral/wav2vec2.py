@@ -160,6 +160,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
         args = TrainingArguments(
             output_dir=self.config.model_dir,
             hub_model_id=f"{self.config.hub_organisation}/{self.config.model_id}",
+            hub_private_repo=self.config.private,
             per_device_train_batch_size=self.config.per_device_batch_size,
             per_device_eval_batch_size=self.config.per_device_batch_size,
             gradient_accumulation_steps=gradient_accumulation_steps,

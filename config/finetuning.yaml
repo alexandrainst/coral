@@ -40,6 +40,7 @@ model_dir: ${models_dir}/${model_id}
 hub_organisation: alexandrainst
 push_to_hub: false
 create_pr: false
+private: false
 fp16: true
 
 # Training parameters
