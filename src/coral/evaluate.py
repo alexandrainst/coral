@@ -59,7 +59,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
         bootstrap_scores = defaultdict(list)
         bootstrap_std_errs = defaultdict(list)
         for metric in config.metrics:
-            for bidx in range(config.bootstrap_iterations):
+            for bidx in range(config.bootstrap_samples):
                 rng = np.random.default_rng(seed=bidx)
                 bootstrap_sample = rng.choice(
                     all_scores[metric], size=len(all_scores[metric]), replace=True
