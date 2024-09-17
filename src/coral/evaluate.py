@@ -10,7 +10,7 @@ import torch
 from datasets import Dataset
 from dotenv import load_dotenv
 from omegaconf import DictConfig
-from transformers import AutomaticSpeechRecognitionPipeline, pipeline
+from transformers import AutomaticSpeechRecognitionPipeline, Wav2Vec2Processor, pipeline
 
 from .compute_metrics import compute_metrics_of_dataset_using_pipeline
 from .data import load_dataset_for_evaluation
@@ -40,7 +40,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     dataset = load_dataset_for_evaluation(config=config)
 
     logger.info(f"Loading the {config.model_id!r} ASR model...")
-    transcriber = load_asr_pipeline(model_id=config.model_id)
+    transcriber = load_asr_pipeline(model_id=config.model_id, no_lm=config.no_lm)
 
     logger.info("Computing the scores...")
     _, _, all_scores = compute_metrics_of_dataset_using_pipeline(
@@ -151,12 +151,15 @@ def convert_evaluation_dataset_to_df(
     return df
 
 
-def load_asr_pipeline(model_id: str) -> AutomaticSpeechRecognitionPipeline:
+def load_asr_pipeline(model_id: str, no_lm: bool) -> AutomaticSpeechRecognitionPipeline:
     """Load the ASR pipeline.
 
     Args:
         model_id:
             The model ID to load.
+        no_lm:
+            Whether to load the ASR pipeline without a language model. Only applicable
+            to Wav2Vec 2.0 models.
 
     Returns:
         The ASR pipeline.
@@ -167,9 +170,21 @@ def load_asr_pipeline(model_id: str) -> AutomaticSpeechRecognitionPipeline:
         device = torch.device("cpu")
 
     with transformers_output_ignored():
-        transcriber = pipeline(
-            task="automatic-speech-recognition", model=model_id, device=device
-        )
+        if no_lm:
+            processor = Wav2Vec2Processor.from_pretrained(model_id)
+            transcriber = pipeline(
+                task="automatic-speech-recognition",
+                model=model_id,
+                tokenizer=processor.tokenizer,
+                feature_extractor=processor.feature_extractor,
+                decoder=processor.decoder,
+                device=device,
+            )
+        else:
+            transcriber = pipeline(
+                task="automatic-speech-recognition", model=model_id, device=device
+            )
+
     assert isinstance(transcriber, AutomaticSpeechRecognitionPipeline)
     return transcriber
 
