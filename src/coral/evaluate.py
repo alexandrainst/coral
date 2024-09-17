@@ -54,7 +54,6 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     )
 
     logger.info("Bootstrapping the scores...")
-    breakpoint()
     if not config.detailed or "coral" not in config.dataset:
         bootstrap_scores = defaultdict(list)
         bootstrap_std_errs = defaultdict(list)
