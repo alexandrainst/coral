@@ -26,7 +26,7 @@ from transformers import Trainer
 logger = logging.getLogger(__package__)
 
 
-NUMERAL_REGEX = re.compile(r"(\b(0|[1-9]\d{0,2}((\.\d{3})*|\d*)(,\d+)?)\b)")
+NUMERAL_REGEX = re.compile(r"\b(0|[1-9]\d{0,2}((\.\d{3})*|\d*)(,\d+)?)\b")
 
 
 def block_terminal_output() -> None:
