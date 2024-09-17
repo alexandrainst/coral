@@ -51,7 +51,8 @@ def main(config: DictConfig) -> None:
             filename = Path("evaluation-results.csv")
             if filename.exists():
                 score_df = pd.concat(
-                    objs=[pd.read_csv(filename), score_df], ignore_index=True
+                    objs=[pd.read_csv(filename, index_col=False), score_df],
+                    ignore_index=True,
                 )
             score_df.to_csv(filename)
 
