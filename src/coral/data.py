@@ -566,6 +566,7 @@ def process_example(
         doc = "".join(
             convert_numeral_to_words(numeral=maybe_numeral)
             for maybe_numeral in re.split(pattern=NUMERAL_REGEX, string=doc)
+            if maybe_numeral is not None
         )
 
     if lower_case:
