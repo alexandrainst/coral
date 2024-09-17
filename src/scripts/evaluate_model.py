@@ -44,19 +44,14 @@ def main(config: DictConfig) -> None:
 
     if config.store_results:
         model_id_without_slashes = config.model_id.replace("/", "--")
-        if "coral" in config.dataset:
+        if "coral" in config.dataset and config.detailed:
             filename = Path(f"{model_id_without_slashes}-coral-scores.csv")
             score_df.to_csv(filename, index=False)
         else:
-            filename = Path(f"{model_id_without_slashes}-scores.csv")
+            filename = Path("evaluation-results.csv")
             if filename.exists():
-                existing_score_df = pd.read_csv(filename)
-                score_df = pd.merge(
-                    left=existing_score_df,
-                    right=score_df,
-                    how="outer",
-                    left_index=True,
-                    right_index=True,
+                score_df = pd.concat(
+                    objs=[pd.read_csv(filename), score_df], ignore_index=True
                 )
             score_df.to_csv(filename)
 
