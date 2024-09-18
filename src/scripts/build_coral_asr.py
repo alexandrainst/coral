@@ -72,6 +72,8 @@ def main(config: DictConfig) -> None:
     logger.info("Validating and filtering the datasets...")
     read_aloud_dataset = add_validations(
         dataset=read_aloud_dataset,
+        text_column="text",
+        audio_column="audio",
         model_id=config.validation.model_id,
         clean_text=config.validation.clean_text,
         lower_case=config.validation.lower_case,
@@ -82,6 +84,8 @@ def main(config: DictConfig) -> None:
     )
     conversation_dataset = add_validations(
         dataset=conversation_dataset,
+        text_column="text",
+        audio_column="audio",
         model_id=config.validation.model_id,
         clean_text=config.validation.clean_text,
         lower_case=config.validation.lower_case,

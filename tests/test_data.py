@@ -38,6 +38,7 @@ class TestProcessDataset:
             characters_to_keep=None,
             text_column="text",
             audio_column=None,
+            convert_numerals=False,
             remove_input_dataset_columns=False,
             lower_case=True,
         )

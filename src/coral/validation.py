@@ -66,6 +66,7 @@ def add_validations(
         characters_to_keep=characters_to_keep,
         text_column=text_column,
         audio_column=audio_column,
+        convert_numerals=False,
         remove_input_dataset_columns=True,
         lower_case=lower_case,
         cast_to_sampling_rate=sampling_rate,

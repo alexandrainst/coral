@@ -68,6 +68,7 @@ def train_ngram_model(config: DictConfig) -> None:
                 text_column=config.model.decoder.text_column,
                 remove_input_dataset_columns=False,
                 audio_column=None,
+                convert_numerals=False,
                 lower_case=config.model.lower_case,
             )
             assert isinstance(dataset, Dataset)
