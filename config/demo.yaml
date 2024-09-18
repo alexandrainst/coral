@@ -7,8 +7,3 @@ title: Røst ASR Demo
 description: >
   This is a demo of the Danish speech recognition model Røst. Speak into the microphone
   and see the text appear on the screen!
-
-# Sharing parameters
-share: false
-username: null
-password: null

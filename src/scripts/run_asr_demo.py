@@ -64,11 +64,7 @@ def main(config: DictConfig) -> None:
         description=config.description,
         allow_flagging="never",
     )
-    if config.username is not None and config.password is not None:
-        auth = (config.username, config.password)
-    else:
-        auth = None
-    demo.launch(share=config.share, auth=auth)
+    demo.launch()
 
 
 if __name__ == "__main__":
