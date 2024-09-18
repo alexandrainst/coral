@@ -24,65 +24,105 @@ Next you can use the model using the `transformers` Python package as follows:
 
 ## Evaluation Results
 
-Mean character error rates on various test sets, compared to other models (lower is
-better; best scores in **bold**, second-best in *italics*):
+We have evaluated both our and existing models on the CoRal test set as well as the
+Danish Common Voice 17 test set. To ensure as robust an evaluation as possible, we have
+bootstrapped the results 1000 times and report here the mean scores along with a 95%
+confidence interval (lower is better; best scores in **bold**, second-best in
+*italics*):
 
 | Model | Number of parameters | [CoRal](https://huggingface.co/datasets/alexandrainst/coral/viewer/read_aloud/test) CER | [CoRal](https://huggingface.co/datasets/alexandrainst/coral/viewer/read_aloud/test) WER | [Danish Common Voice 17](https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0/viewer/da/test) CER | [Danish Common Voice 17](https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0/viewer/da/test) WER |
 |:---|---:|---:|---:|---:|---:|
-| Røst-315m (this model) | 315M | X | X | X | X |
-| [chcaa/xls-r-300m-danish-nst-cv9](https://hf.co/chcaa/xls-r-300m-danish-nst-cv9) | 315M | X | X | 4.1% | 12.0% |
-| [mhenrichsen/hviske](https://hf.co/mhenrichsen/hviske) | 1540M | X | 5.3% | X |
-| [openai/whisper-large-v3](https://hf.co/openai/whisper-large-v3) | 1540M | X | X | 7.7% | X |
-| [openai/whisper-large-v2](https://hf.co/openai/whisper-large-v2) | 1540M | X | X | 10.7% | X |
-| [openai/whisper-large](https://hf.co/openai/whisper-large) | 1540M | X | X | 12.8% | X |
-| [openai/whisper-medium](https://hf.co/openai/whisper-medium) | 764M | X | X | 13.2% | X |
-| [openai/whisper-small](https://hf.co/openai/whisper-small) | 242M | X | X | 22.2% | X |
+| Røst-315m (this model) | 315M | **6.9% ± 0.2%** | **14.9% ± 0.4%** | 5.1% ± 0.6% | 13.2% ± 0.8% |
+| Røst-315m without LM | 315M | *10.5% ± 0.2%* | *29.9% ± 0.5%* | 6.2% ± 0.8% | 19.0% ± 0.9% |
+| [chcaa/xls-r-300m-danish-nst-cv9](https://hf.co/chcaa/xls-r-300m-danish-nst-cv9) | 315M | 14.4% ± 0.3% | 36.5% ± 0.6% | **4.1% ± 0.5%** | **12.0% ± 0.8%** |
+| [chcaa/xls-r-300m-nst-cv9-da](https://hf.co/chcaa/xls-r-300m-nst-cv9-da) | 315M | 15.5% ± 0.3% | 39.9% ± 0.6% | *4.2% ± 0.6%* | *12.7% ± 0.8%* |
+| [mhenrichsen/hviske](https://hf.co/mhenrichsen/hviske) | 1540M | 15.8% ± 0.7% | 36.5% ± 1.0% | 5.3% ± 0.4% | 14.5% ± 0.8% |
+| [openai/whisper-large-v3](https://hf.co/openai/whisper-large-v3) | 1540M | 16.5% ± 1.3% | 36.8% ± 1.9% | 7.6% ± 0.6% | 18.3% ± 1.1% |
+| [openai/whisper-large-v2](https://hf.co/openai/whisper-large-v2) | 1540M | 19.7% ± 1.8% | 42.2% ± 2.6% | 10.6% ± 1.6% | 23.3% ± 2.0% |
+| [openai/whisper-large](https://hf.co/openai/whisper-large) | 1540M | 19.5% ± 1.3% | 42.4% ± 1.7% | 12.8% ± 0.8% | 28.3% ± 1.3% |
+| [openai/whisper-medium](https://hf.co/openai/whisper-medium) | 764M | 21.5% ± 1.7% | 47.4% ± 2.6% | 13.3% ± 0.8% | 30.0% ± 1.3% |
+| [openai/whisper-small](https://hf.co/openai/whisper-small) | 242M | 26.1% ± 1.2% | 57.9% ± 1.5% | 22.9% ± 4.3% | 49.3% ± 6.3% |
+| [openai/whisper-base](https://hf.co/openai/whisper-base) | 73M | 50.8% ± 3.6% | 100.1% ± 5.6% | 43.1% ± 5.0% | 85.1% ± 7.9% |
+| [openai/whisper-tiny](https://hf.co/openai/whisper-tiny) | 38M | 63.7% ± 3.9% | 120.3% ± 5.7% | 58.5% ± 5.8% | 106.4% ± 8.7% |
 
 
 ### Detailed Evaluation Across Demographics on the CoRal Test Set
 
 | Dialect | CER | WER |
 |:---|---:|---:|
-| Københavnsk | X | X |
-| Sjællandsk | X | X |
-| Fynsk | X | X |
-| Sønderjysk | X | X |
-| Vestjysk | X | X |
-| Østjysk | X | X |
-| Nordjysk | X | X |
-| Sydømål | X | X |
-| Bornholmsk | X | X |
-| Non-native | X | X |
+| Københavnsk | 2.8% | 6.6% |
+| Sjællandsk | 3.9% | 8.6% |
+| Fynsk | 7.3% | 15.7% |
+| Sønderjysk | 13.3% | 27.1% |
+| Vestjysk | 11.1% | 24.9% |
+| Østjysk | 3.2% | 7.6% |
+| Nordjysk | 2.7% | 5.7% |
+| Sydømål | 6.0% | 12.3% |
+| Bornholmsk | 9.1% | 19.9% |
+| Non-native | 7.3% | 16.7% |
 
 | Gender | CER | WER |
 |:---|---:|---:|
-| Female | X | X |
-| Male | X | X |
+| Female | 8.0% | 17.1% |
+| Male | 5.8% | 12.8% |
 
 | Age group | CER | WER |
 |:---|---:|---:|
-| 0-25 | X | X |
-| 25-50 | X | X |
-| 50+ | X | X |
+| 0-25 | 5.5% | 12.1% |
+| 25-50 | 5.9% | 13.3% |
+| 50+ | 8.2% | 17.5% |
 
 
 ## Training Data
 
-The base model used,
-[`chcaa/xls-r-300m-danish`](https://huggingface.co/chcaa/xls-r-300m-danish), was
-pretrained on 141,000 hours of Danish radio (more specifically, DR P1 and Radio24Syv
-from 2005 to 2021).
+This model is the result of four different stages of training:
 
-This finetuned model has been further trained on the read-aloud training split of the
-[CoRal dataset](https://huggingface.co/datasets/alexandrainst/coral) (revision
-0c387d3b6bdfe6e621aa34025505cb893270884b), consisting of approximately 365 hours of
-Danish read-aloud speech, diverse across dialects, accents, ages and genders.
+  1. "Pretraining" on 436,000 hours of unlabelled multilingual publicly available data,
+     13,628 hours of which is Danish. Pretraining here means that the model learnt to
+     "fill in" gaps of raw audio - no transcriptions were used (or available) during
+     this process. The pretraining data is distributed as follows:
+     - 372,000 hours from [VoxPopuli](https://aclanthology.org/2021.acl-long.80/), being
+       speeches from the European Parliament in 23 European languages.
+       This includes 13,600 hours of Danish speech.
+     - 51,000 hours from [Multilingual
+       LibriSpeech](https://doi.org/10.21437/Interspeech.2020-2826), being audiobooks in
+       8 European languages. This does not include any Danish speech.
+     - 7,000 hours from [Common Voice 6](https://doi.org/10.48550/arXiv.1912.06670),
+       being read-aloud speech in 60 diverse languages. This does not include any Danish
+       speech.
+     - 6,600 hours from [VoxLingua107](https://doi.org/10.1109/SLT48900.2021.9383459),
+       being audio from YouTube videos in 107 languages. This includes 28 hours of
+       Danish speech.
+     - 1,000 hours from [BABEL](https://eprints.whiterose.ac.uk/152840/), being
+       conversational telephone speech in 17 African and Asian languages. This does not
+       include any Danish speech.
+  2. Continued pretraining on 141,000 hours of Danish radio (more specifically, DR P1
+     and Radio24Syv from 2005 to 2021).
+  3. "Finetuning" on 373 hours of labelled Danish publicly available data. "Finetuning"
+     indicates that this stage of training was supervised, i.e. the model was trained on
+     both audio and transcriptions to perform the speech-to-text task (also known as
+     automatic speech recognition). The finetuning data is as follows:
+     - The read-aloud training split of the [CoRal
+       dataset](https://huggingface.co/datasets/alexandrainst/coral) (revision
+       fb20199b3966d3373e0d3a5ded2c5920c70de99c), consisting of 361 hours of Danish
+       read-aloud speech, diverse across dialects, accents, ages and genders.
+     - The Danish training split of the [Common Voice 17
+       dataset](https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0),
+       consisting of 12 hours of Danish read-aloud speech.
+  4. An n-gram language model has been trained separately, and is used to guide the
+     transcription generation of the finetuned speech recognition model. This n-gram
+     language model has been trained on all of the [Danish
+     Wikipedia](https://huggingface.co/datasets/alexandrainst/scandi-wiki/viewer/da)
+     (approximately 287,000 articles).
 
-An n-gram language model has been trained separately, and is used to guide the
-transcription generation of the speech recognition model. This n-gram language model has
-been trained on all of the [Danish
-Wikipedia](https://huggingface.co/datasets/alexandrainst/scandi-wiki/viewer/da)
-(approximately 287,000 articles).
+The first step was trained by [Babu et al.
+(2021)](https://doi.org/10.48550/arXiv.2111.09296), second step by [Hansen
+(2022)](https://huggingface.co/chcaa/xls-r-300m-danish) and the third and fourth step by
+[Nielsen et al. (2024)](https://huggingface.co/alexandrainst/roest-315m).
+
+The final product is then the combination of the finetuned model along with the n-gram
+model, and this is what is used when you use the model as mentioned in the Quick Start
+section above.
 
 
 ## Intended use cases
