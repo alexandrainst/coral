@@ -1,7 +1,7 @@
 """Evaluate a speech model.
 
 Usage:
-    python src/scripts/evaluate_model.py <key>=<value> <key>=<value> ...
+    python src/scripts/evaluate_model.py [key=value] [key=value] ...
 """
 
 import logging
@@ -18,7 +18,12 @@ from coral.evaluate import evaluate
 load_dotenv()
 
 
-logger = logging.getLogger("coral")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s ⋅ %(name)s ⋅ %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("coral_evaluation")
 
 
 @hydra.main(config_path="../../config", config_name="evaluation", version_base=None)

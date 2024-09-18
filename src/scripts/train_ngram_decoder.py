@@ -1,7 +1,7 @@
 """Train an n-gram language model for the decoder of a finetuned Wav2Vec 2.0 model.
 
 Usage:
-    python src/scripts/train_ngram_decoder.py <key>=<value> <key>=<value> ...
+    python src/scripts/train_ngram_decoder.py [key=value] [key=value] ...
 """
 
 import hydra

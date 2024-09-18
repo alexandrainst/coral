@@ -1,7 +1,7 @@
 """Finetune a speech model.
 
 Usage:
-    python src/scripts/finetune_model.py <key>=<value> <key>=<value> ...
+    python src/scripts/finetune_model.py [key=value] [key=value] ...
 """
 
 import logging
@@ -13,7 +13,12 @@ from omegaconf import DictConfig
 
 from coral.finetune import finetune
 
-logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s ⋅ %(name)s ⋅ %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("coral_finetuning")
 
 
 load_dotenv()
