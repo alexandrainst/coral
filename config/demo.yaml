@@ -1,0 +1,9 @@
+# ASR model parameters
+model_id: alexandrainst/roest-315m
+sampling_rate: 16_000
+
+# UI parameters
+title: Røst ASR Demo
+description: >
+  This is a demo of the Danish speech recognition model Røst. Speak into the microphone
+  and see the text appear on the screen!
