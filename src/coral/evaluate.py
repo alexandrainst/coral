@@ -10,7 +10,12 @@ import torch
 from datasets import Dataset
 from dotenv import load_dotenv
 from omegaconf import DictConfig
-from transformers import AutomaticSpeechRecognitionPipeline, Wav2Vec2Processor, pipeline
+from transformers import (
+    AutomaticSpeechRecognitionPipeline,
+    Wav2Vec2ForCTC,
+    Wav2Vec2Processor,
+    pipeline,
+)
 
 from .compute_metrics import compute_metrics_of_dataset_using_pipeline
 from .data import load_dataset_for_evaluation
@@ -171,13 +176,13 @@ def load_asr_pipeline(model_id: str, no_lm: bool) -> AutomaticSpeechRecognitionP
 
     with transformers_output_ignored():
         if no_lm:
+            model = Wav2Vec2ForCTC.from_pretrained(model_id)
             processor = Wav2Vec2Processor.from_pretrained(model_id)
             transcriber = pipeline(
                 task="automatic-speech-recognition",
-                model=model_id,
+                model=model,
                 tokenizer=processor.tokenizer,
                 feature_extractor=processor.feature_extractor,
-                decoder=processor.decoder,
                 device=device,
             )
         else:
