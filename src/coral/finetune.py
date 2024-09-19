@@ -12,7 +12,7 @@ from .data import load_data_for_finetuning
 from .data_models import ModelSetup
 from .model_setup import load_model_setup
 from .ngram import train_ngram_model
-from .utils import disable_tqdm, push_model_to_hub
+from .utils import block_terminal_output, disable_tqdm, push_model_to_hub
 
 logger = logging.getLogger(__package__)
 
@@ -55,6 +55,7 @@ def finetune(config: DictConfig) -> None:
         callbacks=load_early_stopping_callback(config) if "val" in dataset else None,
     )
 
+    block_terminal_output()
     with disable_tqdm():
         trainer.train(resume_from_checkpoint=config.resume_from_checkpoint)
 
