@@ -1,7 +1,7 @@
 """Script that downloads, builds and uploads the Danish part of the NST dataset.
 
 Usage:
-    python src/scripts/build_nst_da.py <destination_dir>
+    python src/scripts/build_nst_da.py DESTINATION_DIR
 """
 
 import datetime as dt

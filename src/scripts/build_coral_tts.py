@@ -1,10 +1,7 @@
 """Script that builds the CoRal text-to-speech dataset from the raw data.
 
 Usage:
-    python src/scripts/build_coral_tts.py \
-        <transcription-txt-file> \
-        <audio-dir> \
-        <output-dir>
+    python src/scripts/build_coral_tts.py TRANSCRIPTION_TXT_FILE AUDIO_DIR OUTPUT_DIR
 """
 
 import logging

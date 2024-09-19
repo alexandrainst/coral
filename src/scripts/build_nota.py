@@ -1,7 +1,7 @@
 """Script that downloads and builds the Nota dataset.
 
 Usage:
-    python src/scripts/build_nota.py <destination_dir>
+    python src/scripts/build_nota.py DESTINATION_DIR
 """
 
 import logging

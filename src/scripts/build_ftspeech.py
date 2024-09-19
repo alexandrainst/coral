@@ -1,7 +1,7 @@
 """Script that builds the FTSpeech dataset from the raw data.
 
 Usage:
-    python src/scripts/build_ftspeech.py <raw_data_dir> <output_dir>
+    python src/scripts/build_ftspeech.py RAW_DATA_DIR OUTPUT_DIR
 """
 
 import logging

@@ -1,7 +1,7 @@
 """Script that pushes a saved dataset to the Hugging Face Hub.
 
 Usage:
-    python src/scripts/push_to_hub.py <saved_dataset_dir> <hub_id> [--private]
+    python src/scripts/push_to_hub.py SAVED_DATASET_DIR HUB_ID [--private]
 """
 
 import logging

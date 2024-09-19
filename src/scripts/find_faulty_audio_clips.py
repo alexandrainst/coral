@@ -1,7 +1,7 @@
 """Checks if a list of audio clips can be opened, and prints the list of bad ones.
 
 Usage:
-    python src/scripts/find_faulty_audio_clips.py <path/to/audio/dir>
+    python src/scripts/find_faulty_audio_clips.py AUDIO_DIR
 """
 
 import logging

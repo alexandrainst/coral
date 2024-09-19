@@ -60,6 +60,7 @@ def main(evaluation_file: tuple[str], metric: str) -> None:
         ylabel=METRIC_NAMES[metric.lower()],
         legend=True,
         figsize=(12, 6),
+        rot=25,
     )
     plt.tight_layout(pad=2)
     plt.show()

@@ -1,7 +1,7 @@
 """Script that downloads the FTSpeech corpus.
 
 Usage:
-    python src/scripts/download_ftspeech.py <download_dir>
+    python src/scripts/download_ftspeech.py DOWNLOAD_DIR
 """
 
 try:
