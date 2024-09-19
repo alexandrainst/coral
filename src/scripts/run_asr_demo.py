@@ -4,6 +4,7 @@ Usage:
     python src/scripts/run_asr_demo.py [key=value] [key=value] ...
 """
 
+import logging
 import warnings
 
 import gradio as gr
@@ -11,11 +12,21 @@ import hydra
 import numpy as np
 import samplerate
 import torch
+from dotenv import load_dotenv
 from omegaconf import DictConfig
 from punctfix import PunctFixer
 from transformers import pipeline
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s ⋅ %(name)s ⋅ %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("roest-asr-demo")
+
 warnings.filterwarnings("ignore", category=FutureWarning)
+
+load_dotenv()
 
 
 @hydra.main(config_path="../../config", config_name="demo", version_base=None)
@@ -27,33 +38,54 @@ def main(config: DictConfig) -> None:
             The Hydra configuration for the demo.
     """
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
+    logger.info("Loading the ASR model...")
     transcriber = pipeline(
         task="automatic-speech-recognition", model=config.model_id, device=device
     )
+
+    logger.info("Loading the punctuation fixer model...")
     transcription_fixer = PunctFixer(language="da", device=device)
 
-    def transcribe_audio(sampling_rate_and_audio: tuple[int, np.ndarray]) -> str:
+    logger.info("Models loaded, ready to transcribe audio.")
+
+    def transcribe_audio(sampling_rate_and_audio: tuple[int, np.ndarray] | None) -> str:
         """Transcribe the audio.
 
         Args:
             sampling_rate_and_audio:
-                A tuple with the sampling rate and the audio.
+                A tuple with the sampling rate and the audio, or None if no audio is
+                provided.
 
         Returns:
             The transcription.
         """
+        if sampling_rate_and_audio is None:
+            return (
+                "No audio was provided. Please record or upload an audio clip, and try "
+                "again."
+            )
+
         sampling_rate, audio = sampling_rate_and_audio
         if audio.ndim > 1:
             audio = np.mean(audio, axis=1)
         audio = samplerate.resample(
             audio, config.sampling_rate / sampling_rate, "sinc_best"
         )
+
+        logger.info(f"Transcribing audio clip of {len(audio) / 16_000:.2f} seconds...")
         transcription = transcriber(inputs=audio)
         if not isinstance(transcription, dict):
             return ""
+
+        logger.info(
+            f"Raw transcription is {transcription['text']!r}. Cleaning it up..."
+        )
         cleaned_transcription = transcription_fixer.punctuate(
             text=transcription["text"]
         )
+
+        logger.info(f"Final transcription: {cleaned_transcription!r}")
         return cleaned_transcription
 
     demo = gr.Interface(
