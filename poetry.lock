@@ -6489,8 +6489,9 @@ multidict = ">=4.0"
 [extras]
 demo = ["gradio", "punctfix", "samplerate"]
 kenlm = ["kenlm"]
+plotting = []
 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.13"
-content-hash = "ff1a71770c4efae645725b90290671163c17af92c835a625be1fe5ae66b345d9"
+content-hash = "122e7620c70fa5bb863551809f84245eeb9d21f5f8d18b37997bee8c7e91ef02"
