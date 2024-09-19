@@ -1,4 +1,11 @@
-"""Creates a plot comparing the performance of different models on a dataset."""
+"""Creates a plot comparing the performance of different models on a dataset.
+
+Usage:
+    python src/scripts/create_comparison_plot.py \
+        -f EVALUATION_FILE \
+        [-f EVALUATION_FILE ...] \
+        [--metric METRIC]
+"""
 
 from pathlib import Path
 
