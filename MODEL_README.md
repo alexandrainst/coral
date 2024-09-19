@@ -35,7 +35,7 @@ confidence interval (lower is better; best scores in **bold**, second-best in
 | Røst-315m (this model) | 315M | **6.9% ± 0.2%** | **14.9% ± 0.4%** | *5.1% ± 0.6%* | *13.2% ± 0.8%* |
 | [chcaa/xls-r-300m-danish-nst-cv9](https://hf.co/chcaa/xls-r-300m-danish-nst-cv9) | 315M | *14.4% ± 0.3%* | *36.5% ± 0.6%* | **4.1% ± 0.5%** | **12.0% ± 0.8%** |
 | [mhenrichsen/hviske](https://hf.co/mhenrichsen/hviske) | 1540M | 15.8% ± 0.7% | *36.5% ± 1.0%* | 5.3% ± 0.4% | 14.5% ± 0.8% |
-| [openai/whisper-large-v3](https://hf.co/openai/whisper-large-v3) | 1540M | 16.5% ± 1.3% | 36.8% ± 1.9% | 7.6% ± 0.6% | 18.3% ± 1.1% |
+| [openai/whisper-large-v3](https://hf.co/openai/whisper-large-v3) | 1540M | 16.5% ± 1.3% | *36.8% ± 1.9%* | 7.6% ± 0.6% | 18.3% ± 1.1% |
 | [openai/whisper-large-v2](https://hf.co/openai/whisper-large-v2) | 1540M | 19.7% ± 1.8% | 42.2% ± 2.6% | 10.6% ± 1.6% | 23.3% ± 2.0% |
 | [openai/whisper-large](https://hf.co/openai/whisper-large) | 1540M | 19.5% ± 1.3% | 42.4% ± 1.7% | 12.8% ± 0.8% | 28.3% ± 1.3% |
 | [openai/whisper-medium](https://hf.co/openai/whisper-medium) | 764M | 21.5% ± 1.7% | 47.4% ± 2.6% | 13.3% ± 0.8% | 30.0% ± 1.3% |
