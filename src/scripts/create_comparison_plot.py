@@ -18,7 +18,8 @@ METRIC_NAMES = dict(cer="Character Error Rate", wer="Word Error Rate")
     "-f",
     multiple=True,
     type=click.Path(exists=True),
-    help="The path to the evaluation file, generated with the `evaluate_model` script.",
+    help="The path to the CSV evaluation file (ending in '-coral-scores', generated "
+    "with the `evaluate_model` script.",
     required=True,
 )
 @click.option(
