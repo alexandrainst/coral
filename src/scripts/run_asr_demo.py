@@ -65,7 +65,7 @@ def main(config: DictConfig) -> None:
         allow_flagging="never",
         examples=[
             "https://filedn.com/lRBwPhPxgV74tO0rDoe8SpH/audio-examples/bornholmsk.wav",
-            "https://filedn.com/lRBwPhPxgV74tO0rDoe8SpH/audio-examples/s%C3%B8nderjysk.wav",
+            "https://filedn.com/lRBwPhPxgV74tO0rDoe8SpH/audio-examples/soenderjysk.wav",
             "https://filedn.com/lRBwPhPxgV74tO0rDoe8SpH/audio-examples/nordjysk.wav",
         ],
         cache_examples=False,
