@@ -94,6 +94,7 @@ def main(config: DictConfig) -> None:
         outputs="textbox",
         title=config.title,
         description=config.description,
+        css="p { font-size: 1.0rem; }",
         allow_flagging="never",
         examples=[
             "https://filedn.com/lRBwPhPxgV74tO0rDoe8SpH/audio-examples/bornholmsk.wav",
@@ -102,6 +103,7 @@ def main(config: DictConfig) -> None:
             "https://filedn.com/lRBwPhPxgV74tO0rDoe8SpH/audio-examples/accent.wav",
         ],
         cache_examples=False,
+        theme=gr.themes.Soft(primary_hue="orange"),
     )
     demo.launch()
 
