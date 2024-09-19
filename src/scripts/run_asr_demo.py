@@ -68,6 +68,7 @@ def main(config: DictConfig) -> None:
             "https://filedn.com/lRBwPhPxgV74tO0rDoe8SpH/audio-examples/s%C3%B8nderjysk.wav",
             "https://filedn.com/lRBwPhPxgV74tO0rDoe8SpH/audio-examples/nordjysk.wav",
         ],
+        cache_examples=False,
     )
     demo.launch()
 
