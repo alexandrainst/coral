@@ -166,7 +166,9 @@ def compute_metrics_of_dataset_using_pipeline(
     ):
         for idx, out in enumerate(
             transcriber(
-                KeyDataset(dataset=dataset, key=audio_column), batch_size=batch_size
+                KeyDataset(dataset=dataset, key=audio_column),
+                batch_size=batch_size,
+                generate_kwargs=dict(language="danish", task="transcribe"),
             )
         ):
             prediction = process_example(
