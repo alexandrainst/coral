@@ -184,6 +184,7 @@ def load_asr_pipeline(model_id: str, no_lm: bool) -> AutomaticSpeechRecognitionP
                 tokenizer=processor.tokenizer,
                 feature_extractor=processor.feature_extractor,
                 device=device,
+                generation_kwargs=dict(language="danish", task="transcribe"),
             )
         else:
             transcriber = pipeline(
