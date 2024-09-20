@@ -74,7 +74,9 @@ def main(config: DictConfig) -> None:
         )
 
         logger.info(f"Transcribing audio clip of {len(audio) / 16_000:.2f} seconds...")
-        transcription = transcriber(inputs=audio)
+        transcription = transcriber(
+            inputs=audio, generate_kwargs=dict(language="danish", task="transcribe")
+        )
         if not isinstance(transcription, dict):
             return ""
 
