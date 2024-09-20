@@ -77,33 +77,47 @@ def load_evaluation_df(file: Path) -> pd.DataFrame:
         A pandas DataFrame containing the evaluation data.
     """
     raw_df = pd.read_csv(file, index_col=None)
-    age_group_df = (
-        raw_df.query("not age_group.isna() and gender.isna() and dialect.isna()")
-        .drop(columns=["gender", "dialect"])
-        .rename(columns=dict(age_group="group"))
-        .reset_index(drop=True)
-    )
     gender_df = (
         raw_df.query("not gender.isna() and age_group.isna() and dialect.isna()")
         .drop(columns=["age_group", "dialect"])
         .rename(columns=dict(gender="group"))
         .reset_index(drop=True)
-    )
+    ).sort_values(by="group")
+    age_group_df = (
+        raw_df.query("not age_group.isna() and gender.isna() and dialect.isna()")
+        .drop(columns=["gender", "dialect"])
+        .rename(columns=dict(age_group="group"))
+        .reset_index(drop=True)
+    ).sort_values(by="group")
     dialect_df = (
-        raw_df.query("not dialect.isna() and age_group.isna() and gender.isna()")
+        raw_df.query(
+            "not (dialect.isna() or dialect == 'Non-native') "
+            "and age_group.isna() and gender.isna()"
+        )
         .drop(columns=["age_group", "gender"])
         .rename(columns=dict(dialect="group"))
         .reset_index(drop=True)
-    )
+    ).sort_values(by="group")
+    accent_df = (
+        raw_df.query("dialect == 'Non-native' and age_group.isna() and gender.isna()")
+        .drop(columns=["age_group", "gender"])
+        .rename(columns=dict(dialect="group"))
+        .reset_index(drop=True)
+    ).sort_values(by="group")
     overall_df = (
         raw_df.query("age_group.isna() and gender.isna() and dialect.isna()")
         .drop(columns=["age_group", "gender", "dialect"])
         .assign(group="overall")
         .reset_index(drop=True)
+    ).sort_values(by="group")
+    df = (
+        pd.concat(
+            objs=[gender_df, age_group_df, dialect_df, accent_df, overall_df],
+            ignore_index=True,
+        )
+        .map(lambda x: x.lower() if isinstance(x, str) else x)
+        .set_index("group")
     )
-    df = pd.concat(
-        objs=[overall_df, age_group_df, gender_df, dialect_df], ignore_index=True
-    ).set_index("group")
     return df
 
 
