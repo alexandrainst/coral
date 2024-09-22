@@ -1,7 +1,7 @@
-"""Finetune a speech model.
+"""Finetune a speech recognition model.
 
 Usage:
-    python src/scripts/finetune_model.py [key=value] [key=value] ...
+    python src/scripts/finetune_asr_model.py [key=value] [key=value] ...
 """
 
 import logging
@@ -24,7 +24,7 @@ logger = logging.getLogger("coral_finetuning")
 load_dotenv()
 
 
-@hydra.main(config_path="../../config", config_name="finetuning", version_base=None)
+@hydra.main(config_path="../../config", config_name="asr_finetuning", version_base=None)
 def main(config: DictConfig) -> None:
     """Finetune an ASR model.
 

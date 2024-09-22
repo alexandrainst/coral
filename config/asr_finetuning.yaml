@@ -1,5 +1,5 @@
 defaults:
-  - model: wav2vec2-with-lm
+  - model: wav2vec2-small
   - datasets:
     - coral
   - override hydra/job_logging: custom
