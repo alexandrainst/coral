@@ -6487,11 +6487,12 @@ idna = ">=2.0"
 multidict = ">=4.0"
 
 [extras]
+all = ["gradio", "kenlm", "matplotlib", "punctfix", "samplerate"]
 demo = ["gradio", "punctfix", "samplerate"]
 kenlm = ["kenlm"]
-plotting = []
+plotting = ["matplotlib"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.13"
-content-hash = "122e7620c70fa5bb863551809f84245eeb9d21f5f8d18b37997bee8c7e91ef02"
+content-hash = "12c7033f9ca1a6d2df0a391d7146095d0be12ddfaad9bffa6577ef82111d0316"
