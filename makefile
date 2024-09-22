@@ -102,6 +102,8 @@ tree:  ## Print directory tree
 install-pre-commit:  ## Install pre-commit hooks
 	@poetry run pre-commit install
 
+clean: lint format type-check  ## Lint, format, and type-check the code
+
 lint:  ## Lint the code
 	@poetry run ruff check . --fix
 
@@ -109,7 +111,12 @@ format:  ## Format the code
 	@poetry run ruff format .
 
 type-check:  ## Run type checking
-	@poetry run mypy . --install-types --non-interactive --ignore-missing-imports --show-error-codes --check-untyped-defs
+	@poetry run mypy . \
+		--install-types \
+		--non-interactive \
+		--ignore-missing-imports \
+		--show-error-codes \
+		--check-untyped-defs
 
 roest-315m:  ## Train the Røst-315M model
 	@poetry run python src/scripts/finetune_asr_model.py \
