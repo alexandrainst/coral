@@ -46,29 +46,8 @@ confidence interval (lower is better; best scores in **bold**, second-best in
 
 ### Detailed Evaluation Across Demographics on the CoRal Test Set
 
-| Dialect | CER | WER |
-|:---|---:|---:|
-| Københavnsk | 2.8% | 6.6% |
-| Sjællandsk | 3.9% | 8.6% |
-| Fynsk | 7.3% | 15.7% |
-| Sønderjysk | 13.3% | 27.1% |
-| Vestjysk | 11.1% | 24.9% |
-| Østjysk | 3.2% | 7.6% |
-| Nordjysk | 2.7% | 5.7% |
-| Sydømål | 6.0% | 12.3% |
-| Bornholmsk | 9.1% | 19.9% |
-| Non-native | 7.3% | 16.7% |
-
-| Gender | CER | WER |
-|:---|---:|---:|
-| Female | 8.0% | 17.1% |
-| Male | 5.8% | 12.8% |
-
-| Age group | CER | WER |
-|:---|---:|---:|
-| 0-25 | 5.5% | 12.1% |
-| 25-50 | 5.9% | 13.3% |
-| 50+ | 8.2% | 17.5% |
+![CER comparison plot](https://filedn.com/lRBwPhPxgV74tO0rDoe8SpH/coral/roest-comparison-cer-plot.png)
+![WER comparison plot](https://filedn.com/lRBwPhPxgV74tO0rDoe8SpH/coral/roest-comparison-wer-plot.png)
 
 
 ## Training Data
