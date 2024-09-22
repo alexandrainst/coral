@@ -116,102 +116,32 @@ roest-315m:  ## Train the Røst-315M model
 		model_id=roest-315m \
 		model=wav2vec2-small \
 		datasets=[coral,common_voice_17] \
-		dataset_probabilities=[0.975,0.025] \
-		max_steps=10_000 \
-		warmup_steps=1000 \
-		per_device_batch_size=8 \
-		total_batch_size=256 \
-		fp16=true \
-		learning_rate=1e-4 \
-		adam_first_momentum=0.9 \
-		adam_second_momentum=0.98 \
-		remove_numeric_words=true \
-		min_seconds_per_example=0.5 \
-		max_seconds_per_example=10.0 \
-		characters_to_keep=abcdefghijklmnopqrstuvwxyzæøå0123456789éü \
-		padding=longest \
-		seed=4242
+		dataset_probabilities=[0.975,0.025]
 
 roest-764m:  ## Train the Røst-764M model
 	@poetry run python src/scripts/finetune_asr_model.py \
 		model_id=roest-764m \
 		model=whisper-medium \
 		datasets=[coral,common_voice_17] \
-		dataset_probabilities=[0.975,0.025] \
-		max_steps=10_000 \
-		warmup_steps=1000 \
-		per_device_batch_size=8 \
-		total_batch_size=256 \
-		fp16=true \
-		learning_rate=1e-4 \
-		adam_first_momentum=0.9 \
-		adam_second_momentum=0.98 \
-		remove_numeric_words=true \
-		min_seconds_per_example=0.5 \
-		max_seconds_per_example=10.0 \
-		characters_to_keep=abcdefghijklmnopqrstuvwxyzæøå0123456789éü \
-		padding=longest \
-		seed=4242
+		dataset_probabilities=[0.975,0.025]
 
 roest-1b:  ## Train the Røst-1B model
 	@poetry run python src/scripts/finetune_asr_model.py \
 		model_id=roest-1b \
 		model=wav2vec2-medium \
 		datasets=[coral,common_voice_17] \
-		dataset_probabilities=[0.975,0.025] \
-		max_steps=10_000 \
-		warmup_steps=1000 \
-		per_device_batch_size=8 \
-		total_batch_size=256 \
-		fp16=true \
-		learning_rate=1e-4 \
-		adam_first_momentum=0.9 \
-		adam_second_momentum=0.98 \
-		remove_numeric_words=true \
-		min_seconds_per_example=0.5 \
-		max_seconds_per_example=10.0 \
-		characters_to_keep=abcdefghijklmnopqrstuvwxyzæøå0123456789éü \
-		padding=longest \
-		seed=4242
+		dataset_probabilities=[0.975,0.025]
 
 roest-1540m:  ## Train the Røst-1540M model
 	@poetry run python src/scripts/finetune_asr_model.py \
 		model_id=roest-1540m \
 		model=whisper-large \
 		datasets=[coral,common_voice_17] \
-		dataset_probabilities=[0.975,0.025] \
-		max_steps=10_000 \
-		warmup_steps=1000 \
-		per_device_batch_size=8 \
-		total_batch_size=256 \
-		fp16=true \
-		learning_rate=1e-4 \
-		adam_first_momentum=0.9 \
-		adam_second_momentum=0.98 \
-		remove_numeric_words=true \
-		min_seconds_per_example=0.5 \
-		max_seconds_per_example=10.0 \
-		characters_to_keep=abcdefghijklmnopqrstuvwxyzæøå0123456789éü \
-		padding=longest \
-		seed=4242
+		dataset_probabilities=[0.975,0.025]
 
 roest-2b:  ## Train the Røst-2B model
 	@poetry run python src/scripts/finetune_asr_model.py \
 		model_id=roest-2b \
 		model=wav2vec2-large \
 		datasets=[coral,common_voice_17] \
-		dataset_probabilities=[0.975,0.025] \
-		max_steps=10_000 \
-		warmup_steps=1000 \
-		per_device_batch_size=8 \
-		total_batch_size=256 \
-		fp16=true \
-		learning_rate=1e-4 \
-		adam_first_momentum=0.9 \
-		adam_second_momentum=0.98 \
-		remove_numeric_words=true \
-		min_seconds_per_example=0.5 \
-		max_seconds_per_example=10.0 \
-		characters_to_keep=abcdefghijklmnopqrstuvwxyzæøå0123456789éü \
-		padding=longest \
-		seed=4242
+		dataset_probabilities=[0.975,0.025]
