@@ -175,9 +175,10 @@ For more information, see addition 4 in our
 
 
 ## License
-The dataset is licensed under a custom license, adapted from OpenRAIL-M, which allows
-commercial use with a few restrictions (speech synthesis and biometric identification).
-See [license](https://huggingface.co/datasets/alexandrainst/coral/blob/main/LICENSE).
+The dataset is licensed under an OpenRAIL-D license, adapted from OpenRAIL-M, which
+allows commercial use with a few restrictions (such as speech synthesis and biometric
+identification). See
+[license](https://huggingface.co/datasets/alexandrainst/coral/blob/main/LICENSE).
 
 
 ## Creators and Funders
