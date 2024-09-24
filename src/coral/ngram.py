@@ -173,9 +173,7 @@ def train_ngram_model(config: DictConfig) -> None:
                 text_file.flush()
 
                 # Train the n-gram language model
-                prune_str = " ".join(
-                    ["0"] + ["1"] * (config.model.decoder_num_ngrams - 1)
-                )
+                prune_args = ["0"] + ["1"] * (config.model.decoder_num_ngrams - 1)
                 with Path(text_file.name).open() as f_in, ngram_path.open("w") as f_out:
                     subprocess.run(
                         [
@@ -183,7 +181,7 @@ def train_ngram_model(config: DictConfig) -> None:
                             "-o",
                             str(config.model.decoder_num_ngrams),
                             "--prune",
-                            prune_str,
+                            *prune_args,
                         ],
                         stdin=f_in,
                         stdout=f_out,
