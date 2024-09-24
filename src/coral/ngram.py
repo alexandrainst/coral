@@ -137,6 +137,11 @@ def train_ngram_model(config: DictConfig) -> None:
             evaluation_sentences = set(
                 evaluation_dataset[evaluation_config.text_column]
             )
+            breakpoint()
+            import pandas as pd
+
+            bad_ids = pd.Series(data=sentences).isin(values=evaluation_sentences).index
+            print(len(bad_ids))
             sentences = [
                 sentence.replace(evaluation_sentence, "")
                 for sentence in tqdm(sentences, desc="Removing evaluation sentences")
