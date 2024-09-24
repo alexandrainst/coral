@@ -67,7 +67,7 @@ def train_ngram_model(config: DictConfig) -> None:
         if not ngram_path.exists():
             all_datasets: list[Dataset] = list()
             for dataset_name, dataset_config in config.decoder_datasets.items():
-                logger.info(f"Loading dataset {dataset_name!r}")
+                logger.info(f"Loading dataset {dataset_name!r}...")
 
                 dataset = load_dataset(
                     path=dataset_config.id,
@@ -105,11 +105,16 @@ def train_ngram_model(config: DictConfig) -> None:
                 )
                 assert isinstance(dataset, Dataset)
 
+                logger.info(
+                    f"{dataset_name.title()!r} dataset contains {len(dataset):,} "
+                    "examples"
+                )
+
                 all_datasets.append(dataset)
 
             logger.info("Concatenating datasets...")
             dataset = concatenate_datasets(dsets=all_datasets)
-            logger.info(f"Dataset contains {len(dataset):,} examples")
+            logger.info(f"Concatenated dataset contains {len(dataset):,} examples")
 
             logger.info("Shuffling dataset...")
             dataset = dataset.shuffle(seed=config.seed)
@@ -177,8 +182,8 @@ def train_ngram_model(config: DictConfig) -> None:
             sentences = [t[0] for t in tuples if t is not None]
             number_of_sentences_changed = sum(t[1] for t in tuples if t is not None)
             logger.info(
-                f"Removed {number_of_sentences_changed} sentences containing evaluation "
-                f"sentences"
+                f"Removed evaluation sentences from {number_of_sentences_changed} "
+                "examples"
             )
 
             with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as text_file:
