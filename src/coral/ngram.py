@@ -186,7 +186,9 @@ def train_ngram_model(config: DictConfig) -> None:
                 "examples"
             )
 
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as text_file:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".txt", dir=config.cache_dir
+            ) as text_file:
                 # Dump dataset to a temporary text file
                 text_file.write("\n".join(sentences))
                 text_file.flush()
@@ -202,7 +204,7 @@ def train_ngram_model(config: DictConfig) -> None:
                             "-S",  # Memory limit
                             "80%",
                             "-T",  # Temporary file location
-                            str(tempfile.gettempdir()),
+                            str(config.cache_dir),
                             "--prune",  # Pruning of the n-gram model
                             *prune_args,
                         ],
