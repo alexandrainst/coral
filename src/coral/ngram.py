@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 
 import requests
-from datasets import Dataset, IterableDataset, interleave_datasets, load_dataset
+from datasets import Dataset, IterableDataset, concatenate_datasets, load_dataset
 from omegaconf import DictConfig
 from pyctcdecode.decoder import build_ctcdecoder
 from tqdm.auto import tqdm
@@ -106,7 +106,7 @@ def train_ngram_model(config: DictConfig) -> None:
 
                 all_datasets.append(dataset)
 
-            dataset = interleave_datasets(datasets=all_datasets)
+            dataset = concatenate_datasets(dsets=all_datasets).shuffle(seed=4242)
 
             # Deduplicating the sentences in the dataset is required when training the
             # n-gram language model
