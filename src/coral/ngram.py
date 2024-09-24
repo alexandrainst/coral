@@ -111,7 +111,7 @@ def train_ngram_model(config: DictConfig) -> None:
             dataset = concatenate_datasets(dsets=all_datasets)
 
             logger.info("Shuffling dataset...")
-            dataset = dataset.shuffle(seed=4242)
+            dataset = dataset.shuffle(seed=config.seed)
 
             # Deduplicating the sentences in the dataset is required when training the
             # n-gram language model
