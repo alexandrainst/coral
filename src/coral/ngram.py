@@ -110,7 +110,7 @@ def train_ngram_model(config: DictConfig) -> None:
 
             # Deduplicating the sentences in the dataset is required when training the
             # n-gram language model
-            sentences = list(set(dataset[config.model.decoder.text_column]))
+            sentences = list(set(dataset["text"]))
 
             # Remove sentences, that appear in the CoRal test split
             evaluation_config = DictConfig(
