@@ -43,6 +43,7 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *.cover
+config/decoder_datasets/subtitles.yaml
 
 # Translations
 *.mo

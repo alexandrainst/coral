@@ -21,11 +21,4 @@ mask_feature_prob: 0.5
 mask_feature_length: 64
 layerdrop: 0.1  # NOTE: This will automatically be set to 0 in a multi-gpu setting
 ctc_loss_reduction: sum
-
-# Decoder hyperparameters
-decoder:
-  dataset_id: alexandrainst/scandi-wiki
-  dataset_subset: da
-  dataset_split: train
-  text_column: text
-  n: 5
+use_decoder: true

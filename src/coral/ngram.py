@@ -9,12 +9,15 @@ import tempfile
 from pathlib import Path
 
 import requests
-from datasets import Dataset, load_dataset
+from datasets import Dataset, IterableDataset, interleave_datasets, load_dataset
 from omegaconf import DictConfig
 from pyctcdecode.decoder import build_ctcdecoder
+from tqdm.auto import tqdm
 from transformers import Wav2Vec2Processor, Wav2Vec2ProcessorWithLM
 
-from .data import process_dataset
+from coral.utils import convert_iterable_dataset_to_dataset
+
+from .data import load_dataset_for_evaluation, process_dataset
 
 logger = logging.getLogger(__package__)
 
@@ -26,6 +29,10 @@ def train_ngram_model(config: DictConfig) -> None:
         config:
             Hydra configuration dictionary.
     """
+    is_main_process = os.getenv("RANK", "0") == "0"
+    if not is_main_process:
+        return
+
     # Ensure that the `kenlm` directory exists, and download if otherwise
     cache_dir = (
         Path.home() / ".cache" if config.cache_dir is None else Path(config.cache_dir)
@@ -53,29 +60,80 @@ def train_ngram_model(config: DictConfig) -> None:
 
         # If the raw language model does not exist either then train from scratch
         if not ngram_path.exists():
-            dataset = load_dataset(
-                path=config.model.decoder.dataset_id,
-                name=config.model.decoder.dataset_subset,
-                split=config.model.decoder.dataset_split,
-                token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-            )
-            assert isinstance(dataset, Dataset)
+            all_datasets: list[Dataset] = list()
+            for dataset_name, dataset_config in config.decoder_datasets.items():
+                logger.info(f"Loading dataset {dataset_name!r}")
 
-            dataset = process_dataset(
-                dataset=dataset,
-                clean_text=config.model.clean_text,
-                characters_to_keep=config.characters_to_keep,
-                text_column=config.model.decoder.text_column,
-                remove_input_dataset_columns=False,
-                audio_column=None,
-                convert_numerals=False,
-                lower_case=config.model.lower_case,
-            )
-            assert isinstance(dataset, Dataset)
+                dataset = load_dataset(
+                    path=dataset_config.id,
+                    name=dataset_config.subset,
+                    split=dataset_config.split,
+                    token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+                    trust_remote_code=True,
+                    cache_dir=config.cache_dir,
+                    streaming=True,
+                )
+                assert isinstance(dataset, IterableDataset)
+
+                if dataset_config.audio_column is not None:
+                    dataset = dataset.remove_columns(
+                        column_names=dataset_config.audio_column
+                    )
+
+                if dataset_config.text_column != "text":
+                    dataset = dataset.rename_column(dataset_config.text_column, "text")
+
+                dataset = process_dataset(
+                    dataset=dataset,
+                    clean_text=config.model.clean_text,
+                    characters_to_keep=config.characters_to_keep,
+                    text_column="text",
+                    remove_input_dataset_columns=False,
+                    audio_column=None,
+                    convert_numerals=False,
+                    lower_case=config.model.lower_case,
+                )
+                assert isinstance(dataset, IterableDataset)
+
+                dataset = convert_iterable_dataset_to_dataset(
+                    iterable_dataset=dataset, cache_dir=config.cache_dir
+                )
+                assert isinstance(dataset, Dataset)
+
+                all_datasets.append(dataset)
+
+            dataset = interleave_datasets(datasets=all_datasets)
 
             # Deduplicating the sentences in the dataset is required when training the
             # n-gram language model
             sentences = list(set(dataset[config.model.decoder.text_column]))
+
+            # Remove sentences, that appear in the CoRal test split
+            evaluation_config = DictConfig(
+                dict(
+                    dataset="alexandrainst/coral::read_aloud",
+                    cache_dir=config.cache_dir,
+                    eval_split_name="test",
+                    text_column="text",
+                    audio_column="audio",
+                    sampling_rate=16_000,
+                    min_seconds_per_example=0.5,
+                    max_seconds_per_example=10,
+                    clean_text=config.model.clean_text,
+                    lower_case=config.model.lower_case,
+                    characters_to_keep="abcdefghijklmnopqrstuvwxyzæøå0123456789éü",
+                )
+            )
+            evaluation_dataset = load_dataset_for_evaluation(config=evaluation_config)
+            evaluation_sentences = set(
+                evaluation_dataset[evaluation_config.text_column]
+            )
+            sentences = [
+                sentence.replace(evaluation_sentence, "")
+                for sentence in tqdm(sentences, desc="Removing evaluation sentences")
+                for evaluation_sentence in evaluation_sentences
+                if evaluation_sentence in sentence
+            ]
 
             with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as text_file:
                 # Dump dataset to a temporary text file

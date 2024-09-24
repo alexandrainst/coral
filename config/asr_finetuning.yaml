@@ -2,6 +2,10 @@ defaults:
   - model: wav2vec2-small
   - datasets:
     - coral
+  - decoder_datasets:
+    - wikipedia
+    - common_voice
+    - reddit
   - override hydra/job_logging: custom
   - _self_
 
@@ -10,7 +14,6 @@ seed: 4242
 evaluation_dataset:
   id: alexandrainst/coral
   subset: read_aloud
-  split: test
   val_name: val
   text_column: text
   audio_column: audio

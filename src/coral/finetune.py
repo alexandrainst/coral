@@ -64,7 +64,7 @@ def finetune(config: DictConfig) -> None:
 
     model.save_pretrained(save_directory=config.model_dir)
 
-    if hasattr(config.model, "decoder") and config.model.decoder is not None:
+    if hasattr(config.model, "use_decoder") and config.model.use_decoder:
         train_ngram_model(config=config)
 
     if config.push_to_hub:
