@@ -175,9 +175,13 @@ def train_ngram_model(config: DictConfig) -> None:
                     subprocess.run(
                         [
                             str(kenlm_build_dir / "bin" / "lmplz"),
-                            "-o",
+                            "-o",  # Order of the n-gram model
                             str(config.model.decoder_num_ngrams),
-                            "--prune",
+                            "-S",  # Memory limit
+                            "80%",
+                            "-T",  # Temporary file location
+                            str(tempfile.gettempdir()),
+                            "--prune",  # Pruning of the n-gram model
                             *prune_args,
                         ],
                         stdin=f_in,
