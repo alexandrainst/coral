@@ -140,7 +140,7 @@ def train_ngram_model(config: DictConfig) -> None:
                 evaluation_dataset[evaluation_config.text_column]
             )
 
-            def remove_evaluation_sentences(sentence: str) -> str:
+            def remove_evaluation_sentences(sentence: str) -> tuple[str, bool]:
                 """Remove evaluation sentences from a sentence.
 
                 Args:
@@ -148,21 +148,32 @@ def train_ngram_model(config: DictConfig) -> None:
                         Sentence to remove evaluation sentences from.
 
                 Returns:
-                    The sentence with evaluation sentences removed.
+                    A tuple containing:
+                    - The sentence with the evaluation sentences removed.
+                    - A boolean indicating whether an evaluation sentence was present in
+                      the sentence.
                 """
+                evalulation_sentence_present = False
                 for evaluation_sentence in evaluation_sentences:
                     if evaluation_sentence in sentence:
                         sentence = sentence.replace(evaluation_sentence, "")
-                return sentence
+                        evalulation_sentence_present = True
+                return sentence, evalulation_sentence_present
 
             # Remove sentences, that appear in the CoRal test split
             with Parallel(n_jobs=-1) as parallel:
-                sentences = parallel(
+                tuples = parallel(
                     delayed(remove_evaluation_sentences)(sentence=sentence)
                     for sentence in tqdm(
                         sentences, desc="Removing evaluation sentences"
                     )
                 )
+            sentences = [t[0] for t in tuples if t is not None]
+            number_of_sentences_changed = sum(t[1] for t in tuples if t is not None)
+            logger.info(
+                f"Removed {number_of_sentences_changed} sentences containing evaluation "
+                f"sentences"
+            )
 
             with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as text_file:
                 # Dump dataset to a temporary text file
