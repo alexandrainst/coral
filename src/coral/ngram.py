@@ -118,7 +118,8 @@ def train_ngram_model(config: DictConfig) -> None:
             logger.info("Deduplicating sentences...")
             sentences = list(set(dataset["text"]))
 
-            # Remove sentences, that appear in the CoRal test split
+            # Load the evaluation sentences, which are not allowed to be in the
+            # training dataset
             evaluation_config = DictConfig(
                 dict(
                     dataset="alexandrainst/coral::read_aloud",
@@ -154,6 +155,7 @@ def train_ngram_model(config: DictConfig) -> None:
                         sentence = sentence.replace(evaluation_sentence, "")
                 return sentence
 
+            # Remove sentences, that appear in the CoRal test split
             with Parallel(n_jobs=-1) as parallel:
                 sentences = parallel(
                     delayed(remove_evaluation_sentences)(sentence=sentence)
