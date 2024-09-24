@@ -10,6 +10,7 @@ from pathlib import Path
 
 import requests
 from datasets import Dataset, IterableDataset, concatenate_datasets, load_dataset
+from joblib import Parallel, delayed
 from omegaconf import DictConfig
 from pyctcdecode.decoder import build_ctcdecoder
 from tqdm.auto import tqdm
@@ -137,17 +138,30 @@ def train_ngram_model(config: DictConfig) -> None:
             evaluation_sentences = set(
                 evaluation_dataset[evaluation_config.text_column]
             )
-            breakpoint()
-            import pandas as pd
 
-            bad_ids = pd.Series(data=sentences).isin(values=evaluation_sentences).index
-            print(len(bad_ids))
-            sentences = [
-                sentence.replace(evaluation_sentence, "")
-                for sentence in tqdm(sentences, desc="Removing evaluation sentences")
-                for evaluation_sentence in evaluation_sentences
-                if evaluation_sentence in sentence
-            ]
+            def remove_evaluation_sentences(sentence: str) -> str:
+                """Remove evaluation sentences from a sentence.
+
+                Args:
+                    sentence:
+                        Sentence to remove evaluation sentences from.
+
+                Returns:
+                    The sentence with evaluation sentences removed.
+                """
+                for evaluation_sentence in evaluation_sentences:
+                    if evaluation_sentence in sentence:
+                        sentence = sentence.replace(evaluation_sentence, "")
+                return sentence
+
+            with Parallel(n_jobs=-1) as parallel:
+                sentences = parallel(
+                    delayed(remove_evaluation_sentences)(sentence=sentence)
+                    for sentence in tqdm(
+                        sentences, desc="Removing evaluation sentences"
+                    )
+                )
+            breakpoint()
 
             with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as text_file:
                 # Dump dataset to a temporary text file
