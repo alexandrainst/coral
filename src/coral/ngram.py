@@ -87,6 +87,11 @@ def train_ngram_model(config: DictConfig) -> None:
                 if dataset_config.text_column != "text":
                     dataset = dataset.rename_column(dataset_config.text_column, "text")
 
+                dataset = convert_iterable_dataset_to_dataset(
+                    iterable_dataset=dataset, cache_dir=config.cache_dir
+                )
+                assert isinstance(dataset, Dataset)
+
                 dataset = process_dataset(
                     dataset=dataset,
                     clean_text=config.model.clean_text,
@@ -96,11 +101,6 @@ def train_ngram_model(config: DictConfig) -> None:
                     audio_column=None,
                     convert_numerals=False,
                     lower_case=config.model.lower_case,
-                )
-                assert isinstance(dataset, IterableDataset)
-
-                dataset = convert_iterable_dataset_to_dataset(
-                    iterable_dataset=dataset, cache_dir=config.cache_dir
                 )
                 assert isinstance(dataset, Dataset)
 
