@@ -156,6 +156,7 @@ def train_ngram_model(config: DictConfig) -> None:
                 return sentence
 
             # Remove sentences, that appear in the CoRal test split
+            breakpoint()
             with Parallel(n_jobs=-1) as parallel:
                 sentences = parallel(
                     delayed(remove_evaluation_sentences)(sentence=sentence)
@@ -163,7 +164,6 @@ def train_ngram_model(config: DictConfig) -> None:
                         sentences, desc="Removing evaluation sentences"
                     )
                 )
-            breakpoint()
 
             with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as text_file:
                 # Dump dataset to a temporary text file
@@ -171,12 +171,17 @@ def train_ngram_model(config: DictConfig) -> None:
                 text_file.flush()
 
                 # Train the n-gram language model
+                prune_str = " ".join(
+                    ["0"] + ["1"] * (config.model.decoder_num_ngrams - 1)
+                )
                 with Path(text_file.name).open() as f_in, ngram_path.open("w") as f_out:
                     subprocess.run(
                         [
                             str(kenlm_build_dir / "bin" / "lmplz"),
                             "-o",
                             str(config.model.decoder_num_ngrams),
+                            "--prune",
+                            prune_str,
                         ],
                         stdin=f_in,
                         stdout=f_out,

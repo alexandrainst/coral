@@ -24,4 +24,4 @@ ctc_loss_reduction: sum
 
 # Decoder hyperparameters
 use_decoder: true
-decoder_num_ngrams: 5
+decoder_num_ngrams: 3
