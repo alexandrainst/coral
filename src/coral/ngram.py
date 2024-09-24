@@ -109,6 +109,7 @@ def train_ngram_model(config: DictConfig) -> None:
 
             logger.info("Concatenating datasets...")
             dataset = concatenate_datasets(dsets=all_datasets)
+            logger.info(f"Dataset contains {len(dataset):,} examples")
 
             logger.info("Shuffling dataset...")
             dataset = dataset.shuffle(seed=config.seed)
