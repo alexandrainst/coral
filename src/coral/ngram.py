@@ -113,6 +113,9 @@ def train_ngram_model(config: DictConfig) -> None:
             logger.info("Shuffling dataset...")
             dataset = dataset.shuffle(seed=4242)
 
+            # TEMP
+            dataset = dataset.select(range(100_000))
+
             # Deduplicating the sentences in the dataset is required when training the
             # n-gram language model
             logger.info("Deduplicating sentences...")
@@ -156,7 +159,6 @@ def train_ngram_model(config: DictConfig) -> None:
                 return sentence
 
             # Remove sentences, that appear in the CoRal test split
-            breakpoint()
             with Parallel(n_jobs=-1) as parallel:
                 sentences = parallel(
                     delayed(remove_evaluation_sentences)(sentence=sentence)
