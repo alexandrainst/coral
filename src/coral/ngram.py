@@ -106,10 +106,12 @@ def train_ngram_model(config: DictConfig) -> None:
 
                 all_datasets.append(dataset)
 
+            logger.info("Concatenating datasets...")
             dataset = concatenate_datasets(dsets=all_datasets).shuffle(seed=4242)
 
             # Deduplicating the sentences in the dataset is required when training the
             # n-gram language model
+            logger.info("Deduplicating sentences...")
             sentences = list(set(dataset["text"]))
 
             # Remove sentences, that appear in the CoRal test split
