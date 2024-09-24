@@ -116,7 +116,12 @@ def train_ngram_model(config: DictConfig) -> None:
             # Deduplicating the sentences in the dataset is required when training the
             # n-gram language model
             logger.info("Deduplicating sentences...")
+            num_sentences_before = len(dataset["text"])
             sentences = list(set(dataset["text"]))
+            logger.info(
+                f"Removed {num_sentences_before - len(sentences):,} duplicates from the "
+                f"dataset"
+            )
 
             # Load the evaluation sentences, which are not allowed to be in the
             # training dataset
