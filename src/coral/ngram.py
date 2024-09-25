@@ -31,13 +31,29 @@ def train_and_store_ngram_model(config: DictConfig) -> None:
     is_main_process = os.getenv("RANK", "0") == "0"
     if not is_main_process:
         return
+    kenlm_build_dir = download_and_compile_kenlm(config=config)
+    ngram_model_path = train_ngram_model(kenlm_build_dir=kenlm_build_dir, config=config)
+    store_ngram_model(ngram_model_path=ngram_model_path, config=config)
+    compress_ngram_model(kenlm_build_dir=kenlm_build_dir, config=config)
 
+
+def download_and_compile_kenlm(config: DictConfig) -> Path:
+    """Download and compile the `kenlm` library.
+
+    Args:
+        config:
+            Hydra configuration dictionary.
+
+    Returns:
+        Path to the `kenlm` build directory.
+    """
     # Ensure that the `kenlm` directory exists, and download if otherwise
     cache_dir = (
         Path.home() / ".cache" if config.cache_dir is None else Path(config.cache_dir)
     )
     kenlm_dir = cache_dir / "kenlm"
     if not kenlm_dir.exists():
+        logger.info("Downloading `kenlm`...")
         download_and_extract(
             url="https://kheafield.com/code/kenlm.tar.gz", target_dir=cache_dir
         )
@@ -45,19 +61,12 @@ def train_and_store_ngram_model(config: DictConfig) -> None:
     # Compile `kenlm` if it hasn't already been compiled
     kenlm_build_dir = kenlm_dir / "build"
     if not (kenlm_build_dir / "bin" / "lmplz").exists():
+        logger.info("Compiling `kenlm`...")
         kenlm_build_dir.mkdir(parents=True, exist_ok=True)
         subprocess.run(["cmake", ".."], cwd=str(kenlm_build_dir))
         subprocess.run(["make", "-j", "2"], cwd=str(kenlm_build_dir))
 
-    logger.info("Training n-gram language model...")
-    ngram_model_path = train_ngram_model(kenlm_build_dir=kenlm_build_dir, config=config)
-
-    logger.info("Storing n-gram language model...")
-    store_ngram_model(
-        ngram_model_path=ngram_model_path,
-        kenlm_build_dir=kenlm_build_dir,
-        config=config,
-    )
+    return kenlm_build_dir
 
 
 def download_and_extract(url: str, target_dir: str | Path) -> None:
@@ -103,9 +112,11 @@ def train_ngram_model(kenlm_build_dir: Path, config: DictConfig) -> Path:
 
     # If the raw language model does not exist either then train from scratch
     if not raw_ngram_path.exists():
+        logger.info("Building corpus for training n-gram language model...")
         sentence_path = get_sentence_corpus_path(config=config)
 
         # Train the n-gram language model
+        logger.info("Training n-gram language model...")
         prune_args = ["0"] + ["1"] * (config.model.decoder_num_ngrams - 1)
         with sentence_path.open() as f_in, raw_ngram_path.open("w") as f_out:
             subprocess.run(
@@ -128,6 +139,7 @@ def train_ngram_model(kenlm_build_dir: Path, config: DictConfig) -> Path:
 
     # Add end-of-sentence marker </s> to the n-gram language model to get the final
     # language model
+    logger.info("Adding end-of-sentence marker to n-gram language model...")
     with raw_ngram_path.open("r") as f_in:
         with correct_ngram_path.open("w") as f_out:
             has_added_eos = False
@@ -153,6 +165,7 @@ def train_ngram_model(kenlm_build_dir: Path, config: DictConfig) -> Path:
     if raw_ngram_path.exists():
         raw_ngram_path.unlink()
 
+    logger.info(f"Trained n-gram language model stored at {correct_ngram_path}")
     return correct_ngram_path
 
 
@@ -291,19 +304,17 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
     return sentence_path
 
 
-def store_ngram_model(
-    ngram_model_path: Path, kenlm_build_dir: Path, config: DictConfig
-) -> None:
+def store_ngram_model(ngram_model_path: Path, config: DictConfig) -> None:
     """Stores the n-gram language model in the model directory.
 
     Args:
         ngram_model_path:
             Path to the n-gram language model.
-        kenlm_build_dir:
-            Path to the `kenlm` build directory.
         config:
             Hydra configuration dictionary.
     """
+    logger.info("Storing n-gram language model...")
+
     processor = Wav2Vec2Processor.from_pretrained(config.model_dir)
 
     # Extract the vocabulary, which will be used to build the CTC decoder
@@ -327,7 +338,18 @@ def store_ngram_model(
     if ngram_model_path.exists():
         ngram_model_path.unlink()
 
-    # Compress the ngram model
+
+def compress_ngram_model(kenlm_build_dir: Path, config: DictConfig) -> None:
+    """Compress the n-gram language model.
+
+    Args:
+        kenlm_build_dir:
+            Path to the `kenlm` build directory.
+        config:
+            Hydra configuration dictionary.
+    """
+    logger.info("Compressing n-gram language model...")
+
     compressed_ngram_path = (
         Path(config.model_dir)
         / "language_model"
