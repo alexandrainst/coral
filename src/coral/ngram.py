@@ -267,7 +267,7 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
         return sentence, evalulation_sentence_present
 
     # Remove sentences, that appear in the CoRal test split
-    with Parallel(n_jobs=-1) as parallel:
+    with Parallel(n_jobs=-2) as parallel:
         tuples = parallel(
             delayed(remove_evaluation_sentences)(sentence=sentence)
             for sentence in tqdm(sentences, desc="Removing evaluation sentences")
