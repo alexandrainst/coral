@@ -54,9 +54,11 @@ def download_and_compile_kenlm(config: DictConfig) -> Path:
     kenlm_dir = cache_dir / "kenlm"
     if not kenlm_dir.exists():
         logger.info("Downloading `kenlm`...")
-        download_and_extract(
-            url="https://kheafield.com/code/kenlm.tar.gz", target_dir=cache_dir
-        )
+        with requests.get(url="https://kheafield.com/code/kenlm.tar.gz") as response:
+            response.raise_for_status()
+            data = response.content
+        with tarfile.open(fileobj=io.BytesIO(data)) as tar:
+            tar.extractall(path=cache_dir)
 
     # Compile `kenlm` if it hasn't already been compiled
     kenlm_build_dir = kenlm_dir / "build"
@@ -67,27 +69,6 @@ def download_and_compile_kenlm(config: DictConfig) -> Path:
         subprocess.run(["make", "-j", "2"], cwd=str(kenlm_build_dir))
 
     return kenlm_build_dir
-
-
-def download_and_extract(url: str, target_dir: str | Path) -> None:
-    """Download and extract a compressed file from a URL.
-
-    Args:
-        url:
-            URL to download from.
-        target_dir:
-            Path to the directory where the file should be downloaded to.
-    """
-    # Download the file and load the data as bytes into memory
-    with requests.get(url) as response:
-        status_code: int = response.status_code  # type: ignore[attr-defined]
-        if status_code != 200:
-            raise requests.HTTPError(f"Received status code {status_code} from {url}")
-        data = response.content  # type: ignore[attr-defined]
-
-    # Extract the file
-    with tarfile.open(fileobj=io.BytesIO(data)) as tar:
-        tar.extractall(path=target_dir)
 
 
 def train_ngram_model(kenlm_build_dir: Path, config: DictConfig) -> Path:
@@ -150,8 +131,7 @@ def train_ngram_model(kenlm_build_dir: Path, config: DictConfig) -> Path:
                     new_line = line.replace(f"{count}", f"{int(count)+1}")
                     f_out.write(new_line)
 
-                # Add the end-of-sentence marker right after the the
-                # start-of-sentence marker
+                # Add the end-of-sentence marker right after the start-of-sentence marker
                 elif not has_added_eos and "<s>" in line:
                     f_out.write(line)
                     f_out.write(line.replace("<s>", "</s>"))
@@ -237,8 +217,8 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
     logger.info("Shuffling dataset...")
     dataset = dataset.shuffle(seed=config.seed)
 
-    # Deduplicating the sentences in the dataset is required when training the
-    # n-gram language model
+    # Deduplicating the sentences in the dataset is required when training the n-gram
+    # language model
     logger.info("Deduplicating sentences...")
     num_sentences_before = len(dataset["text"])
     sentences = list(set(dataset["text"]))
@@ -247,8 +227,7 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
         f"dataset"
     )
 
-    # Load the evaluation sentences, which are not allowed to be in the
-    # training dataset
+    # Load the evaluation sentences, which are not allowed to be in the training dataset
     evaluation_config = DictConfig(
         dict(
             dataset="alexandrainst/coral::read_aloud",
@@ -335,8 +314,8 @@ def store_ngram_model(ngram_model_path: Path, config: DictConfig) -> None:
     )
     processor_with_lm.save_pretrained(config.model_dir)
 
-    # Remove the ngram model again, as the `save_pretrained` method also saves the
-    # ngram model
+    # Remove the ngram model again, as the `save_pretrained` method also saves the ngram
+    # model
     if ngram_model_path.exists():
         ngram_model_path.unlink()
 
