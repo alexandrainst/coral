@@ -1,6 +1,6 @@
 name: wav2vec2-small
 type: wav2vec2
-pretrained_model_id: chcaa/xls-r-300m-danish
+pretrained_model_id: facebook/wav2vec2-xls-r-300m
 freeze_feature_encoder: false
 
 # Data hyperparameters
