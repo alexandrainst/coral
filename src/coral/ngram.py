@@ -205,7 +205,8 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
         assert isinstance(dataset, Dataset)
 
         logger.info(
-            f"{dataset_name.title()!r} dataset contains {len(dataset):,} " "examples"
+            f"{dataset_name.title().replace('_', ' ')} dataset contains "
+            f"{len(dataset):,} examples"
         )
 
         all_datasets.append(dataset)
@@ -275,7 +276,7 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
     sentences = [t[0] for t in tuples if t is not None]
     number_of_sentences_changed = sum(t[1] for t in tuples if t is not None)
     logger.info(
-        f"Removed evaluation sentences from {number_of_sentences_changed:,} " "examples"
+        f"Removed evaluation sentences from {number_of_sentences_changed:,} examples"
     )
 
     with sentence_path.open("w") as text_file:
