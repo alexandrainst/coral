@@ -15,15 +15,14 @@ from pyctcdecode.decoder import build_ctcdecoder
 from tqdm.auto import tqdm
 from transformers import Wav2Vec2Processor, Wav2Vec2ProcessorWithLM
 
-from coral.utils import convert_iterable_dataset_to_dataset
-
 from .data import load_dataset_for_evaluation, process_dataset
+from .utils import convert_iterable_dataset_to_dataset
 
 logger = logging.getLogger(__package__)
 
 
-def train_ngram_model(config: DictConfig) -> None:
-    """Trains an ngram language model.
+def train_and_store_ngram_model(config: DictConfig) -> None:
+    """Trains an n-gram language model and stores it in the model directory.
 
     Args:
         config:
@@ -50,112 +49,15 @@ def train_ngram_model(config: DictConfig) -> None:
         subprocess.run(["cmake", ".."], cwd=str(kenlm_build_dir))
         subprocess.run(["make", "-j", "2"], cwd=str(kenlm_build_dir))
 
-    # Train the n-gram language model if it doesn't already exist
-    correct_ngram_path = (
-        Path(config.model_dir) / f"{config.model.decoder_num_ngrams}gram.arpa"
-    )
-    if not correct_ngram_path.exists():
-        logger.info("Training n-gram language model...")
-
-        ngram_path = (
-            Path(config.model_dir) / f"raw_{config.model.decoder_num_ngrams}gram.arpa"
-        )
-        ngram_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # If the raw language model does not exist either then train from scratch
-        if not ngram_path.exists():
-            sentence_path = get_sentence_corpus_path(config=config)
-
-            # Train the n-gram language model
-            prune_args = ["0"] + ["1"] * (config.model.decoder_num_ngrams - 1)
-            with sentence_path.open() as f_in, ngram_path.open("w") as f_out:
-                subprocess.run(
-                    [
-                        str(kenlm_build_dir / "bin" / "lmplz"),
-                        "-o",  # Order of the n-gram model
-                        str(config.model.decoder_num_ngrams),
-                        "-S",  # Memory limit
-                        "80%",
-                        "-T",  # Temporary file location
-                        str(config.cache_dir),
-                        "--prune",  # Pruning of the n-gram model
-                        *prune_args,
-                    ],
-                    stdin=f_in,
-                    stdout=f_out,
-                )
-
-            assert ngram_path.exists(), "Failed to train n-gram language model"
-
-        # Add end-of-sentence marker </s> to the n-gram language model to get the final
-        # language model
-        with ngram_path.open("r") as f_in:
-            with correct_ngram_path.open("w") as f_out:
-                has_added_eos = False
-                for line in f_in:
-                    # Increment the 1-gram count by 1
-                    if not has_added_eos and "ngram 1=" in line:
-                        count = line.strip().split("=")[-1]
-                        new_line = line.replace(f"{count}", f"{int(count)+1}")
-                        f_out.write(new_line)
-
-                    # Add the end-of-sentence marker right after the the
-                    # start-of-sentence marker
-                    elif not has_added_eos and "<s>" in line:
-                        f_out.write(line)
-                        f_out.write(line.replace("<s>", "</s>"))
-                        has_added_eos = True
-
-                    # Otherwise we're just copying the line verbatim
-                    else:
-                        f_out.write(line)
-
-        # Remove non-correct ngram model again
-        if ngram_path.exists():
-            ngram_path.unlink()
+    logger.info("Training n-gram language model...")
+    ngram_model_path = train_ngram_model(kenlm_build_dir=kenlm_build_dir, config=config)
 
     logger.info("Storing n-gram language model...")
-
-    processor = Wav2Vec2Processor.from_pretrained(config.model_dir)
-
-    # Extract the vocabulary, which will be used to build the CTC decoder
-    vocab_dict: dict[str, int] = processor.tokenizer.get_vocab()
-    sorted_vocab_list = sorted(vocab_dict.items(), key=lambda item: item[1])
-    sorted_vocab_dict = {k.lower(): v for k, v in sorted_vocab_list}
-
-    # Build the processor with LM included and save it
-    decoder = build_ctcdecoder(
-        labels=list(sorted_vocab_dict.keys()), kenlm_model_path=str(correct_ngram_path)
+    store_ngram_model(
+        ngram_model_path=ngram_model_path,
+        kenlm_build_dir=kenlm_build_dir,
+        config=config,
     )
-    processor_with_lm = Wav2Vec2ProcessorWithLM(
-        feature_extractor=processor.feature_extractor,
-        tokenizer=processor.tokenizer,
-        decoder=decoder,
-    )
-    processor_with_lm.save_pretrained(config.model_dir)
-
-    # Remove the ngram model again, as the `save_pretrained` method also saves the
-    # ngram model
-    if correct_ngram_path.exists():
-        correct_ngram_path.unlink()
-
-    # Compress the ngram model
-    new_ngram_path = (
-        Path(config.model_dir)
-        / "language_model"
-        / f"{config.model.decoder_num_ngrams}gram.arpa"
-    )
-    subprocess.run(
-        [
-            str(kenlm_build_dir / "bin" / "build_binary"),
-            str(new_ngram_path),
-            str(new_ngram_path.with_suffix(".bin")),
-        ]
-    )
-
-    # Remove the uncompressed ngram model, as we only need the compressed version
-    if new_ngram_path.exists():
-        new_ngram_path.unlink()
 
 
 def download_and_extract(url: str, target_dir: str | Path) -> None:
@@ -179,6 +81,81 @@ def download_and_extract(url: str, target_dir: str | Path) -> None:
         tar.extractall(path=target_dir)
 
 
+def train_ngram_model(kenlm_build_dir: Path, config: DictConfig) -> Path:
+    """Train an n-gram language model.
+
+    Args:
+        kenlm_build_dir:
+            Path to the `kenlm` build directory.
+        config:
+            Hydra configuration dictionary.
+
+    Returns:
+        Path to the trained n-gram language model.
+    """
+    num_ngrams = config.model.decoder_num_ngrams
+    correct_ngram_path = Path(config.model_dir) / f"{num_ngrams}gram.arpa"
+    if correct_ngram_path.exists():
+        return correct_ngram_path
+
+    raw_ngram_path = Path(config.model_dir) / f"raw_{num_ngrams}gram.arpa"
+    raw_ngram_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # If the raw language model does not exist either then train from scratch
+    if not raw_ngram_path.exists():
+        sentence_path = get_sentence_corpus_path(config=config)
+
+        # Train the n-gram language model
+        prune_args = ["0"] + ["1"] * (config.model.decoder_num_ngrams - 1)
+        with sentence_path.open() as f_in, raw_ngram_path.open("w") as f_out:
+            subprocess.run(
+                [
+                    str(kenlm_build_dir / "bin" / "lmplz"),
+                    "-o",  # Order of the n-gram model
+                    str(config.model.decoder_num_ngrams),
+                    "-S",  # Memory limit
+                    "80%",
+                    "-T",  # Temporary file location
+                    str(config.cache_dir),
+                    "--prune",  # Pruning of the n-gram model
+                    *prune_args,
+                ],
+                stdin=f_in,
+                stdout=f_out,
+            )
+
+        assert raw_ngram_path.exists(), "Failed to train n-gram language model"
+
+    # Add end-of-sentence marker </s> to the n-gram language model to get the final
+    # language model
+    with raw_ngram_path.open("r") as f_in:
+        with correct_ngram_path.open("w") as f_out:
+            has_added_eos = False
+            for line in f_in:
+                # Increment the 1-gram count by 1
+                if not has_added_eos and "ngram 1=" in line:
+                    count = line.strip().split("=")[-1]
+                    new_line = line.replace(f"{count}", f"{int(count)+1}")
+                    f_out.write(new_line)
+
+                # Add the end-of-sentence marker right after the the
+                # start-of-sentence marker
+                elif not has_added_eos and "<s>" in line:
+                    f_out.write(line)
+                    f_out.write(line.replace("<s>", "</s>"))
+                    has_added_eos = True
+
+                # Otherwise we're just copying the line verbatim
+                else:
+                    f_out.write(line)
+
+    # Remove non-correct ngram model again
+    if raw_ngram_path.exists():
+        raw_ngram_path.unlink()
+
+    return correct_ngram_path
+
+
 def get_sentence_corpus_path(config: DictConfig) -> Path:
     """Get the path to the sentence corpus, and create it if it doesn't exist.
 
@@ -189,7 +166,8 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
     Returns:
         Path to the sentence corpus.
     """
-    sentence_path = Path(config.cache_dir) / "sentences.txt"
+    dataset_hash = hash([dataset_name for dataset_name in config.decoder_datasets])
+    sentence_path = Path(config.cache_dir) / f"ngram-sentences-{dataset_hash}.txt"
     if sentence_path.exists():
         return sentence_path
 
@@ -311,3 +289,58 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
         text_file.flush()
 
     return sentence_path
+
+
+def store_ngram_model(
+    ngram_model_path: Path, kenlm_build_dir: Path, config: DictConfig
+) -> None:
+    """Stores the n-gram language model in the model directory.
+
+    Args:
+        ngram_model_path:
+            Path to the n-gram language model.
+        kenlm_build_dir:
+            Path to the `kenlm` build directory.
+        config:
+            Hydra configuration dictionary.
+    """
+    processor = Wav2Vec2Processor.from_pretrained(config.model_dir)
+
+    # Extract the vocabulary, which will be used to build the CTC decoder
+    vocab_dict: dict[str, int] = processor.tokenizer.get_vocab()
+    sorted_vocab_list = sorted(vocab_dict.items(), key=lambda item: item[1])
+    sorted_vocab_dict = {k.lower(): v for k, v in sorted_vocab_list}
+
+    # Build the processor with LM included and save it
+    decoder = build_ctcdecoder(
+        labels=list(sorted_vocab_dict.keys()), kenlm_model_path=str(ngram_model_path)
+    )
+    processor_with_lm = Wav2Vec2ProcessorWithLM(
+        feature_extractor=processor.feature_extractor,
+        tokenizer=processor.tokenizer,
+        decoder=decoder,
+    )
+    processor_with_lm.save_pretrained(config.model_dir)
+
+    # Remove the ngram model again, as the `save_pretrained` method also saves the
+    # ngram model
+    if ngram_model_path.exists():
+        ngram_model_path.unlink()
+
+    # Compress the ngram model
+    compressed_ngram_path = (
+        Path(config.model_dir)
+        / "language_model"
+        / f"{config.model.decoder_num_ngrams}gram.arpa"
+    )
+    subprocess.run(
+        [
+            str(kenlm_build_dir / "bin" / "build_binary"),
+            str(compressed_ngram_path),
+            str(compressed_ngram_path.with_suffix(".bin")),
+        ]
+    )
+
+    # Remove the uncompressed ngram model, as we only need the compressed version
+    if compressed_ngram_path.exists():
+        compressed_ngram_path.unlink()
