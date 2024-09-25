@@ -179,7 +179,9 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
     Returns:
         Path to the sentence corpus.
     """
-    dataset_hash = hash([dataset_name for dataset_name in config.decoder_datasets])
+    dataset_hash = hash(
+        tuple([dataset_name for dataset_name in config.decoder_datasets])
+    )
     sentence_path = Path(config.cache_dir) / f"ngram-sentences-{dataset_hash}.txt"
     if sentence_path.exists():
         return sentence_path
