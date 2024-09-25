@@ -5,7 +5,6 @@ import logging
 import os
 import subprocess
 import tarfile
-import tempfile
 from pathlib import Path
 
 import requests
@@ -65,156 +64,28 @@ def train_ngram_model(config: DictConfig) -> None:
 
         # If the raw language model does not exist either then train from scratch
         if not ngram_path.exists():
-            all_datasets: list[Dataset] = list()
-            for dataset_name, dataset_config in config.decoder_datasets.items():
-                logger.info(f"Loading dataset {dataset_name!r}...")
+            sentence_path = get_sentence_corpus_path(config=config)
 
-                dataset = load_dataset(
-                    path=dataset_config.id,
-                    name=dataset_config.subset,
-                    split=dataset_config.split,
-                    token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-                    trust_remote_code=True,
-                    cache_dir=config.cache_dir,
-                    streaming=True,
-                )
-                assert isinstance(dataset, IterableDataset)
-
-                if dataset_config.audio_column is not None:
-                    dataset = dataset.remove_columns(
-                        column_names=dataset_config.audio_column
-                    )
-
-                if dataset_config.text_column != "text":
-                    dataset = dataset.rename_column(dataset_config.text_column, "text")
-
-                dataset = convert_iterable_dataset_to_dataset(
-                    iterable_dataset=dataset, cache_dir=config.cache_dir
-                )
-                assert isinstance(dataset, Dataset)
-
-                dataset = process_dataset(
-                    dataset=dataset,
-                    clean_text=config.model.clean_text,
-                    characters_to_keep=config.characters_to_keep,
-                    text_column="text",
-                    remove_input_dataset_columns=False,
-                    audio_column=None,
-                    convert_numerals=False,
-                    lower_case=config.model.lower_case,
-                )
-                assert isinstance(dataset, Dataset)
-
-                logger.info(
-                    f"{dataset_name.title()!r} dataset contains {len(dataset):,} "
-                    "examples"
+            # Train the n-gram language model
+            prune_args = ["0"] + ["1"] * (config.model.decoder_num_ngrams - 1)
+            with sentence_path.open() as f_in, ngram_path.open("w") as f_out:
+                subprocess.run(
+                    [
+                        str(kenlm_build_dir / "bin" / "lmplz"),
+                        "-o",  # Order of the n-gram model
+                        str(config.model.decoder_num_ngrams),
+                        "-S",  # Memory limit
+                        "80%",
+                        "-T",  # Temporary file location
+                        str(config.cache_dir),
+                        "--prune",  # Pruning of the n-gram model
+                        *prune_args,
+                    ],
+                    stdin=f_in,
+                    stdout=f_out,
                 )
 
-                all_datasets.append(dataset)
-
-            logger.info("Concatenating datasets...")
-            dataset = concatenate_datasets(dsets=all_datasets)
-            logger.info(f"Concatenated dataset contains {len(dataset):,} examples")
-
-            logger.info("Shuffling dataset...")
-            dataset = dataset.shuffle(seed=config.seed)
-
-            # Deduplicating the sentences in the dataset is required when training the
-            # n-gram language model
-            logger.info("Deduplicating sentences...")
-            num_sentences_before = len(dataset["text"])
-            sentences = list(set(dataset["text"]))
-            logger.info(
-                f"Removed {num_sentences_before - len(sentences):,} duplicates from the "
-                f"dataset"
-            )
-
-            # Load the evaluation sentences, which are not allowed to be in the
-            # training dataset
-            evaluation_config = DictConfig(
-                dict(
-                    dataset="alexandrainst/coral::read_aloud",
-                    cache_dir=config.cache_dir,
-                    eval_split_name="test",
-                    text_column="text",
-                    audio_column="audio",
-                    sampling_rate=16_000,
-                    min_seconds_per_example=0.0,
-                    max_seconds_per_example=1e6,
-                    clean_text=config.model.clean_text,
-                    lower_case=config.model.lower_case,
-                    characters_to_keep="abcdefghijklmnopqrstuvwxyzæøå0123456789éü",
-                )
-            )
-            evaluation_dataset = load_dataset_for_evaluation(config=evaluation_config)
-            evaluation_sentences = set(
-                evaluation_dataset[evaluation_config.text_column]
-            )
-
-            def remove_evaluation_sentences(sentence: str) -> tuple[str, bool]:
-                """Remove evaluation sentences from a sentence.
-
-                Args:
-                    sentence:
-                        Sentence to remove evaluation sentences from.
-
-                Returns:
-                    A tuple containing:
-                    - The sentence with the evaluation sentences removed.
-                    - A boolean indicating whether an evaluation sentence was present in
-                      the sentence.
-                """
-                evalulation_sentence_present = False
-                for evaluation_sentence in evaluation_sentences:
-                    if evaluation_sentence in sentence:
-                        sentence = sentence.replace(evaluation_sentence, "")
-                        evalulation_sentence_present = True
-                return sentence, evalulation_sentence_present
-
-            # Remove sentences, that appear in the CoRal test split
-            with Parallel(n_jobs=-1) as parallel:
-                tuples = parallel(
-                    delayed(remove_evaluation_sentences)(sentence=sentence)
-                    for sentence in tqdm(
-                        sentences, desc="Removing evaluation sentences"
-                    )
-                )
-            sentences = [t[0] for t in tuples if t is not None]
-            number_of_sentences_changed = sum(t[1] for t in tuples if t is not None)
-            del tuples, evaluation_sentences
-            logger.info(
-                f"Removed evaluation sentences from {number_of_sentences_changed:,} "
-                "examples"
-            )
-
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".txt", dir=config.cache_dir
-            ) as text_file:
-                # Dump dataset to a temporary text file
-                text_file.write("\n".join(sentences))
-                text_file.flush()
-                del sentences
-
-                # Train the n-gram language model
-                prune_args = ["0"] + ["1"] * (config.model.decoder_num_ngrams - 1)
-                with Path(text_file.name).open() as f_in, ngram_path.open("w") as f_out:
-                    subprocess.run(
-                        [
-                            str(kenlm_build_dir / "bin" / "lmplz"),
-                            "-o",  # Order of the n-gram model
-                            str(config.model.decoder_num_ngrams),
-                            "-S",  # Memory limit
-                            "80%",
-                            "-T",  # Temporary file location
-                            str(config.cache_dir),
-                            "--prune",  # Pruning of the n-gram model
-                            *prune_args,
-                        ],
-                        stdin=f_in,
-                        stdout=f_out,
-                    )
-
-                assert ngram_path.exists(), "Failed to train n-gram language model"
+            assert ngram_path.exists(), "Failed to train n-gram language model"
 
         # Add end-of-sentence marker </s> to the n-gram language model to get the final
         # language model
@@ -306,3 +177,137 @@ def download_and_extract(url: str, target_dir: str | Path) -> None:
     # Extract the file
     with tarfile.open(fileobj=io.BytesIO(data)) as tar:
         tar.extractall(path=target_dir)
+
+
+def get_sentence_corpus_path(config: DictConfig) -> Path:
+    """Get the path to the sentence corpus, and create it if it doesn't exist.
+
+    Args:
+        config:
+            Hydra configuration dictionary.
+
+    Returns:
+        Path to the sentence corpus.
+    """
+    sentence_path = Path(config.cache_dir) / "sentences.txt"
+    if sentence_path.exists():
+        return sentence_path
+
+    all_datasets: list[Dataset] = list()
+    for dataset_name, dataset_config in config.decoder_datasets.items():
+        logger.info(f"Loading dataset {dataset_name!r}...")
+
+        dataset = load_dataset(
+            path=dataset_config.id,
+            name=dataset_config.subset,
+            split=dataset_config.split,
+            token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+            trust_remote_code=True,
+            cache_dir=config.cache_dir,
+            streaming=True,
+        )
+        assert isinstance(dataset, IterableDataset)
+
+        if dataset_config.audio_column is not None:
+            dataset = dataset.remove_columns(column_names=dataset_config.audio_column)
+
+        if dataset_config.text_column != "text":
+            dataset = dataset.rename_column(dataset_config.text_column, "text")
+
+        dataset = convert_iterable_dataset_to_dataset(
+            iterable_dataset=dataset, cache_dir=config.cache_dir
+        )
+        assert isinstance(dataset, Dataset)
+
+        dataset = process_dataset(
+            dataset=dataset,
+            clean_text=config.model.clean_text,
+            characters_to_keep=config.characters_to_keep,
+            text_column="text",
+            remove_input_dataset_columns=False,
+            audio_column=None,
+            convert_numerals=False,
+            lower_case=config.model.lower_case,
+        )
+        assert isinstance(dataset, Dataset)
+
+        logger.info(
+            f"{dataset_name.title()!r} dataset contains {len(dataset):,} " "examples"
+        )
+
+        all_datasets.append(dataset)
+
+    logger.info("Concatenating datasets...")
+    dataset = concatenate_datasets(dsets=all_datasets)
+    logger.info(f"Concatenated dataset contains {len(dataset):,} examples")
+
+    logger.info("Shuffling dataset...")
+    dataset = dataset.shuffle(seed=config.seed)
+
+    # Deduplicating the sentences in the dataset is required when training the
+    # n-gram language model
+    logger.info("Deduplicating sentences...")
+    num_sentences_before = len(dataset["text"])
+    sentences = list(set(dataset["text"]))
+    logger.info(
+        f"Removed {num_sentences_before - len(sentences):,} duplicates from the "
+        f"dataset"
+    )
+
+    # Load the evaluation sentences, which are not allowed to be in the
+    # training dataset
+    evaluation_config = DictConfig(
+        dict(
+            dataset="alexandrainst/coral::read_aloud",
+            cache_dir=config.cache_dir,
+            eval_split_name="test",
+            text_column="text",
+            audio_column="audio",
+            sampling_rate=16_000,
+            min_seconds_per_example=0.0,
+            max_seconds_per_example=1e6,
+            clean_text=config.model.clean_text,
+            lower_case=config.model.lower_case,
+            characters_to_keep="abcdefghijklmnopqrstuvwxyzæøå0123456789éü",
+        )
+    )
+    evaluation_dataset = load_dataset_for_evaluation(config=evaluation_config)
+    evaluation_sentences = set(evaluation_dataset[evaluation_config.text_column])
+
+    def remove_evaluation_sentences(sentence: str) -> tuple[str, bool]:
+        """Remove evaluation sentences from a sentence.
+
+        Args:
+            sentence:
+                Sentence to remove evaluation sentences from.
+
+        Returns:
+            A tuple containing:
+            - The sentence with the evaluation sentences removed.
+            - A boolean indicating whether an evaluation sentence was present in
+              the sentence.
+        """
+        evalulation_sentence_present = False
+        for evaluation_sentence in evaluation_sentences:
+            if evaluation_sentence in sentence:
+                sentence = sentence.replace(evaluation_sentence, "")
+                evalulation_sentence_present = True
+        return sentence, evalulation_sentence_present
+
+    # Remove sentences, that appear in the CoRal test split
+    with Parallel(n_jobs=-1) as parallel:
+        tuples = parallel(
+            delayed(remove_evaluation_sentences)(sentence=sentence)
+            for sentence in tqdm(sentences, desc="Removing evaluation sentences")
+        )
+    sentences = [t[0] for t in tuples if t is not None]
+    number_of_sentences_changed = sum(t[1] for t in tuples if t is not None)
+    logger.info(
+        f"Removed evaluation sentences from {number_of_sentences_changed:,} " "examples"
+    )
+
+    with sentence_path.open("w") as text_file:
+        text_file.write("\n".join(sentences))
+        text_file.flush()
+
+    return sentence_path
