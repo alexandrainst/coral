@@ -181,8 +181,9 @@ def train_ngram_model(config: DictConfig) -> None:
                 )
             sentences = [t[0] for t in tuples if t is not None]
             number_of_sentences_changed = sum(t[1] for t in tuples if t is not None)
+            del tuples, evaluation_sentences
             logger.info(
-                f"Removed evaluation sentences from {number_of_sentences_changed} "
+                f"Removed evaluation sentences from {number_of_sentences_changed:,} "
                 "examples"
             )
 
@@ -192,6 +193,7 @@ def train_ngram_model(config: DictConfig) -> None:
                 # Dump dataset to a temporary text file
                 text_file.write("\n".join(sentences))
                 text_file.flush()
+                del sentences
 
                 # Train the n-gram language model
                 prune_args = ["0"] + ["1"] * (config.model.decoder_num_ngrams - 1)
