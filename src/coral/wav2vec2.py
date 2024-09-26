@@ -176,7 +176,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
             save_strategy="no" if self.config.save_total_limit == 0 else "steps",
             logging_steps=self.config.logging_steps,
             length_column_name="input_length",
-            gradient_checkpointing=True,
+            gradient_checkpointing=False,  # True,
             save_total_limit=self.config.save_total_limit,
             load_best_model_at_end=self.config.early_stopping,
             metric_for_best_model="wer",
