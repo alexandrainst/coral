@@ -8,6 +8,7 @@ import logging
 import os
 
 import hydra
+import torch
 from dotenv import load_dotenv
 from omegaconf import DictConfig
 
@@ -35,7 +36,7 @@ def main(config: DictConfig) -> None:
     # In case we are running in a multi-GPU setting, we need to force certain
     # hyperparameters
     is_main_process = os.getenv("RANK", "0") == "0"
-    if os.getenv("WORLD_SIZE") is not None:
+    if os.getenv("WORLD_SIZE") is not None or torch.cuda.device_count() > 1:
         if "layerdrop" in config.model and config.model.layerdrop != 0.0:
             if is_main_process:
                 logger.info(
