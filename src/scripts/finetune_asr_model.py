@@ -43,6 +43,13 @@ def main(config: DictConfig) -> None:
                     "training"
                 )
             config.model.layerdrop = 0.0
+        if "gradient_checkpointing" in config and config.gradient_checkpointing is True:
+            if is_main_process:
+                logger.info(
+                    "Disabling gradient checkpointing as this is required in a multi-"
+                    "GPU training"
+                )
+            config.gradient_checkpointing = False
         if config.padding != "max_length":
             if is_main_process:
                 logger.info(
