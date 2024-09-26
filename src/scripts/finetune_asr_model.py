@@ -16,6 +16,7 @@ import logging
 import os
 
 import hydra
+import torch
 from dotenv import load_dotenv
 from omegaconf import DictConfig
 
@@ -44,13 +45,6 @@ def main(config: DictConfig) -> None:
     # hyperparameters
     is_main_process = os.getenv("RANK", "0") == "0"
     if os.getenv("WORLD_SIZE") is not None:
-        # if "gradient_checkpointing" in config and config.gradient_checkpointing is True:
-        #     if is_main_process:
-        #         logger.info(
-        #             "Disabling gradient checkpointing as this is required in a multi-"
-        #             "GPU training"
-        #         )
-        #     config.gradient_checkpointing = False
         if "layerdrop" in config.model and config.model.layerdrop != 0.0:
             if is_main_process:
                 logger.info(
@@ -65,6 +59,22 @@ def main(config: DictConfig) -> None:
                     "multi-GPU training"
                 )
             config.padding = "max_length"
+
+    elif torch.cuda.device_count() > 1:
+        if is_main_process:
+            logger.info(
+                "You seem to be running on multiple GPUs, but not running the script "
+                "with `accelerate`. This will result in slower training. To use "
+                "`accelerate`, run the script with `accelerate launch [--use-deepspeed] "
+                "src/scripts/finetune_asr_model.py [key=value] [key=value] ...`"
+            )
+        if "gradient_checkpointing" in config and config.gradient_checkpointing is True:
+            if is_main_process:
+                logger.info(
+                    "Disabling gradient checkpointing as this is required in a multi-"
+                    "GPU training without `accelerate`"
+                )
+            config.gradient_checkpointing = False
 
     finetune(config=config)
 
