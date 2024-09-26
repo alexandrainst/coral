@@ -44,20 +44,6 @@ def main(config: DictConfig) -> None:
                     "GPU training"
                 )
             config.gradient_checkpointing = False
-        # if "layerdrop" in config.model and config.model.layerdrop != 0.0:
-        #     if is_main_process:
-        #         logger.info(
-        #             "Forcing `layerdrop` to be 0.0 as this is required in a multi-GPU "
-        #             "training"
-        #         )
-        #     config.model.layerdrop = 0.0
-        # if config.padding != "max_length":
-        #     if is_main_process:
-        #         logger.info(
-        #             "Forcing `padding` to be 'max_length' as this is required in a "
-        #             "multi-GPU training"
-        #         )
-        #     config.padding = "max_length"
 
     finetune(config=config)
 
