@@ -1,7 +1,15 @@
 """Finetune a speech recognition model.
 
 Usage:
-    python src/scripts/finetune_asr_model.py [key=value] [key=value] ...
+    Running on a single GPU:
+
+    python src/scripts/finetune_asr_model.py \
+        [key=value] [key=value] ...
+
+    Running on multiple GPUs:
+
+    accelerate launch [--use-deepspeed] src/scripts/finetune_asr_model.py \
+        [key=value] [key=value] ...
 """
 
 import logging
