@@ -3,6 +3,7 @@
 import io
 import logging
 import os
+import shutil
 import subprocess
 import tarfile
 from pathlib import Path
@@ -51,6 +52,24 @@ def download_and_compile_kenlm(config: DictConfig) -> Path:
     cache_dir = (
         Path.home() / ".cache" if config.cache_dir is None else Path(config.cache_dir)
     )
+
+    # Install dependencies if on Ubuntu/Debian
+    if shutil.which(cmd="apt-get") is not None:
+        logger.info("Installing `kenlm` dependencies...")
+        subprocess.run(
+            [
+                "sudo",
+                "apt-get",
+                "install",
+                "-y",
+                "build-essential",
+                "libboost-all-dev",
+                "cmake",
+                "libbz2-dev",
+                "liblzma-dev",
+            ]
+        )
+
     kenlm_dir = cache_dir / "kenlm"
     if not kenlm_dir.exists():
         logger.info("Downloading `kenlm`...")
