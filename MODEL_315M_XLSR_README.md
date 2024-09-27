@@ -48,8 +48,8 @@ confidence interval (lower is better; best scores in **bold**, second-best in
 
 ### Detailed Evaluation Across Demographics on the CoRal Test Set
 
-![CER comparison plot](https://filedn.com/lRBwPhPxgV74tO0rDoe8SpH/coral/roest-comparison-cer-plot.png)
-![WER comparison plot](https://filedn.com/lRBwPhPxgV74tO0rDoe8SpH/coral/roest-comparison-wer-plot.png)
+![CER comparison plot](https://filedn.com/lRBwPhPxgV74tO0rDoe8SpH/coral/roest-xlsr-comparison-cer-plot.png)
+![WER comparison plot](https://filedn.com/lRBwPhPxgV74tO0rDoe8SpH/coral/roest-xlsr-comparison-wer-plot.png)
 
 
 ## Training Data
