@@ -83,6 +83,10 @@ def train_ngram_model(kenlm_build_dir: Path, config: DictConfig) -> Path:
     Returns:
         Path to the trained n-gram language model.
     """
+    cache_dir = (
+        Path.home() / ".cache" if config.cache_dir is None else Path(config.cache_dir)
+    )
+
     num_ngrams = config.model.decoder_num_ngrams
     correct_ngram_path = Path(config.model_dir) / f"{num_ngrams}gram.arpa"
     if correct_ngram_path.exists():
@@ -108,7 +112,7 @@ def train_ngram_model(kenlm_build_dir: Path, config: DictConfig) -> Path:
                     "-S",  # Memory limit
                     "80%",
                     "-T",  # Temporary file location
-                    str(config.cache_dir),
+                    str(cache_dir),
                     "--prune",  # Pruning of the n-gram model
                     *prune_args,
                 ],
@@ -159,10 +163,14 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
     Returns:
         Path to the sentence corpus.
     """
+    cache_dir = (
+        Path.home() / ".cache" if config.cache_dir is None else Path(config.cache_dir)
+    )
+
     dataset_hash = hash(
         tuple([dataset_name for dataset_name in config.decoder_datasets])
     )
-    sentence_path = Path(config.cache_dir) / f"ngram-sentences-{dataset_hash}.txt"
+    sentence_path = cache_dir / f"ngram-sentences-{dataset_hash}.txt"
     if sentence_path.exists():
         return sentence_path
 
@@ -176,7 +184,7 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
             split=dataset_config.split,
             token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
             trust_remote_code=True,
-            cache_dir=config.cache_dir,
+            cache_dir=str(cache_dir),
             streaming=True,
         )
         assert isinstance(dataset, IterableDataset)
@@ -188,7 +196,7 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
             dataset = dataset.rename_column(dataset_config.text_column, "text")
 
         dataset = convert_iterable_dataset_to_dataset(
-            iterable_dataset=dataset, cache_dir=config.cache_dir
+            iterable_dataset=dataset, cache_dir=cache_dir
         )
         assert isinstance(dataset, Dataset)
 
@@ -232,7 +240,7 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
     evaluation_config = DictConfig(
         dict(
             dataset="alexandrainst/coral::read_aloud",
-            cache_dir=config.cache_dir,
+            cache_dir=cache_dir,
             eval_split_name="test",
             text_column="text",
             audio_column="audio",
