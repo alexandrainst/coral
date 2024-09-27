@@ -63,6 +63,7 @@ def finetune(config: DictConfig) -> None:
 
     # if hasattr(config.model, "use_decoder") and config.model.use_decoder:
     #     train_and_store_ngram_model(config=config)
+    breakpoint()
 
     if config.push_to_hub:
         push_model_to_hub(
