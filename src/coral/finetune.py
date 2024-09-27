@@ -4,7 +4,12 @@ import logging
 import os
 
 from omegaconf import DictConfig
-from transformers import EarlyStoppingCallback, TrainerCallback
+from transformers import (
+    AutoModelForCTC,
+    AutoProcessor,
+    EarlyStoppingCallback,
+    TrainerCallback,
+)
 from wandb.sdk.wandb_init import init as wandb_init
 
 from .data import load_data_for_finetuning
@@ -31,6 +36,10 @@ def finetune(config: DictConfig) -> None:
     model = model_setup.load_model()
     dataset = load_data_for_finetuning(config=config, processor=processor)
 
+    # TEMP
+    model = AutoModelForCTC.from_pretrained(config.model_dir)
+    processor = AutoProcessor.from_pretrained(config.model_dir)
+
     if config.wandb and is_main_process:
         wandb_init(
             project=config.wandb_project,
@@ -41,8 +50,6 @@ def finetune(config: DictConfig) -> None:
 
     if "val" not in dataset and is_main_process:
         logger.info("No validation set found. Disabling early stopping.")
-
-    breakpoint()
 
     trainer = model_setup.load_trainer_class()(
         model=model,
