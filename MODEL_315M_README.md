@@ -3,6 +3,8 @@
 This is a Danish state-of-the-art speech recognition model, trained by [the Alexandra
 Institute](https://alexandra.dk/).
 
+Try it out in [our interactive demo](https://huggingface.co/spaces/alexandrainst/roest-demo)!
+
 
 ## Quick Start
 Start by installing the required libraries:
