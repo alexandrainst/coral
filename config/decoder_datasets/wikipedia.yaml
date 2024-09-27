@@ -1,0 +1,6 @@
+wikipedia:
+  id: alexandrainst/scandi-wiki
+  subset: da
+  split: train
+  text_column: text
+  audio_column: null

@@ -2,6 +2,10 @@ defaults:
   - model: wav2vec2-small
   - datasets:
     - coral
+  - decoder_datasets:
+    - wikipedia
+    - common_voice
+    - reddit
   - override hydra/job_logging: custom
   - _self_
 
@@ -10,7 +14,6 @@ seed: 4242
 evaluation_dataset:
   id: alexandrainst/coral
   subset: read_aloud
-  split: test
   val_name: val
   text_column: text
   audio_column: audio
@@ -41,7 +44,8 @@ hub_organisation: alexandrainst
 push_to_hub: false
 create_pr: false
 private: false
-fp16: true
+fp16_allowed: true
+bf16_allowed: true
 
 # Training parameters
 wandb: false
@@ -65,3 +69,6 @@ eval_steps: 500
 save_steps: 500
 early_stopping: false
 early_stopping_patience: 50
+
+# NOTE: This is automatically set to false in a multi-gpu setting
+gradient_checkpointing: true

@@ -1,0 +1,6 @@
+reddit:
+  id: alexandrainst/scandi-reddit
+  subset: da
+  split: train
+  text_column: doc
+  audio_column: null

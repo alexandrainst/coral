@@ -7,10 +7,10 @@ Usage:
 import hydra
 from omegaconf import DictConfig
 
-from coral.ngram import train_ngram_model
+from coral.ngram import train_and_store_ngram_model
 
 
-@hydra.main(config_path="../../config", config_name="finetuning", version_base=None)
+@hydra.main(config_path="../../config", config_name="asr_finetuning", version_base=None)
 def main(config: DictConfig) -> None:
     """Trains an ngram language model.
 
@@ -18,7 +18,7 @@ def main(config: DictConfig) -> None:
         config:
             Hydra configuration dictionary.
     """
-    train_ngram_model(config=config)
+    train_and_store_ngram_model(config=config)
 
 
 if __name__ == "__main__":

@@ -34,10 +34,10 @@ confidence interval (lower is better; best scores in **bold**, second-best in
 
 | Model | Number of parameters | [CoRal](https://huggingface.co/datasets/alexandrainst/coral/viewer/read_aloud/test) CER | [CoRal](https://huggingface.co/datasets/alexandrainst/coral/viewer/read_aloud/test) WER | [Danish Common Voice 17](https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0/viewer/da/test) CER | [Danish Common Voice 17](https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0/viewer/da/test) WER |
 |:---|---:|---:|---:|---:|---:|
-| Røst-315m (this model) | 315M | **6.9% ± 0.2%** | **14.9% ± 0.4%** | *5.1% ± 0.6%* | *13.2% ± 0.8%* |
+| Røst-315m (this model) | 315M | **6.6%** | **17.0%** | 6.6% ± 0.6% | 16.7% ± 0.8% |
 | [chcaa/xls-r-300m-danish-nst-cv9](https://hf.co/chcaa/xls-r-300m-danish-nst-cv9) | 315M | 14.4% ± 0.3% | 36.5% ± 0.6% | **4.1% ± 0.5%** | **12.0% ± 0.8%** |
-| [mhenrichsen/hviske](https://hf.co/mhenrichsen/hviske) | 1540M | 14.2% ± 0.5% | 33.2% ± 0.7% | *5.2% ± 0.4%* | 14.2% ± 0.8% |
-| [openai/whisper-large-v3](https://hf.co/openai/whisper-large-v3) | 1540M | *11.4% ± 0.3%* | *28.3% ± 0.6%* | *5.5% ± 0.4%* | 14.8% ± 0.8% |
+| [mhenrichsen/hviske](https://hf.co/mhenrichsen/hviske) | 1540M | 14.2% ± 0.5% | 33.2% ± 0.7% | *5.2% ± 0.4%* | *14.2% ± 0.8%* |
+| [openai/whisper-large-v3](https://hf.co/openai/whisper-large-v3) | 1540M | *11.4% ± 0.3%* | *28.3% ± 0.6%* | *5.5% ± 0.4%* | *14.8% ± 0.8%* |
 | [openai/whisper-large-v2](https://hf.co/openai/whisper-large-v2) | 1540M | 13.9% ± 0.9% | 32.6% ± 1.2% | 7.2% ± 0.5% | 18.5% ± 0.9% |
 | [openai/whisper-large](https://hf.co/openai/whisper-large) | 1540M | 14.5% ± 0.3% | 35.4% ± 0.6% | 9.2% ± 0.5% | 22.9% ± 1.0% |
 | [openai/whisper-medium](https://hf.co/openai/whisper-medium) | 764M | 17.2% ± 1.3% | 40.5% ± 2.1% | 9.4% ± 0.5% | 24.0% ± 1.0% |
@@ -48,8 +48,8 @@ confidence interval (lower is better; best scores in **bold**, second-best in
 
 ### Detailed Evaluation Across Demographics on the CoRal Test Set
 
-![CER comparison plot](https://filedn.com/lRBwPhPxgV74tO0rDoe8SpH/coral/roest-comparison-cer-plot.png)
-![WER comparison plot](https://filedn.com/lRBwPhPxgV74tO0rDoe8SpH/coral/roest-comparison-wer-plot.png)
+![CER comparison plot](https://filedn.com/lRBwPhPxgV74tO0rDoe8SpH/coral/roest-xlsr-comparison-cer-plot.png)
+![WER comparison plot](https://filedn.com/lRBwPhPxgV74tO0rDoe8SpH/coral/roest-xlsr-comparison-wer-plot.png)
 
 
 ## Training Data
@@ -75,9 +75,7 @@ This model is the result of four different stages of training:
      - 1,000 hours from [BABEL](https://eprints.whiterose.ac.uk/152840/), being
        conversational telephone speech in 17 African and Asian languages. This does not
        include any Danish speech.
-  2. Continued pretraining on 141,000 hours of Danish radio (more specifically, DR P1
-     and Radio24Syv from 2005 to 2021).
-  3. "Finetuning" on 373 hours of labelled Danish publicly available data. "Finetuning"
+  2. "Finetuning" on 373 hours of labelled Danish publicly available data. "Finetuning"
      indicates that this stage of training was supervised, i.e. the model was trained on
      both audio and transcriptions to perform the speech-to-text task (also known as
      automatic speech recognition). The finetuning data is as follows:
@@ -88,15 +86,23 @@ This model is the result of four different stages of training:
      - The Danish training split of the [Common Voice 17
        dataset](https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0),
        consisting of 12 hours of Danish read-aloud speech.
-  4. An n-gram language model has been trained separately, and is used to guide the
+  3. An n-gram language model has been trained separately, and is used to guide the
      transcription generation of the finetuned speech recognition model. This n-gram
-     language model has been trained on all of the [Danish
-     Wikipedia](https://huggingface.co/datasets/alexandrainst/scandi-wiki/viewer/da)
-     (approximately 287,000 articles).
+     language model has been trained on the following datasets:
+     - [Danish
+       Wikipedia](https://huggingface.co/datasets/alexandrainst/scandi-wiki/viewer/da)
+       (approximately 287,000 articles).
+     - [Danish Common Voice 17 training
+       split](https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0/viewer/da)
+       (approximately 3,500 comments).
+     - [Danish
+       Reddit](https://huggingface.co/datasets/alexandrainst/scandi-reddit/viewer/da)
+       (approximately 5 million comments).
+     Note that all samples from the CoRal test dataset have been removed from all of
+     these datasets, to ensure that the n-gram model has not seen the test data.
 
 The first step was trained by [Babu et al.
-(2021)](https://doi.org/10.48550/arXiv.2111.09296), second step by [Hansen
-(2022)](https://huggingface.co/chcaa/xls-r-300m-danish) and the third and fourth step by
+(2021)](https://doi.org/10.48550/arXiv.2111.09296) and the second and third step by
 [Nielsen et al. (2024)](https://huggingface.co/alexandrainst/roest-315m).
 
 The final product is then the combination of the finetuned model along with the n-gram

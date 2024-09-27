@@ -42,11 +42,12 @@ def finetuning_config(request) -> Generator[DictConfig, None, None]:
     """Hydra configuration."""
     model, datasets = request.param
     yield compose(
-        config_name="finetuning",
+        config_name="asr_finetuning",
         overrides=[
             f"model={model}",
             f"datasets={datasets}",
-            "fp16=false",
+            "bf16_allowed=false",
+            "fp16_allowed=false",
             "total_batch_size=2",
             "per_device_batch_size=2",
             "max_steps=2",

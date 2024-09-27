@@ -117,3 +117,16 @@ type-check:  ## Run type checking
 		--ignore-missing-imports \
 		--show-error-codes \
 		--check-untyped-defs
+
+roest-315m:  ## Train the Røst-315M model
+	@accelerate launch \
+		--use-deepspeed \
+		src/scripts/finetune_asr_model.py \
+		model=wav2vec2-small \
+		datasets=[coral] \
+		decoder_datasets=[wikipedia,common_voice,reddit] \
+		push_to_hub=true \
+		dataloader_num_workers=4 \
+		model_id=roest-315m-xlsr \
+		private=true \
+		per_device_batch_size=64

@@ -1,6 +1,6 @@
 name: wav2vec2-small
 type: wav2vec2
-pretrained_model_id: chcaa/xls-r-300m-danish
+pretrained_model_id: facebook/wav2vec2-xls-r-300m
 freeze_feature_encoder: false
 
 # Data hyperparameters
@@ -20,12 +20,8 @@ mask_time_length: 10
 mask_feature_prob: 0.5
 mask_feature_length: 64
 layerdrop: 0.1  # NOTE: This will automatically be set to 0 in a multi-gpu setting
-ctc_loss_reduction: sum
+ctc_loss_reduction: mean
 
-# Decoder hyperparameters
-decoder:
-  dataset_id: alexandrainst/scandi-wiki
-  dataset_subset: da
-  dataset_split: train
-  text_column: text
-  n: 5
+# Decoder hyperparameters
+use_decoder: true
+decoder_num_ngrams: 3
