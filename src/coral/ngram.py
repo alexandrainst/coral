@@ -61,6 +61,7 @@ def download_and_compile_kenlm(config: DictConfig) -> Path:
                 "sudo",
                 "apt-get",
                 "install",
+                "--no-upgrade",
                 "-y",
                 "build-essential",
                 "libboost-all-dev",
