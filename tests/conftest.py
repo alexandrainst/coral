@@ -46,7 +46,8 @@ def finetuning_config(request) -> Generator[DictConfig, None, None]:
         overrides=[
             f"model={model}",
             f"datasets={datasets}",
-            "fp16=false",
+            "bf16_allowed=false",
+            "fp16_allowed=false",
             "total_batch_size=2",
             "per_device_batch_size=2",
             "max_steps=2",
