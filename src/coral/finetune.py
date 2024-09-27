@@ -8,7 +8,7 @@ from transformers import (
     EarlyStoppingCallback,
     TrainerCallback,
     Wav2Vec2ForCTC,
-    Wav2Vec2ProcessorWithLM,
+    Wav2Vec2Processor,
 )
 from wandb.sdk.wandb_init import init as wandb_init
 
@@ -33,7 +33,7 @@ def finetune(config: DictConfig) -> None:
 
     # TEMP
     model = Wav2Vec2ForCTC.from_pretrained(config.model_dir)
-    processor = Wav2Vec2ProcessorWithLM.from_pretrained(config.model_dir)
+    processor = Wav2Vec2Processor.from_pretrained(config.model_dir)
 
     model_setup: ModelSetup = load_model_setup(config=config)
     processor = model_setup.load_processor()
