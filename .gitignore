@@ -43,7 +43,7 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *.cover
-config/decoder_datasets/subtitles.yaml
+config/decoder_datasets/youtube_subtitles.yaml
 
 # Translations
 *.mo
