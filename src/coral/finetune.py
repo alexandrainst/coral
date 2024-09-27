@@ -5,10 +5,10 @@ import os
 
 from omegaconf import DictConfig
 from transformers import (
-    AutoModelForCTC,
-    AutoProcessor,
     EarlyStoppingCallback,
     TrainerCallback,
+    Wav2Vec2ForCTC,
+    Wav2Vec2ProcessorWithLM,
 )
 from wandb.sdk.wandb_init import init as wandb_init
 
@@ -37,8 +37,8 @@ def finetune(config: DictConfig) -> None:
     dataset = load_data_for_finetuning(config=config, processor=processor)
 
     # TEMP
-    model = AutoModelForCTC.from_pretrained(config.model_dir)
-    processor = AutoProcessor.from_pretrained(config.model_dir)
+    model = Wav2Vec2ForCTC.from_pretrained(config.model_dir)
+    processor = Wav2Vec2ProcessorWithLM.from_pretrained(config.model_dir)
     breakpoint()
 
     if config.wandb and is_main_process:
