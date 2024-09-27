@@ -34,7 +34,7 @@ confidence interval (lower is better; best scores in **bold**, second-best in
 
 | Model | Number of parameters | [CoRal](https://huggingface.co/datasets/alexandrainst/coral/viewer/read_aloud/test) CER | [CoRal](https://huggingface.co/datasets/alexandrainst/coral/viewer/read_aloud/test) WER | [Danish Common Voice 17](https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0/viewer/da/test) CER | [Danish Common Voice 17](https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0/viewer/da/test) WER |
 |:---|---:|---:|---:|---:|---:|
-| Røst-315m (this model) | 315M | **6.6%** | **17.0%** | 6.6% ± 0.6% | 16.7% ± 0.8% |
+| Røst-315m (this model) | 315M | **6.6% ± 0.2%** | **17.0% ± 0.4%** | 6.6% ± 0.6% | 16.7% ± 0.8% |
 | [chcaa/xls-r-300m-danish-nst-cv9](https://hf.co/chcaa/xls-r-300m-danish-nst-cv9) | 315M | 14.4% ± 0.3% | 36.5% ± 0.6% | **4.1% ± 0.5%** | **12.0% ± 0.8%** |
 | [mhenrichsen/hviske](https://hf.co/mhenrichsen/hviske) | 1540M | 14.2% ± 0.5% | 33.2% ± 0.7% | *5.2% ± 0.4%* | *14.2% ± 0.8%* |
 | [openai/whisper-large-v3](https://hf.co/openai/whisper-large-v3) | 1540M | *11.4% ± 0.3%* | *28.3% ± 0.6%* | *5.5% ± 0.4%* | *14.8% ± 0.8%* |
