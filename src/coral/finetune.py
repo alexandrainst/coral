@@ -4,19 +4,15 @@ import logging
 import os
 
 from omegaconf import DictConfig
-from transformers import (
-    EarlyStoppingCallback,
-    TrainerCallback,
-    Wav2Vec2ForCTC,
-    Wav2Vec2Processor,
-)
+from transformers import EarlyStoppingCallback, TrainerCallback
+from wandb import finish as wandb_finish
 from wandb.sdk.wandb_init import init as wandb_init
 
 from .data import load_data_for_finetuning
 from .data_models import ModelSetup
 from .model_setup import load_model_setup
 from .ngram import train_and_store_ngram_model
-from .utils import push_model_to_hub
+from .utils import block_terminal_output, disable_tqdm, push_model_to_hub
 
 logger = logging.getLogger(__package__)
 
@@ -31,14 +27,10 @@ def finetune(config: DictConfig) -> None:
     # Note if we're on the main process, if we are running in a distributed setting
     is_main_process = os.getenv("RANK", "0") == "0"
 
-    # TEMP
-    model = Wav2Vec2ForCTC.from_pretrained(config.model_dir)
-    processor = Wav2Vec2Processor.from_pretrained(config.model_dir)
-
     model_setup: ModelSetup = load_model_setup(config=config)
     processor = model_setup.load_processor()
-    # processor.save_pretrained(save_directory=config.model_dir)
-    # model = model_setup.load_model()
+    processor.save_pretrained(save_directory=config.model_dir)
+    model = model_setup.load_model()
     dataset = load_data_for_finetuning(config=config, processor=processor)
 
     if config.wandb and is_main_process:
@@ -63,14 +55,13 @@ def finetune(config: DictConfig) -> None:
         callbacks=load_early_stopping_callback(config) if "val" in dataset else None,
     )
 
-    # TEMP
-    # block_terminal_output()
-    # with disable_tqdm():
-    #     trainer.train(resume_from_checkpoint=config.resume_from_checkpoint)
-    # if config.wandb and is_main_process:
-    #     wandb_finish()
+    block_terminal_output()
+    with disable_tqdm():
+        trainer.train(resume_from_checkpoint=config.resume_from_checkpoint)
+    if config.wandb and is_main_process:
+        wandb_finish()
 
-    # model.save_pretrained(save_directory=config.model_dir)
+    model.save_pretrained(save_directory=config.model_dir)
 
     if hasattr(config.model, "use_decoder") and config.model.use_decoder:
         train_and_store_ngram_model(config=config)
