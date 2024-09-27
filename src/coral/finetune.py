@@ -15,7 +15,6 @@ from wandb.sdk.wandb_init import init as wandb_init
 from .data import load_data_for_finetuning
 from .data_models import ModelSetup
 from .model_setup import load_model_setup
-from .ngram import train_and_store_ngram_model
 from .utils import push_model_to_hub
 
 logger = logging.getLogger(__package__)
@@ -72,8 +71,8 @@ def finetune(config: DictConfig) -> None:
 
     # model.save_pretrained(save_directory=config.model_dir)
 
-    if hasattr(config.model, "use_decoder") and config.model.use_decoder:
-        train_and_store_ngram_model(config=config)
+    # if hasattr(config.model, "use_decoder") and config.model.use_decoder:
+    #     train_and_store_ngram_model(config=config)
 
     if config.push_to_hub:
         push_model_to_hub(
