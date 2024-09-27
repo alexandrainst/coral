@@ -44,7 +44,8 @@ hub_organisation: alexandrainst
 push_to_hub: false
 create_pr: false
 private: false
-fp16: true
+fp16_allowed: true
+bf16_allowed: true
 
 # Training parameters
 wandb: false

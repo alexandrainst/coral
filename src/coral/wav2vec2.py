@@ -157,6 +157,14 @@ class Wav2Vec2ModelSetup(ModelSetup):
             )
             gradient_accumulation_steps = 1
 
+        fp16 = False
+        bf16 = False
+        if not mps_is_available():
+            if self.config.bf16_allowed and torch.cuda.is_bf16_supported():
+                bf16 = True
+            elif self.config.fp16_allowed and torch.cuda.is_available():
+                fp16 = True
+
         args = TrainingArguments(
             output_dir=self.config.model_dir,
             hub_model_id=f"{self.config.hub_organisation}/{self.config.model_id}",
@@ -168,7 +176,8 @@ class Wav2Vec2ModelSetup(ModelSetup):
             lr_scheduler_type=SchedulerType.COSINE,
             warmup_steps=self.config.warmup_steps,
             max_steps=self.config.max_steps,
-            fp16=self.config.fp16 and not mps_is_available(),
+            fp16=fp16,
+            bf16=bf16,
             push_to_hub=False,
             eval_strategy="steps",
             eval_steps=self.config.eval_steps,
