@@ -39,6 +39,7 @@ def finetune(config: DictConfig) -> None:
     # TEMP
     model = AutoModelForCTC.from_pretrained(config.model_dir)
     processor = AutoProcessor.from_pretrained(config.model_dir)
+    breakpoint()
 
     if config.wandb and is_main_process:
         wandb_init(
