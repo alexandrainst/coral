@@ -42,6 +42,8 @@ def finetune(config: DictConfig) -> None:
     if "val" not in dataset and is_main_process:
         logger.info("No validation set found. Disabling early stopping.")
 
+    breakpoint()
+
     trainer = model_setup.load_trainer_class()(
         model=model,
         data_collator=model_setup.load_data_collator(),
@@ -63,7 +65,6 @@ def finetune(config: DictConfig) -> None:
 
     # if hasattr(config.model, "use_decoder") and config.model.use_decoder:
     #     train_and_store_ngram_model(config=config)
-    breakpoint()
 
     if config.push_to_hub:
         push_model_to_hub(
