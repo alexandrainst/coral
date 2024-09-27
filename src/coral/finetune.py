@@ -30,15 +30,15 @@ def finetune(config: DictConfig) -> None:
     # Note if we're on the main process, if we are running in a distributed setting
     is_main_process = os.getenv("RANK", "0") == "0"
 
-    model_setup: ModelSetup = load_model_setup(config=config)
-    processor = model_setup.load_processor()
-    processor.save_pretrained(save_directory=config.model_dir)
-    model = model_setup.load_model()
-    dataset = load_data_for_finetuning(config=config, processor=processor)
-
     # TEMP
     model = Wav2Vec2ForCTC.from_pretrained(config.model_dir)
     processor = Wav2Vec2ProcessorWithLM.from_pretrained(config.model_dir)
+
+    model_setup: ModelSetup = load_model_setup(config=config)
+    # processor = model_setup.load_processor()
+    # processor.save_pretrained(save_directory=config.model_dir)
+    # model = model_setup.load_model()
+    dataset = load_data_for_finetuning(config=config, processor=processor)
 
     if config.wandb and is_main_process:
         wandb_init(
