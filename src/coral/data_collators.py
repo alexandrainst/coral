@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 
+import numpy as np
 import torch
 from transformers import BatchEncoding, BatchFeature
 from transformers.data.data_collator import DataCollatorMixin
@@ -124,7 +125,7 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
         """
         if "input_features" in features[0]:
             audio_features = [
-                dict(input_features=f["input_features"]) for f in features
+                dict(input_features=np.asarray(f["input_features"])) for f in features
             ]
         elif "audio" in features[0]:
             audio_features = [dict(audio=f["audio"]["array"]) for f in features]
