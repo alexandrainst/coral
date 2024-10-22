@@ -426,6 +426,9 @@ def filter_example(
     Returns:
         Whether the sample should be kept.
     """
+    # TEMP
+    logger.info(f"Filtering example: {sample}")
+
     # Filtering based on audio
     audio = sample[audio_column]
     if audio["array"].shape[0] <= audio["sampling_rate"] * min_seconds_per_example:
@@ -519,6 +522,9 @@ def process_dataset(
         )
     else:
         mapped = dataset.map(function=map_fn, remove_columns=column_names)
+
+    # TEMP
+    logger.info(f"Processed dataset: {mapped}")
 
     return mapped
 
