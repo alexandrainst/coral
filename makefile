@@ -141,7 +141,7 @@ roest-809m:  ## Train the Røst-809M model
 		dataset_probabilities=[0.95,0.05] \
 		push_to_hub=true \
 		dataloader_num_workers=4 \
-		model_id=roest-764m \
+		model_id=roest-809m \
 		private=true \
 		per_device_batch_size=32
 
