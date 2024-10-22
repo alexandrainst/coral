@@ -13,6 +13,7 @@ from omegaconf import DictConfig
 from torch.backends.mps import is_available as mps_is_available
 from transformers import (
     AutoModelForSpeechSeq2Seq,
+    AutoProcessor,
     EvalPrediction,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
@@ -47,7 +48,7 @@ class WhisperModelSetup(ModelSetup):
 
     def load_processor(self) -> WhisperProcessor:
         """Return the processor for the model."""
-        processor_or_tup = WhisperProcessor.from_pretrained(
+        processor_or_tup = AutoProcessor.from_pretrained(
             self.config.model.pretrained_model_id, language="Danish", task="transcribe"
         )
         assert isinstance(processor_or_tup, WhisperProcessor)
