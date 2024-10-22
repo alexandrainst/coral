@@ -132,6 +132,19 @@ roest-315m:  ## Train the Røst-315M model
 		private=true \
 		per_device_batch_size=64
 
+roest-809m:  ## Train the Røst-809M model
+	@accelerate launch \
+		--use-deepspeed \
+		src/scripts/finetune_asr_model.py \
+		model=whisper-large-turbo \
+		datasets=[coral,common_voice_17] \
+		dataset_probabilities=[0.95,0.05] \
+		push_to_hub=true \
+		dataloader_num_workers=4 \
+		model_id=roest-764m \
+		private=true \
+		per_device_batch_size=32
+
 roest-1b:  ## Train the Røst-1B model
 	@accelerate launch \
 		--use-deepspeed \
@@ -144,7 +157,7 @@ roest-1b:  ## Train the Røst-1B model
 		dataloader_num_workers=4 \
 		model_id=roest-1b \
 		private=true \
-		per_device_batch_size=64
+		per_device_batch_size=32
 
 roest-1.5b:  ## Train the Røst-1.5B model
 	@accelerate launch \
@@ -157,7 +170,7 @@ roest-1.5b:  ## Train the Røst-1.5B model
 		dataloader_num_workers=4 \
 		model_id=roest-1.5b \
 		private=true \
-		per_device_batch_size=64
+		per_device_batch_size=32
 
 roest-2b:  ## Train the Røst-2B model
 	@accelerate launch \
@@ -171,4 +184,4 @@ roest-2b:  ## Train the Røst-2B model
 		dataloader_num_workers=4 \
 		model_id=roest-2b \
 		private=true \
-		per_device_batch_size=64
+		per_device_batch_size=32
