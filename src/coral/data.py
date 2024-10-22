@@ -223,7 +223,7 @@ def load_data_for_finetuning(
             probabilities=probabilities,
             seed=config.seed,
             split=NamedSplit("train"),
-            stopping_strategy="all_exhausted",
+            # stopping_strategy="all_exhausted",
         )
         logger.info("Finished interleaving datasets")
     else:
