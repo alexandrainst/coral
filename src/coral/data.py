@@ -622,4 +622,6 @@ def process_example(
     example["labels"] = processor(text=example[text_column], truncation=True).input_ids
     example["input_length"] = len(example["labels"])
 
+    logger.info(f"{example['input_features'].shape=}")
+
     return example
