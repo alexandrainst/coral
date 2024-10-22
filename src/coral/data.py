@@ -199,7 +199,7 @@ def load_data_for_finetuning(
 
     if len(all_datasets) > 1:
         if is_main_process:
-            logger.info("Interleaving datasets")
+            logger.info("Interleaving datasets...")
             if config.dataset_probabilities is None and len(all_datasets) > 1:
                 logger.warning(
                     "No dataset probabilities were specified for the training split. "
@@ -225,6 +225,7 @@ def load_data_for_finetuning(
             split=NamedSplit("train"),
             stopping_strategy="all_exhausted",
         )
+        logger.info("Finished interleaving datasets")
     else:
         train = all_datasets[0]
 
