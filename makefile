@@ -140,10 +140,10 @@ roest-809m:  ## Train the Røst-809M model
 		datasets=[coral,common_voice_17] \
 		dataset_probabilities=[0.95,0.05] \
 		push_to_hub=true \
-		dataloader_num_workers=4 \
+		dataloader_num_workers=1 \
 		model_id=roest-809m \
 		private=true \
-		per_device_batch_size=16
+		per_device_batch_size=1
 
 roest-1b:  ## Train the Røst-1B model
 	@accelerate launch \
