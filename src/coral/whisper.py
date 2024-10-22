@@ -21,6 +21,7 @@ from transformers import (
     TrainingArguments,
     WhisperForConditionalGeneration,
     WhisperProcessor,
+    default_data_collator,
 )
 from transformers.trainer import OptimizerNames
 
@@ -101,11 +102,12 @@ class WhisperModelSetup(ModelSetup):
 
     def load_data_collator(self) -> DataCollatorSpeechSeq2SeqWithPadding:
         """Return the data collator for the model."""
-        return DataCollatorSpeechSeq2SeqWithPadding(
-            processor=self.processor,
-            max_seconds_per_example=self.config.max_seconds_per_example,
-            padding=self.config.padding,
-        )
+        return default_data_collator
+        # DataCollatorSpeechSeq2SeqWithPadding(
+        #     processor=self.processor,
+        #     max_seconds_per_example=self.config.max_seconds_per_example,
+        #     padding=self.config.padding,
+        # )
 
     def load_trainer_class(self) -> Type[Trainer]:
         """Return the trainer class used to train the model."""
