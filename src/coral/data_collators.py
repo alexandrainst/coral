@@ -122,6 +122,7 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
             BatchFeature:
                 A dictionary of the collated features.
         """
+        breakpoint()
         if "input_features" in features[0]:
             audio_features = [
                 dict(input_features=f["input_features"]) for f in features
