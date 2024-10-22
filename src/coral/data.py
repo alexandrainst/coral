@@ -178,19 +178,6 @@ def load_data_for_finetuning(
                 if column not in ["audio", "text"]
             ]
         ).shuffle(seed=config.seed)
-        ds = process_dataset(
-            dataset=ds,
-            clean_text=config.model.clean_text,
-            lower_case=config.model.lower_case,
-            characters_to_keep=config.characters_to_keep,
-            text_column="text",
-            audio_column="audio",
-            convert_numerals=False,
-            remove_input_dataset_columns=True,
-            cast_to_sampling_rate=config.model.sampling_rate,
-            processor=processor,
-            num_proc=config.dataset_num_workers,
-        )
 
         all_datasets.append(ds)
 
@@ -226,6 +213,20 @@ def load_data_for_finetuning(
         )
     else:
         train = all_datasets[0]
+
+    train = process_dataset(
+        dataset=train,
+        clean_text=config.model.clean_text,
+        lower_case=config.model.lower_case,
+        characters_to_keep=config.characters_to_keep,
+        text_column="text",
+        audio_column="audio",
+        convert_numerals=False,
+        remove_input_dataset_columns=True,
+        cast_to_sampling_rate=config.model.sampling_rate,
+        processor=processor,
+        num_proc=config.dataset_num_workers,
+    )
 
     data_dict = dict(train=train)
     dataset = IterableDatasetDict(data_dict)
@@ -615,7 +616,7 @@ def process_example(
         example["input_values"] = processed.input_values[0]
         example["num_seconds"] = len(example["input_values"]) / sampling_rate
     if "input_features" in processed:
-        example["input_features"] = processed.input_features[0].tolist()
+        example["input_features"] = processed.input_features[0]
         example["num_seconds"] = len(example["input_features"]) / sampling_rate
 
     # Prepare transcriptions
