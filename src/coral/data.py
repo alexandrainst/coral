@@ -609,6 +609,7 @@ def process_example(
         return example
 
     # Prepare audio
+    breakpoint()
     audio = example[audio_column]
     sampling_rate = audio["sampling_rate"]
     processed = processor(audio["array"], sampling_rate=sampling_rate)
