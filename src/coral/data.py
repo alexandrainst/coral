@@ -614,9 +614,10 @@ def process_example(
     if "input_values" in processed:
         example["input_values"] = processed.input_values[0]
         example["num_seconds"] = len(example["input_values"]) / sampling_rate
-    # if "input_features" in processed:
-    #     example["input_features"] = processed.input_features[0]
-    #     example["num_seconds"] = len(example["input_features"]) / sampling_rate
+    if "input_features" in processed:
+        example["input_features"] = processed.input_features[0]
+        example["num_seconds"] = len(example["input_features"]) / sampling_rate
+        logger.info(type(example["input_features"]))
 
     # Prepare transcriptions
     example["labels"] = processor(text=example[text_column], truncation=True).input_ids
