@@ -123,10 +123,23 @@ roest-315m:  ## Train the Røst-315M model
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=wav2vec2-small \
-		datasets=[coral] \
+		datasets=[coral,common_voice_17] \
 		decoder_datasets=[wikipedia,common_voice,reddit] \
 		push_to_hub=true \
 		dataloader_num_workers=4 \
-		model_id=roest-315m-xlsr \
+		model_id=roest-315m \
+		private=true \
+		per_device_batch_size=64
+
+roest-1b:  ## Train the Røst-1B model
+	@accelerate launch \
+		--use-deepspeed \
+		src/scripts/finetune_asr_model.py \
+		model=wav2vec2-medium \
+		datasets=[coral,common_voice_17] \
+		decoder_datasets=[wikipedia,common_voice,reddit] \
+		push_to_hub=true \
+		dataloader_num_workers=4 \
+		model_id=roest-1b \
 		private=true \
 		per_device_batch_size=64
