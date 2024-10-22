@@ -171,27 +171,26 @@ def load_data_for_finetuning(
                 num_proc=config.dataset_num_workers,
             )
 
-        if dataset_config.process_dataset:
-            ds = ds.remove_columns(
-                column_names=[
-                    column
-                    for column in ds.column_names or list()
-                    if column not in ["audio", "text"]
-                ]
-            ).shuffle(seed=config.seed)
-            ds = process_dataset(
-                dataset=ds,
-                clean_text=config.model.clean_text,
-                lower_case=config.model.lower_case,
-                characters_to_keep=config.characters_to_keep,
-                text_column="text",
-                audio_column="audio",
-                convert_numerals=False,
-                remove_input_dataset_columns=True,
-                cast_to_sampling_rate=config.model.sampling_rate,
-                processor=processor,
-                num_proc=config.dataset_num_workers,
-            )
+        ds = ds.remove_columns(
+            column_names=[
+                column
+                for column in ds.column_names or list()
+                if column not in ["audio", "text"]
+            ]
+        ).shuffle(seed=config.seed)
+        ds = process_dataset(
+            dataset=ds,
+            clean_text=config.model.clean_text,
+            lower_case=config.model.lower_case,
+            characters_to_keep=config.characters_to_keep,
+            text_column="text",
+            audio_column="audio",
+            convert_numerals=False,
+            remove_input_dataset_columns=True,
+            cast_to_sampling_rate=config.model.sampling_rate,
+            processor=processor,
+            num_proc=config.dataset_num_workers,
+        )
 
         all_datasets.append(ds)
 
