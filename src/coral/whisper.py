@@ -12,6 +12,7 @@ import torch
 from omegaconf import DictConfig
 from torch.backends.mps import is_available as mps_is_available
 from transformers import (
+    AutoModelForSpeechSeq2Seq,
     EvalPrediction,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
@@ -56,7 +57,7 @@ class WhisperModelSetup(ModelSetup):
     def load_model(self) -> WhisperForConditionalGeneration:
         """Return the model for the setup."""
         with transformers_output_ignored():
-            model = WhisperForConditionalGeneration.from_pretrained(
+            model = AutoModelForSpeechSeq2Seq.from_pretrained(
                 self.config.model.pretrained_model_id,
                 dropout=self.config.model.dropout,
                 activation_dropout=self.config.model.activation_dropout,
