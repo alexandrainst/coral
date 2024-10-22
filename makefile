@@ -53,6 +53,7 @@ install-pipx:
 	@if [ "$(shell which pipx)" = "" ]; then \
 		uname=$$(uname); \
 			case $${uname} in \
+				(*Linux*) installCmd='sudo apt install pipx'; ;; \
 				(*Darwin*) installCmd='brew install pipx'; ;; \
 				(*CYGWIN*) installCmd='py -3 -m pip install --upgrade --user pipx'; ;; \
 				(*) installCmd='python3 -m pip install --upgrade --user pipx'; ;; \
