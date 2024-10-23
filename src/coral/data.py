@@ -619,6 +619,8 @@ def process_example(
         example["num_seconds"] = len(example["input_features"]) / sampling_rate
 
     # Prepare transcriptions
+    logger.info(processor)
+    logger.info(processor.tokenizer)  # type: ignore
     example["labels"] = processor(text=example[text_column], truncation=True).input_ids
     example["input_length"] = len(example["labels"])
 
