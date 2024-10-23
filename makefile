@@ -160,7 +160,7 @@ roest-1b:  ## Train the Røst-1B model
 		dataloader_num_workers=4 \
 		model_id=roest-1b \
 		private=true \
-		per_device_batch_size=32
+		per_device_batch_size=64
 
 roest-1.5b:  ## Train the Røst-1.5B model
 	@accelerate launch \
@@ -173,7 +173,7 @@ roest-1.5b:  ## Train the Røst-1.5B model
 		dataloader_num_workers=4 \
 		model_id=roest-1.5b \
 		private=true \
-		per_device_batch_size=32
+		per_device_batch_size=64
 
 roest-2b:  ## Train the Røst-2B model
 	@accelerate launch \
@@ -187,4 +187,4 @@ roest-2b:  ## Train the Røst-2B model
 		dataloader_num_workers=4 \
 		model_id=roest-2b \
 		private=true \
-		per_device_batch_size=32
+		per_device_batch_size=64
