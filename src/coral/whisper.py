@@ -14,7 +14,6 @@ from torch.backends.mps import is_available as mps_is_available
 from transformers import (
     AutoConfig,
     AutoModelForSpeechSeq2Seq,
-    AutoProcessor,
     EvalPrediction,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
@@ -49,8 +48,11 @@ class WhisperModelSetup(ModelSetup):
 
     def load_processor(self) -> WhisperProcessor:
         """Return the processor for the model."""
-        processor_or_tup = AutoProcessor.from_pretrained(
-            self.config.model.pretrained_model_id, language="Danish", task="transcribe"
+        processor_or_tup = WhisperProcessor.from_pretrained(
+            self.config.model.pretrained_model_id,
+            language="Danish",
+            task="transcribe",
+            feature_size=160_000,
         )
         assert isinstance(processor_or_tup, WhisperProcessor)
         self.processor = processor_or_tup
@@ -82,6 +84,7 @@ class WhisperModelSetup(ModelSetup):
                 mask_feature_length=self.config.model.mask_feature_length,
                 encoder_layerdrop=self.config.model.layerdrop,
                 decoder_layerdrop=self.config.model.layerdrop,
+                num_mel_bins=160_000,
             )
             assert isinstance(model, WhisperForConditionalGeneration)
 
