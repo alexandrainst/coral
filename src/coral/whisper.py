@@ -189,6 +189,7 @@ class WhisperModelSetup(ModelSetup):
             use_cpu=hasattr(sys, "_called_from_test"),
             dataloader_num_workers=self.config.dataloader_num_workers,
             ddp_find_unused_parameters=False,
+            dispatch_batches=False,
         )
         return args
 
