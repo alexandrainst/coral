@@ -70,7 +70,7 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
             labels=label_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
-            max_length=512,
+            max_length=min(self.processor.tokenizer.model_max_length, 512),
         )
 
         # Replace padding with -100 to ignore loss correctly
@@ -147,7 +147,7 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
             label_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
-            max_length=512,
+            max_length=min(self.processor.tokenizer.model_max_length, 512),
         )
 
         # Replace padding with -100 to ignore loss correctly

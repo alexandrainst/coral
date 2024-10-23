@@ -55,6 +55,8 @@ class WhisperModelSetup(ModelSetup):
         assert isinstance(processor_or_tup, WhisperProcessor)
         self.processor = processor_or_tup
 
+        # Whisper tokenizers are misconfigured with a max_length that is too high, but
+        # the correct max_length is stored in the model config, so we'll update it here.
         hf_config = AutoConfig.from_pretrained(self.config.model.pretrained_model_id)
         self.processor.tokenizer.model_max_length = min(
             self.processor.tokenizer.model_max_length, hf_config.max_length
