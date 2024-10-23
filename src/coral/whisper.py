@@ -75,7 +75,7 @@ class WhisperModelSetup(ModelSetup):
                 pad_token_id=self.processor.tokenizer.pad_token_id,
                 bos_token_id=self.processor.tokenizer.bos_token_id,
                 eos_token_id=self.processor.tokenizer.eos_token_id,
-                apply_spec_augment=True,
+                # apply_spec_augment=True,  TEMP
                 mask_time_prob=self.config.model.mask_time_prob,
                 mask_time_length=self.config.model.mask_time_length,
                 mask_feature_prob=self.config.model.mask_feature_prob,
