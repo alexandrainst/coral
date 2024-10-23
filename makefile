@@ -136,7 +136,7 @@ roest-315m:  ## Train the Røst-315M model
 		per_device_batch_size=64
 
 roest-809m:  ## Train the Røst-809M model
-	@accelerate launch \
+	@OMP_NUM_THREADS=4 accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=whisper-large-turbo \
