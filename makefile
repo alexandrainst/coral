@@ -146,7 +146,7 @@ roest-809m:  ## Train the Røst-809M model
 		dataloader_num_workers=4 \
 		model_id=roest-809m \
 		private=true \
-		per_device_batch_size=32
+		per_device_batch_size=64
 
 roest-1b:  ## Train the Røst-1B model
 	@accelerate launch \
