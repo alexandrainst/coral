@@ -119,6 +119,8 @@ type-check:  ## Run type checking
 		--show-error-codes \
 		--check-untyped-defs
 
+check: lint format type-check  ## Check the code
+
 roest-315m:  ## Train the Røst-315M model
 	@accelerate launch \
 		--use-deepspeed \
