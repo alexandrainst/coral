@@ -122,7 +122,7 @@ type-check:  ## Run type checking
 check: lint format type-check  ## Check the code
 
 roest-315m:  ## Train the Røst-315M model
-	@OMP_NUM_THREADS=4 \
+	@OMP_NUM_THREADS=1 \
 		accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
@@ -137,7 +137,7 @@ roest-315m:  ## Train the Røst-315M model
 		per_device_batch_size=64
 
 roest-809m:  ## Train the Røst-809M model
-	@OMP_NUM_THREADS=4 \
+	@OMP_NUM_THREADS=1 \
 		accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
@@ -151,7 +151,7 @@ roest-809m:  ## Train the Røst-809M model
 		per_device_batch_size=64
 
 roest-1b:  ## Train the Røst-1B model
-	@OMP_NUM_THREADS=4 \
+	@OMP_NUM_THREADS=1 \
 		accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
@@ -166,7 +166,7 @@ roest-1b:  ## Train the Røst-1B model
 		per_device_batch_size=64
 
 roest-1.5b:  ## Train the Røst-1.5B model
-	@OMP_NUM_THREADS=4 \
+	@OMP_NUM_THREADS=1 \
 		accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
@@ -180,7 +180,7 @@ roest-1.5b:  ## Train the Røst-1.5B model
 		per_device_batch_size=64
 
 roest-2b:  ## Train the Røst-2B model
-	@OMP_NUM_THREADS=4 \
+	@OMP_NUM_THREADS=1 \
 		accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
