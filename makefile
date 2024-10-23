@@ -122,7 +122,8 @@ type-check:  ## Run type checking
 check: lint format type-check  ## Check the code
 
 roest-315m:  ## Train the Røst-315M model
-	@accelerate launch \
+	@OMP_NUM_THREADS=4 \
+		accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=wav2vec2-small \
@@ -136,7 +137,8 @@ roest-315m:  ## Train the Røst-315M model
 		per_device_batch_size=64
 
 roest-809m:  ## Train the Røst-809M model
-	@OMP_NUM_THREADS=4 accelerate launch \
+	@OMP_NUM_THREADS=4 \
+		accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=whisper-large-turbo \
@@ -149,7 +151,8 @@ roest-809m:  ## Train the Røst-809M model
 		per_device_batch_size=64
 
 roest-1b:  ## Train the Røst-1B model
-	@accelerate launch \
+	@OMP_NUM_THREADS=4 \
+		accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=wav2vec2-medium \
@@ -163,7 +166,8 @@ roest-1b:  ## Train the Røst-1B model
 		per_device_batch_size=64
 
 roest-1.5b:  ## Train the Røst-1.5B model
-	@accelerate launch \
+	@OMP_NUM_THREADS=4 \
+		accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=whisper-large \
@@ -176,7 +180,8 @@ roest-1.5b:  ## Train the Røst-1.5B model
 		per_device_batch_size=64
 
 roest-2b:  ## Train the Røst-2B model
-	@accelerate launch \
+	@OMP_NUM_THREADS=4 \
+		accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=wav2vec2-large \
