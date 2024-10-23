@@ -49,10 +49,7 @@ class WhisperModelSetup(ModelSetup):
     def load_processor(self) -> WhisperProcessor:
         """Return the processor for the model."""
         processor_or_tup = WhisperProcessor.from_pretrained(
-            self.config.model.pretrained_model_id,
-            language="Danish",
-            task="transcribe",
-            feature_size=160_000,
+            self.config.model.pretrained_model_id, language="Danish", task="transcribe"
         )
         assert isinstance(processor_or_tup, WhisperProcessor)
         self.processor = processor_or_tup
@@ -77,15 +74,13 @@ class WhisperModelSetup(ModelSetup):
                 pad_token_id=self.processor.tokenizer.pad_token_id,
                 bos_token_id=self.processor.tokenizer.bos_token_id,
                 eos_token_id=self.processor.tokenizer.eos_token_id,
-                # apply_spec_augment=True,  TEMP
+                apply_spec_augment=True,
                 mask_time_prob=self.config.model.mask_time_prob,
                 mask_time_length=self.config.model.mask_time_length,
                 mask_feature_prob=self.config.model.mask_feature_prob,
                 mask_feature_length=self.config.model.mask_feature_length,
                 encoder_layerdrop=self.config.model.layerdrop,
                 decoder_layerdrop=self.config.model.layerdrop,
-                num_mel_bins=160_000,
-                ignore_mismatched_sizes=True,
             )
             assert isinstance(model, WhisperForConditionalGeneration)
 
