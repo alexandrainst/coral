@@ -12,6 +12,7 @@ import torch
 from omegaconf import DictConfig
 from torch.backends.mps import is_available as mps_is_available
 from transformers import (
+    AutoConfig,
     AutoModelForSpeechSeq2Seq,
     AutoProcessor,
     EvalPrediction,
@@ -53,6 +54,12 @@ class WhisperModelSetup(ModelSetup):
         )
         assert isinstance(processor_or_tup, WhisperProcessor)
         self.processor = processor_or_tup
+
+        hf_config = AutoConfig.from_pretrained(self.config.model.pretrained_model_id)
+        self.processor.tokenizer.model_max_length = min(
+            self.processor.tokenizer.model_max_length, hf_config.max_length
+        )
+
         return self.processor
 
     def load_model(self) -> WhisperForConditionalGeneration:
