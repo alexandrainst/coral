@@ -70,7 +70,7 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
             labels=label_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
-            max_length=512,
+            max_length=min(self.processor.tokenizer.model_max_length, 512),
         )
 
         # Replace padding with -100 to ignore loss correctly
@@ -147,16 +147,16 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
             label_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
-            max_length=512,
+            max_length=min(self.processor.tokenizer.model_max_length, 512),
         )
 
-        # replace padding with -100 to ignore loss correctly
+        # Replace padding with -100 to ignore loss correctly
         labels = labels_batch["input_ids"].masked_fill(
             labels_batch.attention_mask.ne(1), -100
         )
 
-        # if bos token is appended in previous tokenization step,
-        # cut bos token here as it's append later anyways
+        # If bos token is appended in previous tokenization step, cut BOS token here as
+        # it's appended later anyway
         if (labels[:, 0] == self.processor.tokenizer.bos_token_id).all().cpu().item():
             labels = labels[:, 1:]
 

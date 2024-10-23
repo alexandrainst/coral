@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from typing import TypeVar
 
 import torch
-from datasets import Dataset, DatasetDict
+from datasets import Audio, Dataset, DatasetDict
 from transformers import AutomaticSpeechRecognitionPipeline, pipeline
 
 from .compute_metrics import compute_metrics_of_dataset_using_pipeline
@@ -60,6 +60,10 @@ def add_validations(
     if input_is_single_split:
         dataset = DatasetDict(dict(train=dataset))
 
+    dataset = dataset.cast_column(
+        column=audio_column, feature=Audio(sampling_rate=sampling_rate)
+    )
+
     processed_dataset = process_dataset(
         dataset=dataset,
         clean_text=clean_text,
@@ -69,7 +73,6 @@ def add_validations(
         convert_numerals=False,
         remove_input_dataset_columns=True,
         lower_case=lower_case,
-        cast_to_sampling_rate=sampling_rate,
     )
 
     logger.info(f"Loading the {model_id!r} ASR model...")

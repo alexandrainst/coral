@@ -12,6 +12,8 @@ import torch
 from omegaconf import DictConfig
 from torch.backends.mps import is_available as mps_is_available
 from transformers import (
+    AutoConfig,
+    AutoModelForSpeechSeq2Seq,
     EvalPrediction,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
@@ -51,12 +53,20 @@ class WhisperModelSetup(ModelSetup):
         )
         assert isinstance(processor_or_tup, WhisperProcessor)
         self.processor = processor_or_tup
+
+        # Whisper tokenizers are misconfigured with a max_length that is too high, but
+        # the correct max_length is stored in the model config, so we'll update it here.
+        hf_config = AutoConfig.from_pretrained(self.config.model.pretrained_model_id)
+        self.processor.tokenizer.model_max_length = min(
+            self.processor.tokenizer.model_max_length, hf_config.max_length
+        )
+
         return self.processor
 
     def load_model(self) -> WhisperForConditionalGeneration:
         """Return the model for the setup."""
         with transformers_output_ignored():
-            model = WhisperForConditionalGeneration.from_pretrained(
+            model = AutoModelForSpeechSeq2Seq.from_pretrained(
                 self.config.model.pretrained_model_id,
                 dropout=self.config.model.dropout,
                 activation_dropout=self.config.model.activation_dropout,
@@ -179,6 +189,7 @@ class WhisperModelSetup(ModelSetup):
             use_cpu=hasattr(sys, "_called_from_test"),
             dataloader_num_workers=self.config.dataloader_num_workers,
             ddp_find_unused_parameters=False,
+            dispatch_batches=False,
         )
         return args
 

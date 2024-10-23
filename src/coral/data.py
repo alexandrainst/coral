@@ -171,27 +171,17 @@ def load_data_for_finetuning(
                 num_proc=config.dataset_num_workers,
             )
 
-        if dataset_config.process_dataset:
-            ds = ds.remove_columns(
-                column_names=[
-                    column
-                    for column in ds.column_names or list()
-                    if column not in ["audio", "text"]
-                ]
-            ).shuffle(seed=config.seed)
-            ds = process_dataset(
-                dataset=ds,
-                clean_text=config.model.clean_text,
-                lower_case=config.model.lower_case,
-                characters_to_keep=config.characters_to_keep,
-                text_column="text",
-                audio_column="audio",
-                convert_numerals=False,
-                remove_input_dataset_columns=True,
-                cast_to_sampling_rate=config.model.sampling_rate,
-                processor=processor,
-                num_proc=config.dataset_num_workers,
-            )
+        ds = ds.remove_columns(
+            column_names=[
+                column
+                for column in ds.column_names or list()
+                if column not in ["audio", "text"]
+            ]
+        ).shuffle(seed=config.seed)
+
+        ds = ds.cast_column(
+            column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
+        )
 
         all_datasets.append(ds)
 
@@ -199,7 +189,7 @@ def load_data_for_finetuning(
 
     if len(all_datasets) > 1:
         if is_main_process:
-            logger.info("Interleaving datasets")
+            logger.info("Interleaving datasets...")
             if config.dataset_probabilities is None and len(all_datasets) > 1:
                 logger.warning(
                     "No dataset probabilities were specified for the training split. "
@@ -227,6 +217,19 @@ def load_data_for_finetuning(
         )
     else:
         train = all_datasets[0]
+
+    train = process_dataset(
+        dataset=train,
+        clean_text=config.model.clean_text,
+        lower_case=config.model.lower_case,
+        characters_to_keep=config.characters_to_keep,
+        text_column="text",
+        audio_column="audio",
+        convert_numerals=False,
+        remove_input_dataset_columns=True,
+        processor=processor,
+        num_proc=config.dataset_num_workers,
+    )
 
     data_dict = dict(train=train)
     dataset = IterableDatasetDict(data_dict)
@@ -256,6 +259,10 @@ def load_data_for_finetuning(
     if config.evaluation_dataset.audio_column != "audio":
         val = val.rename_column(config.evaluation_dataset.audio_column, "audio")
 
+    val = val.cast_column(
+        column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
+    )
+
     val = process_dataset(
         dataset=val,
         clean_text=config.model.clean_text,
@@ -265,7 +272,6 @@ def load_data_for_finetuning(
         audio_column="audio",
         convert_numerals=False,
         remove_input_dataset_columns=True,
-        cast_to_sampling_rate=config.model.sampling_rate,
         processor=processor,
         num_proc=config.dataset_num_workers,
     )
@@ -328,6 +334,9 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         max_seconds_per_example=config.max_seconds_per_example,
         is_main_process=is_main_process,
     )
+    dataset = dataset.cast_column(
+        column=config.audio_column, feature=Audio(sampling_rate=config.sampling_rate)
+    )
     dataset = process_dataset(
         dataset=dataset,
         clean_text=config.clean_text,
@@ -336,7 +345,6 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         text_column=config.text_column,
         audio_column=config.audio_column,
         remove_input_dataset_columns=False,
-        cast_to_sampling_rate=config.sampling_rate,
         convert_numerals=True,
     )
 
@@ -450,7 +458,6 @@ def process_dataset(
     audio_column: str | None,
     convert_numerals: bool,
     num_proc: int | None = None,
-    cast_to_sampling_rate: int | None = None,
     processor: Callable | None = None,
 ) -> Data:
     """Process the dataset.
@@ -479,9 +486,6 @@ def process_dataset(
         num_proc (optional):
             The number of processes to use for processing the dataset. If `None`, then
             no multiprocessing is used. Defaults to `None`.
-        cast_to_sampling_rate (optional):
-            The sampling rate to cast the audio to. If `None`, then the audio is not
-            cast. Defaults to `None`.
         processor (optional):
             The processor to use for processing the audio and transcriptions. If `None`,
             then the processor is not used. Defaults to `None`.
@@ -489,11 +493,6 @@ def process_dataset(
     Returns:
         The cleaned dataset.
     """
-    if audio_column is not None:
-        dataset = dataset.cast_column(
-            column=audio_column, feature=Audio(sampling_rate=cast_to_sampling_rate)
-        )
-
     if isinstance(dataset, Dataset) or isinstance(dataset, IterableDataset):
         column_names = dataset.column_names
     elif isinstance(dataset, DatasetDict) or isinstance(dataset, IterableDatasetDict):

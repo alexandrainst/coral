@@ -5,4 +5,3 @@ coral:
   text_column: text
   audio_column: audio
   filter_dataset: false
-  process_dataset: true

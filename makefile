@@ -53,6 +53,7 @@ install-pipx:
 	@if [ "$(shell which pipx)" = "" ]; then \
 		uname=$$(uname); \
 			case $${uname} in \
+				(*Linux*) installCmd='sudo apt install pipx'; ;; \
 				(*Darwin*) installCmd='brew install pipx'; ;; \
 				(*CYGWIN*) installCmd='py -3 -m pip install --upgrade --user pipx'; ;; \
 				(*) installCmd='python3 -m pip install --upgrade --user pipx'; ;; \
@@ -117,6 +118,8 @@ type-check:  ## Run type checking
 		--ignore-missing-imports \
 		--show-error-codes \
 		--check-untyped-defs
+
+check: lint format type-check  ## Check the code
 
 roest-315m:  ## Train the Røst-315M model
 	@accelerate launch \
