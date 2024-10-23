@@ -85,6 +85,7 @@ class WhisperModelSetup(ModelSetup):
                 encoder_layerdrop=self.config.model.layerdrop,
                 decoder_layerdrop=self.config.model.layerdrop,
                 num_mel_bins=160_000,
+                ignore_mismatched_sizes=True,
             )
             assert isinstance(model, WhisperForConditionalGeneration)
 
