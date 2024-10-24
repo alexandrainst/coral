@@ -16,12 +16,67 @@ Developers:
 - Dan Saattrup Nielsen (dan.nielsen@alexandra.dk)
 
 
-## Quickstart
+## Installation
 
 1. Run `make install`, which installs Poetry (if it isn't already installed), sets up a
    virtual environment and all Python dependencies therein.
 2. Run `source .venv/bin/activate` to activate the virtual environment.
 3. Run `make` to see a list of available commands.
+
+
+## Usage
+
+### Finetuning an Acoustic Model for Automatic Speech Recognition (ASR)
+
+You can use the `finetune_asr_model` script to finetune your own ASR model:
+
+```bash
+python src/scripts/finetune_asr_model.py [key=value]...
+```
+
+Here are some of the more important available keys:
+
+- `model`: The base model to finetune. Supports the following values:
+  - `wav2vec2-small`
+  - `wav2vec2-medium`
+  - `wav2vec2-large`
+  - `whisper-xxsmall`
+  - `whisper-xsmall`
+  - `whisper-small`
+  - `whisper-medium`
+  - `whisper-large`
+  - `whisper-large-turbo`
+- `datasets`: The datasets to finetune the models on. Can be a single dataset or an
+  array of datasets (written like [dataset1,dataset2,...]). Supports the following
+  values:
+  - `coral`
+  - `common_voice_17`
+  - `common_voice_9`
+  - `fleurs`
+  - `ftspeech`
+  - `nota`
+  - `nst`
+- `dataset_probabilities`: In case you are finetuning on several datasets, you need to
+  specify the probability of sampling each one. This is an array of probabilities that
+  need to sum to 1. If not set, the datasets are sampled uniformly.
+- `model_id`: The model ID of the finetuned model. Defaults to the model type along with
+  a timestamp.
+- `push_to_hub`, `hub_organisation` and `private`: Whether to push the finetuned model
+  to the Hugging Face Hub, and if so, which organisation to push it to. If `private` is
+  set to `True`, the model will be private. The default is not to push the model to the
+  Hub.
+- `wandb`: Whether Weights and Biases should be used for monitoring during training.
+  Defaults to false.
+- `per_device_batch_size` and `dataloader_num_workers`: The batch size and number of
+  workers to use for training. Defaults to 8 and 4, respectively. Tweak these if you are
+  running out of GPU memory.
+- `learning_rate`, `total_batch_size`, `max_steps`, `warmup_steps`: Training parameters
+  that you can tweak, although it shouldn't really be needed.
+
+See all the finetuning options in the `config/asr_finetuning.yaml` file.
+
+
+## Troubleshooting
 
 If you're on MacOS and get an error saying something along the lines of "fatal error:
 'lzma.h' file not found" then try the following and rerun `make install` afterwards:
