@@ -173,6 +173,9 @@ class Wav2Vec2ModelSetup(ModelSetup):
                 if self.is_main_process:
                     logger.info("Mixed precision training with FP16 enabled.")
 
+        if self.config.early_stopping:
+            self.config.save_total_limit = max(self.config.save_total_limit, 1)
+
         args = TrainingArguments(
             output_dir=self.config.model_dir,
             hub_model_id=f"{self.config.hub_organisation}/{self.config.model_id}",

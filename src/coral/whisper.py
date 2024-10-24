@@ -156,6 +156,9 @@ class WhisperModelSetup(ModelSetup):
                 if self.is_main_process:
                     logger.info("Mixed precision training with FP16 enabled.")
 
+        if self.config.early_stopping:
+            self.config.save_total_limit = max(self.config.save_total_limit, 1)
+
         args = Seq2SeqTrainingArguments(
             output_dir=self.config.model_dir,
             hub_model_id=f"{self.config.hub_organisation}/{self.config.model_id}",
@@ -172,6 +175,7 @@ class WhisperModelSetup(ModelSetup):
             eval_strategy="steps",
             eval_steps=self.config.eval_steps,
             save_steps=self.config.save_steps,
+            save_strategy="no" if self.config.save_total_limit == 0 else "steps",
             logging_steps=self.config.logging_steps,
             length_column_name="input_length",
             gradient_checkpointing=True,
