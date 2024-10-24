@@ -76,6 +76,34 @@ Here are some of the more important available keys:
 See all the finetuning options in the `config/asr_finetuning.yaml` file.
 
 
+### Evaluating an Automatic Speech Recognition (ASR) Model
+
+You can use the `evaluate_model` script to evaluate an ASR model:
+
+```bash
+python src/scripts/evaluate_model.py [key=value]...
+```
+
+Here are some of the more important available keys:
+
+- `model_id` (required): The Hugging Face model ID of the ASR model to evaluate.
+- `dataset`: The ASR dataset to evaluate the model on. Can be any ASR dataset on the
+  Hugging Face Hub. Note that subsets are separated with "::". For instance, to evaluate
+  on the Danish Common Voice 17 dataset, you would use
+  `mozilla-foundation/common_voice_17_0::da`. Defaults to
+  `alexandrainst/coral::read_aloud`.
+- `eval_split_name`: The dataset split to evaluate on. Defaults to `test`.
+- `text_column`: The name of the column in the dataset that contains the text. Defaults
+  to `text`.
+- `audio_column`: The name of the column in the dataset that contains the audio. Defaults
+  to `audio`.
+- `detailed`: Only relevant if evaluating on the (default) CoRal test dataset. This will
+  give a detailed evaluation across the different demographics in the dataset. If set to
+  False it will only give the overall scores. Defaults to True.
+
+See all the evaluation options in the `config/evaluation.yaml` file.
+
+
 ## Troubleshooting
 
 If you're on MacOS and get an error saying something along the lines of "fatal error:
