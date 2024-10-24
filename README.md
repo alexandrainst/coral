@@ -103,6 +103,19 @@ Here are some of the more important available keys:
 
 See all the evaluation options in the `config/evaluation.yaml` file.
 
+You can produce a comparison plot of different models evaluated on the CoRal test
+dataset with `detailed=True` by running the following script:
+
+```bash
+python src/scripts/create_comparison_plot.py \
+  -f EVALUATION_FILE [-f EVALUATION_FILE ...] [--metric METRIC]
+```
+
+Here the `EVALUATION_FILE` arguments are the paths to the evaluation files produced by
+`evaluate_model.py` (they end in `-coral-scores.csv`). The `METRIC` argument is the
+metric to compare on, which can be one of `wer` and `cer`, for the word error rate and
+character error rate, respectively. The default is `cer`.
+
 
 ## Troubleshooting
 
