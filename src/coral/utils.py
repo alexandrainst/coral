@@ -46,7 +46,7 @@ def block_terminal_output() -> None:
     ds_logging.set_verbosity_error()
     logging.getLogger("accelerate").setLevel(logging.ERROR)
     logging.getLogger("pyctcdecode").setLevel(logging.ERROR)
-    logging.getLogger("generation_whisper").setLevel(logging.ERROR)
+    logging.getLogger("transformers.models.whisper").setLevel(logging.ERROR)
 
 
 class transformers_output_ignored:
