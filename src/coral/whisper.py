@@ -194,6 +194,7 @@ class WhisperModelSetup(ModelSetup):
             ignore_data_skip=self.config.ignore_data_skip,
             save_safetensors=True,
             predict_with_generate=True,
+            generation_max_length=self.config.model.max_length,
             use_cpu=hasattr(sys, "_called_from_test"),
             dataloader_num_workers=self.config.dataloader_num_workers,
             ddp_find_unused_parameters=False,
