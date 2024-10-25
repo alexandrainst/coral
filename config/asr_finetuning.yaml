@@ -57,7 +57,6 @@ ignore_data_skip: false
 save_total_limit: 0  # Will automatically be set to >=1 if `early_stopping` is enabled
 
 # Optimisation parameters
-learning_rate: 1e-4
 adam_first_momentum: 0.9
 adam_second_momentum: 0.98
 total_batch_size: 256

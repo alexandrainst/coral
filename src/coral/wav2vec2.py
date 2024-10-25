@@ -183,7 +183,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
             per_device_train_batch_size=self.config.per_device_batch_size,
             per_device_eval_batch_size=self.config.per_device_batch_size,
             gradient_accumulation_steps=gradient_accumulation_steps,
-            learning_rate=self.config.learning_rate,
+            learning_rate=self.config.model.learning_rate,
             lr_scheduler_type=SchedulerType.COSINE,
             warmup_steps=self.config.warmup_steps,
             max_steps=self.config.max_steps,

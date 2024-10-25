@@ -18,3 +18,6 @@ mask_feature_prob: 0.5
 mask_feature_length: 64
 layerdrop: 0.1  # NOTE: This will automatically be set to 0 in a multi-gpu setting
 max_length: 225
+
+# Model-specific optimisation hyperparameters
+learning_rate: 3.75e-5

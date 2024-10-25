@@ -70,8 +70,8 @@ Here are some of the more important available keys:
 - `per_device_batch_size` and `dataloader_num_workers`: The batch size and number of
   workers to use for training. Defaults to 8 and 4, respectively. Tweak these if you are
   running out of GPU memory.
-- `learning_rate`, `total_batch_size`, `max_steps`, `warmup_steps`: Training parameters
-  that you can tweak, although it shouldn't really be needed.
+- `model.learning_rate`, `total_batch_size`, `max_steps`, `warmup_steps`: Training
+  parameters that you can tweak, although it shouldn't really be needed.
 
 See all the finetuning options in the `config/asr_finetuning.yaml` file.
 
