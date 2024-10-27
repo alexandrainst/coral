@@ -30,13 +30,7 @@ NUMERAL_REGEX = re.compile(r"\b(0|[1-9]\d{0,2}(?:(?:\.\d{3})*|\d*)(?:,\d+)?)\b")
 
 
 def block_terminal_output() -> None:
-    """Blocks undesired terminal output.
-
-    This blocks the following output:
-        - User warnings
-        - Logs from the `datasets` package
-        - Progress bars from the `datasets` package
-    """
+    """Blocks undesired terminal output."""
     # Ignore user warnings throughout the codebase
     warnings.filterwarnings("ignore", category=UserWarning)
     warnings.filterwarnings("ignore", category=RuntimeWarning)
