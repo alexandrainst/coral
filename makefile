@@ -134,8 +134,7 @@ roest-315m:  ## Train the Røst-315M model
 		dataloader_num_workers=4 \
 		model_id=roest-315m \
 		private=true \
-		per_device_batch_size=64 \
-		learning_rate=1e-4
+		per_device_batch_size=64
 
 roest-809m:  ## Train the Røst-809M model
 	@OMP_NUM_THREADS=1 \
@@ -149,8 +148,7 @@ roest-809m:  ## Train the Røst-809M model
 		dataloader_num_workers=4 \
 		model_id=roest-809m \
 		private=true \
-		per_device_batch_size=64 \
-		learning_rate=5e-6
+		per_device_batch_size=64
 
 roest-1b:  ## Train the Røst-1B model
 	@OMP_NUM_THREADS=1 \
@@ -165,8 +163,7 @@ roest-1b:  ## Train the Røst-1B model
 		dataloader_num_workers=4 \
 		model_id=roest-1b \
 		private=true \
-		per_device_batch_size=64 \
-		learning_rate=1e-4
+		per_device_batch_size=64
 
 roest-1.5b:  ## Train the Røst-1.5B model
 	@OMP_NUM_THREADS=1 \
@@ -180,8 +177,7 @@ roest-1.5b:  ## Train the Røst-1.5B model
 		dataloader_num_workers=4 \
 		model_id=roest-1.5b \
 		private=true \
-		per_device_batch_size=64 \
-		learning_rate=5e-6
+		per_device_batch_size=64
 
 roest-2b:  ## Train the Røst-2B model
 	@OMP_NUM_THREADS=1 \
@@ -196,5 +192,4 @@ roest-2b:  ## Train the Røst-2B model
 		dataloader_num_workers=4 \
 		model_id=roest-2b \
 		private=true \
-		per_device_batch_size=64 \
-		learning_rate=1e-4
+		per_device_batch_size=64
