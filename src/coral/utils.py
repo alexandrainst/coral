@@ -48,6 +48,7 @@ def block_terminal_output() -> None:
     logging.getLogger("pyctcdecode").setLevel(logging.ERROR)
     logging.getLogger("transformers.models.whisper").setLevel(logging.ERROR)
     logging.getLogger("transformers.generation.utils").setLevel(logging.ERROR)
+    logging.getLogger("huggingface_hub.utils").setLevel(logging.ERROR)
 
 
 class transformers_output_ignored:
