@@ -12,7 +12,7 @@ defaults:
 
 seed: 4242
 
-#experiment_tracking: null
+experiment_tracking: null
 
 evaluation_dataset:
   id: alexandrainst/coral
