@@ -13,7 +13,10 @@ ______________________________________________________________________
 
 Developers:
 
+- Anders Jess Pedersen (anders.j.pedersen@alexandra.dk)
 - Dan Saattrup Nielsen (dan.nielsen@alexandra.dk)
+- Simon Leminen Madsen (simon.leminen@alexandra.dk)
+
 
 
 ## Installation
