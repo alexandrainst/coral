@@ -1561,12 +1561,12 @@ requests = ["requests (>=2.20.0,<3.0.0.dev0)"]
 
 [[package]]
 name = "gradio"
-version = "5.3.0"
+version = "5.5.0"
 description = "Python library for easily interacting with trained machine learning models"
 optional = true
 python-versions = ">=3.10"
 files = [
-    {file = "gradio-5.3.0-py3-none-any.whl", hash = "sha256:1613b0ab3cb0a582fe80e9d0dc7114a7045a90c494e94e34f907debb38179a33"},
+    {file = "gradio-5.5.0-py3-none-any.whl", hash = "sha256:48ea11ae1376d9506eb295dbeb4d3ff962830a6e2d8aa9085e025cce3c04e544"},
 ]
 
 [package.dependencies]
@@ -1583,12 +1583,13 @@ numpy = ">=1.0,<3.0"
 orjson = ">=3.0,<4.0"
 packaging = "*"
 pandas = ">=1.0,<3.0"
-pillow = ">=8.0,<11.0"
+pillow = ">=8.0,<12.0"
 pydantic = ">=2.0"
 pydub = "*"
-python-multipart = ">=0.0.9"
+python-multipart = "0.0.12"
 pyyaml = ">=5.0,<7.0"
 ruff = {version = ">=0.2.2", markers = "sys_platform != \"emscripten\""}
+safehttpx = ">=0.1.1,<1.0"
 semantic-version = ">=2.0,<3.0"
 starlette = {version = ">=0.40.0,<1.0", markers = "sys_platform != \"emscripten\""}
 tomlkit = "0.12.0"
@@ -5583,6 +5584,23 @@ files = [
     {file = "ruff-0.7.0-py3-none-win_arm64.whl", hash = "sha256:10842f69c245e78d6adec7e1db0a7d9ddc2fff0621d730e61657b64fa36f207e"},
     {file = "ruff-0.7.0.tar.gz", hash = "sha256:47a86360cf62d9cd53ebfb0b5eb0e882193fc191c6d717e8bef4462bc3b9ea2b"},
 ]
+
+[[package]]
+name = "safehttpx"
+version = "0.1.1"
+description = "A small Python library created to help developers protect their applications from Server Side Request Forgery (SSRF) attacks."
+optional = true
+python-versions = ">=3.9"
+files = [
+    {file = "safehttpx-0.1.1-py3-none-any.whl", hash = "sha256:1d93b64023c00d5c53ea70ea36e773b8a0dba5eaf1a1eb188856584a0a4cf4d1"},
+    {file = "safehttpx-0.1.1.tar.gz", hash = "sha256:6e1bedf7767213300da5e4cb7e823e98edc934f17ca192d2e585111a2b899149"},
+]
+
+[package.dependencies]
+httpx = "*"
+
+[package.extras]
+dev = ["pytest"]
 
 [[package]]
 name = "safetensors"
