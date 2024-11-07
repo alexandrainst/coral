@@ -190,9 +190,9 @@ class WhisperModelSetup(ModelSetup):
             optim=OptimizerNames.ADAMW_TORCH,
             adam_beta1=self.config.adam_first_momentum,
             adam_beta2=self.config.adam_second_momentum,
-            report_to=[self.config.experiment_tracking.type] 
-                if self.config.experiment_tracking 
-                else [],
+            report_to=[self.config.experiment_tracking.type]
+            if self.config.experiment_tracking
+            else [],
             ignore_data_skip=self.config.ignore_data_skip,
             save_safetensors=True,
             predict_with_generate=True,

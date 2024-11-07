@@ -1,11 +1,9 @@
 """This module contains the base class for an experiment tracking setup."""
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable
-from dataclasses import dataclass
-from typing import Type, TypeAlias
 
 from omegaconf import DictConfig
+
 
 class ExTrackingSetup(ABC):
     """Base class for an experiment tracking setup."""
@@ -34,4 +32,3 @@ class ExTrackingSetup(ABC):
         Returns:
             True if the finalization was successful, False otherwise.
         """
-

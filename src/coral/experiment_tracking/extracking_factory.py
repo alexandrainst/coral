@@ -3,8 +3,9 @@
 from omegaconf import DictConfig
 
 from .extracking_setup import ExTrackingSetup
-from .mlflow import MLFlowSetup
-from .wandb import WandbSetup
+from .mlflow_setup import MLFlowSetup
+from .wandb_setup import WandbSetup
+
 
 def load_extracking_setup(config: DictConfig) -> ExTrackingSetup:
     """Return the experiment tracking setup.
@@ -25,4 +26,3 @@ def load_extracking_setup(config: DictConfig) -> ExTrackingSetup:
             raise ValueError(
                 f"Unknown experiment tracking type: {config.experiment_tracking.type}"
             )
-

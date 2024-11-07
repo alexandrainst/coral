@@ -6,13 +6,12 @@ import os
 from omegaconf import DictConfig
 from transformers import EarlyStoppingCallback, TrainerCallback
 
-
 from .data import load_data_for_finetuning
 from .data_models import ModelSetup
+from .experiment_tracking.extracking_factory import load_extracking_setup
 from .model_setup import load_model_setup
 from .ngram import train_and_store_ngram_model
 from .utils import block_terminal_output, disable_tqdm, push_model_to_hub
-from .experiment_tracking.extracking_factory import load_extracking_setup
 
 logger = logging.getLogger(__package__)
 
@@ -52,10 +51,9 @@ def finetune(config: DictConfig) -> None:
     )
 
     block_terminal_output()
-    #with disable_tqdm():
-    #    trainer.train(resume_from_checkpoint=config.resume_from_checkpoint)
-    trainer.train(resume_from_checkpoint=config.resume_from_checkpoint)
-    
+    with disable_tqdm():
+        trainer.train(resume_from_checkpoint=config.resume_from_checkpoint)
+
     if bool(config.experiment_tracking) and is_main_process:
         extracking_setup.run_finalization()
 

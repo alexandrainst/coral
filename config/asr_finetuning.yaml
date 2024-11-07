@@ -6,7 +6,7 @@ defaults:
     - wikipedia
     - common_voice
     - reddit
-  - experiment_tracking: mlflow
+  - experiment_tracking: wandb
   - override hydra/job_logging: custom
   - _self_
 
@@ -62,9 +62,9 @@ total_batch_size: 256
 per_device_batch_size: 8
 max_steps: 10_000
 warmup_steps: 1_000
-logging_steps: 1
-eval_steps: 5
-save_steps: 5
+logging_steps: 100
+eval_steps: 500
+save_steps: 500
 early_stopping: false
 early_stopping_patience: 50
 
