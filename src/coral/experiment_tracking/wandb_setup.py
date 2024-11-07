@@ -21,7 +21,7 @@ class WandbSetup(ExTrackingSetup):
         self.config = config
         self.is_main_process = os.getenv("RANK", "0") == "0"
 
-    def run_initialization(self) -> bool:
+    def run_initialization(self) -> None:
         """Run the initialization of the experiment tracking setup."""
         wandb.init(
             project=self.config.experiment_tracking.name_experiment,
@@ -29,9 +29,9 @@ class WandbSetup(ExTrackingSetup):
             group=self.config.experiment_tracking.name_group,
             config=dict(self.config),
         )
-        return True
+        return
 
-    def run_finalization(self) -> bool:
+    def run_finalization(self) -> None:
         """Run the finalization of the experiment tracking setup."""
         wandb.finish()
-        return True
+        return
