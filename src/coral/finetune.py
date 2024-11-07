@@ -5,11 +5,10 @@ import os
 
 from omegaconf import DictConfig
 from transformers import EarlyStoppingCallback, TrainerCallback
-from wandb import finish as wandb_finish
-from wandb.sdk.wandb_init import init as wandb_init
 
 from .data import load_data_for_finetuning
 from .data_models import ModelSetup
+from .experiment_tracking.extracking_factory import load_extracking_setup
 from .model_setup import load_model_setup
 from .ngram import train_and_store_ngram_model
 from .utils import block_terminal_output, disable_tqdm, push_model_to_hub
@@ -33,13 +32,9 @@ def finetune(config: DictConfig) -> None:
     model = model_setup.load_model()
     dataset = load_data_for_finetuning(config=config, processor=processor)
 
-    if config.wandb and is_main_process:
-        wandb_init(
-            project=config.wandb_project,
-            group=config.wandb_group,
-            name=config.wandb_name,
-            config=dict(config),
-        )
+    if bool(config.experiment_tracking) and is_main_process:
+        extracking_setup = load_extracking_setup(config=config)
+        extracking_setup.run_initialization()
 
     if "val" not in dataset and is_main_process:
         logger.info("No validation set found. Disabling early stopping.")
@@ -58,8 +53,9 @@ def finetune(config: DictConfig) -> None:
     block_terminal_output()
     with disable_tqdm():
         trainer.train(resume_from_checkpoint=config.resume_from_checkpoint)
-    if config.wandb and is_main_process:
-        wandb_finish()
+
+    if bool(config.experiment_tracking) and is_main_process:
+        extracking_setup.run_finalization()
 
     model.save_pretrained(save_directory=config.model_dir)
 

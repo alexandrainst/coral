@@ -111,8 +111,9 @@ data/
 # Models
 models/
 
-# Weights and Biases experiment tracking
+# Experiment tracking
 wandb/
+mlruns/
 
 # Data files
 *.xlsx

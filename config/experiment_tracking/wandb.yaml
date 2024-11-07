@@ -1,0 +1,4 @@
+type: wandb
+name_experiment: CoRal
+name_run: ${model_id}
+name_group: default

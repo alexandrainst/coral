@@ -1,15 +1,18 @@
 defaults:
-  - model: wav2vec2-small
+  - model: whisper-xxsmall
   - datasets:
     - coral
   - decoder_datasets:
     - wikipedia
     - common_voice
     - reddit
+  - experiment_tracking: wandb
   - override hydra/job_logging: custom
   - _self_
 
 seed: 4242
+
+experiment_tracking: null
 
 evaluation_dataset:
   id: alexandrainst/coral
@@ -48,10 +51,6 @@ fp16_allowed: true
 bf16_allowed: true
 
 # Training parameters
-wandb: false
-wandb_project: CoRal
-wandb_group: default
-wandb_name: ${model_id}
 resume_from_checkpoint: false
 ignore_data_skip: false
 save_total_limit: 0  # Will automatically be set to >=1 if `early_stopping` is enabled
