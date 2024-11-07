@@ -7446,3 +7446,5 @@ plotting = ["matplotlib"]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.13"
 content-hash = "e23295209a30aa2e0743385a8e01526461d0405c890ee932c5f6733ca3e0f792"
+
+content-hash = "e23295209a30aa2e0743385a8e01526461d0405c890ee932c5f6733ca3e0f792"
