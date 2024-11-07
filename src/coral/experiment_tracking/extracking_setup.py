@@ -18,7 +18,7 @@ class ExTrackingSetup(ABC):
         """
 
     @abstractmethod
-    def run_initialization(self) -> bool:
+    def run_initialization(self) -> None:
         """Run the initialization of the experiment tracking setup.
 
         Returns:
@@ -26,7 +26,7 @@ class ExTrackingSetup(ABC):
         """
 
     @abstractmethod
-    def run_finalization(self) -> bool:
+    def run_finalization(self) -> None:
         """Run the finalization of the experiment tracking setup.
 
         Returns:
