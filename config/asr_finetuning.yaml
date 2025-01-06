@@ -1,0 +1,72 @@
+defaults:
+  - model: whisper-xxsmall
+  - datasets:
+    - coral
+  - decoder_datasets:
+    - wikipedia
+    - common_voice
+    - reddit
+  - experiment_tracking: wandb
+  - override hydra/job_logging: custom
+  - _self_
+
+seed: 4242
+
+experiment_tracking: null
+
+evaluation_dataset:
+  id: alexandrainst/coral
+  subset: read_aloud
+  val_name: val
+  text_column: text
+  audio_column: audio
+
+# Dataset parameters
+remove_numeric_words: true
+min_seconds_per_example: 0.5
+max_seconds_per_example: 10
+characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
+dataset_num_workers: 4
+dataloader_num_workers: 4
+streaming: true
+cache_dir: null
+
+# Can be `longest`, `max_length` or `do_not_pad`
+# NOTE: This is automatically set to `max_length` in a multi-gpu setting
+padding: longest
+
+# This is a list of the sampling probability of each dataset, where null means that
+# each dataset will be sampled equally often
+dataset_probabilities: null
+
+# Model parameters
+model_id: ${model.name}-${now:%Y-%m-%d}
+models_dir: models
+model_dir: ${models_dir}/${model_id}
+hub_organisation: alexandrainst
+push_to_hub: false
+create_pr: false
+private: false
+fp16_allowed: true
+bf16_allowed: true
+
+# Training parameters
+resume_from_checkpoint: false
+ignore_data_skip: false
+save_total_limit: 0  # Will automatically be set to >=1 if `early_stopping` is enabled
+
+# Optimisation parameters
+adam_first_momentum: 0.9
+adam_second_momentum: 0.98
+total_batch_size: 256
+per_device_batch_size: 8
+max_steps: 10_000
+warmup_steps: 1_000
+logging_steps: 100
+eval_steps: 500
+save_steps: 500
+early_stopping: false
+early_stopping_patience: 50
+
+# NOTE: This is automatically set to false in a multi-gpu setting
+gradient_checkpointing: true

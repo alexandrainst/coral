@@ -1,7 +1,8 @@
 """Unit tests for the `finetune` module."""
 
-from coral_models.finetune import finetune
+from coral.finetune import finetune
 
 
-def test_finetune(cfg):
-    finetune(cfg)
+def test_finetune(finetuning_config):
+    """Test the `finetune` function."""
+    finetune(config=finetuning_config)

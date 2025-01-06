@@ -1,0 +1,7 @@
+common_voice_17:
+  id: mozilla-foundation/common_voice_17_0
+  subset: da
+  train_name: train
+  text_column: sentence
+  audio_column: audio
+  filter_dataset: false

@@ -1,0 +1,196 @@
+# Dataset parameters
+dataset_path: alexandrainst/coral
+dataset_revision: main
+streaming: true
+cache_dir: null
+
+# Splitting parameters
+num_split_attempts: 1000
+mean_seconds_per_sample: 5.5
+val_attempts: 5
+
+# These speakers' dialect labels are not reliable and should not be included in the
+# val/test sets
+banned_speakers:
+  - spe_808c700aef750b8255b5a54f0119d0a3
+  - spe_02d34c3ae36e2aa9dcf6c726caa58939
+  - spe_3ee13513f15eb8eceffa324d1e0bcae5
+  - spe_c3c1fdae39d6bf6e462868f8f52b7e3e
+  - spe_d89b9957a4ee38e15487bccae9bf099a
+  - spe_44dd789a42cfb357b3cd0145f667ffda
+  - spe_4dee2dc8f6fccc98115781683d45acdd
+  - spe_01b4831b25bbcbc7bd45c75c7891e99c
+  - spe_33b9071834e38bd3a2829add3bbcccb3
+  - spe_9257d8a735322a3f5f511e4f6b54044b
+  - spe_9a2fee70cd58727ea1dbcf056de688b7
+  - spe_aaa7d1aa7c5e1df17aa33156b8b54677
+  - spe_003c825c9ad2f1496c22cc16a04b1598
+  - spe_6617b4c7273b31fc161fc6e07e620743
+  - spe_51e4519933eacf08188b77fd4d834c3f
+  - spe_df7e1a96598642e8935cf360bf589b1b
+  - spe_bfde171b3bdc3497b482c34c2f64fdaa
+  - spe_033b7ec0b5238f866a096316a8a3400b
+  - spe_5205f36b5eceaa53b4d16d641598e2a5
+  - spe_65d7aadb8858bc19f9aa01a0fb568628
+  - spe_9daca8749dd672e56e9789f178acf41e
+  - spe_b5a0fa308cfb3aa82a05e715360ab515
+  - spe_74dff76598cdc66d20a88656dc6df031
+  - spe_6e43ad16efa233a4ab2e753fb1a2ff1f
+  - spe_4c0f1933310dc0958cedf35fcc92fdc5
+  - spe_1e4d56b702c7be354ff78c97ef34cff7
+  - spe_b257ee96b57d00f6d2fd113186c8c693
+  - spe_8dc47ab1b2a187bebde40bcafe9ed94e
+  - spe_03bd3cd5460b4fa70e932250df7b8810
+  - spe_3937cb6805e15326b37253d6148babb5
+  - spe_8f16822f8889459fa91bfefdb5fb21c1
+  - spe_bffe31a07537d14e22eef5c5efcd4fe6
+  - spe_df514f21929fdc991cc54bfd41e93f70
+  - spe_e530efaab83b53fb59942e984b57e5cb
+  - spe_b3932bdfc64ee360eb90054ac6b50e6f
+  - spe_f371b24f793e391289e89c26e10686a4
+  - spe_e0901983783244afb784b0a861deaed3
+  - spe_d5ec9dc47d76e3be1bc451561c6cf655
+  - spe_6aee350ffd0f7fec616ca9a7b13b6cdc
+  - spe_90df11ce8dc2e4a9cfb85d58a4433de3
+  - spe_492647a87720047b55f4033d0df8082a
+  - spe_bac2bee06de132b496d940ab1b72e0fd
+  - spe_08989c39f63a53e5acf44d9e28bb2bc7
+  - spe_86689eb08c8d6b42f8ba7f608e8f69e2
+  - spe_935a99ce745c2c042a77f6e4c831fd94
+  - spe_d7aa2363db68c2f527367a813f8c4d9b
+  - spe_fb3207a11c12c9d30cba0cb05f2f00fc
+  - spe_f7b23539162f9294ab83c6e5ca93a298
+  - spe_fee31b79f85b58d5a4a1297aabc0cafa
+  - spe_f40a7c420c0124c50919c73edd608fa3
+  - spe_10b8eb8c3ba5fd8405d1516b7b12f2de
+  - spe_65388692c15793f7746fe454931bdf49
+  - spe_8c0d595f2c7f38b098139e0232763031
+  - spe_e06ca03ede9628a04638bf6078b7baef
+  - spe_66bc2a622375848902cc11d53504345d
+  - spe_b832932befdaeec8305f1863d9037cfd
+  - spe_545558c5701d956a2c63057cd313ff50
+  - spe_da668aef001dec35de6dd3551f902445
+  - spe_e75df6ec33426780a12e8b2ccc0a6969
+  - spe_4facb80c94341b25425ec1d8962b1f8d
+  - spe_8620cf72c098e6be7d4606102bd06d8e
+  - spe_99e7db16c1613a188d94918fd62ef22d
+  - spe_f64c7781f78d1ac24a979acb3080a1d6
+  - spe_0d774cd6653e30d7bee07ec33eb85d94
+  - spe_63f165c8164332ea0791ffe410b40f0b
+  - spe_be4926ee1dfbb6566f3c234deb83e10d
+  - spe_f62b0f6be34a5c6ef01f5629bcf89c08
+  - spe_eb9a91836149d4021b9f91672d9ebaa8
+  - spe_293d99341772da300966687747de3890
+  - spe_f3a0b2f9a75fcfc793a3109d8fbd6c94
+  - spe_9c4dc6be57f6c63860331813a71417e5
+  - spe_e3742811d83011e22ec2ef5a7af32065
+  - spe_fc66053c45d58913f62b8ac8f0a59609
+  - spe_f5bb05a736c91f4347edc51e4199278a
+  - spe_e33e46611f54ae91ed7b235c11ef2628
+  - spe_647d4e905427d45ab699abe73d80ef1d
+  - spe_ffc1068fc082deac40144691e1ae754c
+  - spe_33c2d48e34ee4f850fc72ac2f9f778be
+  - spe_14f9de3b11c6bc2bd09e57f72441dc38
+  - spe_436e439616edf662c232486b3face2f1
+  - spe_fa55995471e8df4e949d2100b3510032
+  - spe_e01017cbabe39aa19980d30b022947dc
+  - spe_77bd0892b99c44afa817915f6e8595b2
+  - spe_abad80046cdb930d9e11c61018000313
+  - spe_e3c1a4700f6664db151a72006b46e1a0
+  - spe_f12d05b9fc910ce87ec976370dbaf3be
+  - spe_5f1bdbd16a22acaffe7658e77ca0429d
+  - spe_a6c4b27e9f72f4b0814ea5c935eb8197
+  - spe_c82a8417dd9f495eb70c34235647a1b7
+  - spe_d147969fc79b1ba50c56e5adb9f662af
+  - spe_bb1d0e9d3f2bca18658975b3073924cb
+  - spe_4ffc43e6c8560c24ffc762d0f11409e0
+  - spe_97d9a5d95c0672843a9c6de4dd595e18
+  - spe_d17de6c090f6fae8951df3b0de8723ca
+  - spe_0651d7fb3765aa732d2c570123c1109b
+  - spe_7902a69e777bf0fa15ae75c7ce913503
+  - spe_975f1fbb9c429bed2eedaa8d0241856d
+  - spe_20b91d51f72ee56930ca778cb16c29da
+  - spe_327d513c687f71868724576c21b65b01
+  - spe_e87281b9b53622f604be24f78cbdc219
+  - spe_febd821c38af1d15b79098495091190e
+  - spe_2e055a387a11f03c906ceb5a3b9ae48b
+  - spe_f3e1f119eb6c7c2e9eadaa7f3d67431e
+  - spe_04e81a4ccbc9ecf50ef8fb12729065cf
+  - spe_161bade1ed44b0b13620576cd544692b
+  - spe_0fb83d22e153c8f21c47ced255debe8d
+  - spe_09d1a4039eccd0453459380b8e23aab8
+  - spe_4d03787c2092b6bee053e75e2cfa4aa3
+  - spe_35864fc11ebcdf8e7c11ef21a576362e
+  - spe_0a531653d15a79f97c28519ee3d024a0
+
+genders:
+  - female
+  - male
+
+dialects:
+  - Bornholmsk
+  - Fynsk
+  - Københavnsk
+  - Nordjysk
+  - Sjællandsk
+  - Sydømål
+  - Sønderjysk
+  - Vestjysk
+  - Østjysk
+  - Non-native
+
+age_groups:
+  - [0, 25]
+  - [25, 50]
+  - [50, null]
+
+sub_dialect_to_dialect:
+  midtøstjysk: Østjysk
+  østjysk: Østjysk
+  amagermål: Københavnsk
+  nørrejysk: Nordjysk
+  vestjysk: Vestjysk
+  nordsjællandsk: Sjællandsk
+  sjællandsk: Sjællandsk
+  fynsk: Fynsk
+  bornholmsk: Bornholmsk
+  sønderjysk: Sønderjysk
+  vendsysselsk (m. hanherred og læsø): Nordjysk
+  østligt sønderjysk (m. als): Sønderjysk
+  nordvestsjællandsk: Sjællandsk
+  thybomål: Vestjysk
+  himmerlandsk: Nordjysk
+  djurslandsk (nord-, syddjurs m. nord- og sydsamsø, anholt): Østjysk
+  sydsjællandsk (sydligt sydsjællandsk): Sjællandsk
+  sydfynsk: Fynsk
+  morsingmål: Vestjysk
+  sydøstjysk: Østjysk
+  østsjællandsk: Sjællandsk
+  "syd for rigsgrænsen: mellemslesvisk, angelmål, fjoldemål": Sønderjysk
+  vestfynsk (nordvest-, sydvestfynsk): Fynsk
+  vestlig sønderjysk (m. mandø og rømø): Sønderjysk
+  sydvestjysk (m. fanø): Vestjysk
+  sallingmål: Vestjysk
+  nordfalstersk: Sydømål
+  langelandsk: Fynsk
+  sydvestsjællandsk: Sjællandsk
+  lollandsk: Sydømål
+  sydømål: Sydømål
+  ommersysselsk: Østjysk
+  sydfalstersk: Sydømål
+  fjandbomål: Vestjysk
+
+requirements:
+  max_cer: 0.6
+  test:
+    min_hours: 7.5
+    max_hours: 20.0
+    gender_pct: 0.4
+    dialect_pct: 0.09
+    age_group_pct: 0.2
+  val:
+    min_hours: 1.0
+    max_hours: 10.0
+    gender_pct: 0.01
+    dialect_pct: 0.01
+    age_group_pct: 0.01

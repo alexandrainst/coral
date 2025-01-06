@@ -1,7 +1,0 @@
-alvenir_test_set:
-  id: Alvenir/alvenir_asr_da_eval
-  subset: null
-  train_name: null
-  val_name: null
-  test_name: test
-  text_column: sentence

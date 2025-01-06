@@ -1,7 +1,7 @@
 """Script that downloads and builds the Nota dataset.
 
 Usage:
-    python build_nota.py <destination_dir>
+    python src/scripts/build_nota.py DESTINATION_DIR
 """
 
 import logging
@@ -9,7 +9,6 @@ import multiprocessing as mp
 import re
 from pathlib import Path
 from time import sleep
-from typing import List
 from urllib.error import ContentTooShortError
 from zipfile import ZipFile
 
@@ -19,8 +18,12 @@ import requests
 from datasets import Audio, Dataset, DatasetDict
 from tqdm.auto import tqdm
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(message)s")
-logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s ⋅ %(name)s ⋅ %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("build_nota")
 
 
 BASE_URL = "https://sprogtek-ressources.digst.govcloud.dk/nota/"
@@ -42,6 +45,12 @@ SAMPLE_RATE = 16_000
 @click.command("Builds and stores the Nota dataset.")
 @click.argument("destination_dir", type=click.Path())
 def main(destination_dir) -> None:
+    """Downloads and builds the Nota dataset.
+
+    Args:
+        destination_dir:
+            The directory to download and build the dataset in.
+    """
     raw_dir = Path(destination_dir) / "raw"
     huggingface_dir = Path(destination_dir) / "huggingface"
     download_nota(destination_dir=raw_dir)
@@ -49,9 +58,7 @@ def main(destination_dir) -> None:
 
     logger.info(f"Saving the dataset to {huggingface_dir}...")
     dataset.save_to_disk(
-        str(huggingface_dir),
-        max_shard_size="500MB",
-        num_proc=mp.cpu_count() - 1,
+        str(huggingface_dir), max_shard_size="500MB", num_proc=mp.cpu_count() - 1
     )
 
 
@@ -59,7 +66,8 @@ def download_nota(destination_dir: Path | str) -> None:
     """Downloads the Nota dataset.
 
     Args:
-        destination_dir: The directory to download the dataset to.
+        destination_dir:
+            The directory to download the dataset to.
     """
     destination_dir = Path(destination_dir)
     destination_dir.mkdir(parents=True, exist_ok=True)
@@ -70,7 +78,7 @@ def download_nota(destination_dir: Path | str) -> None:
 
         # Get URLs to all files on the URL
         regex = re.compile(r"<a href=\"(.+?)\">")
-        all_files: List[str] = regex.findall(str(requests.get(url).content))
+        all_files: list[str] = regex.findall(str(requests.get(url).content))
 
         # Ignore the Parent and README files
         all_files_filtered = list(
@@ -112,10 +120,11 @@ def build_huggingface_dataset(dataset_dir: Path | str) -> DatasetDict:
     """Builds the HuggingFace dataset.
 
     Args:
-        dataset_dir: The directory to build the dataset from.
+        dataset_dir:
+            The directory to build the dataset from.
 
     Returns:
-        The HuggingFace dataset.
+        The Hugging Face dataset.
     """
     dataset_dir = Path(dataset_dir)
 
@@ -143,8 +152,10 @@ def stream_download(url: str, destination_path: str | Path) -> None:
     """Download a file from a URL to a destination path.
 
     Args:
-        url: The URL to download from.
-        destination_path: The path to save the file to.
+        url:
+            The URL to download from.
+        destination_path:
+            The path to save the file to.
     """
     streamer = requests.get(url, stream=True)
     total_size_in_bytes = int(streamer.headers.get("content-length", 0))

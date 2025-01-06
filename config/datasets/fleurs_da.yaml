@@ -1,7 +1,0 @@
-fleurs_da:
-  id: google/fleurs
-  subset: da_dk
-  train_name: train
-  val_name: validation
-  test_name: test
-  text_column: raw_transcription

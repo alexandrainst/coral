@@ -1,0 +1,30 @@
+name: wav2vec2-large
+type: wav2vec2
+pretrained_model_id: facebook/wav2vec2-xls-r-2b
+freeze_feature_encoder: false
+
+# Data hyperparameters
+lower_case: true
+clean_text: true
+
+# Model hyperparameters
+sampling_rate: 16_000
+activation_dropout: 0.1
+attention_dropout: 0.0
+hidden_dropout: 0.0
+feat_proj_dropout: 0.0
+feat_quantizer_dropout: 0.0
+final_dropout: 0.0
+mask_time_prob: 0.5
+mask_time_length: 10
+mask_feature_prob: 0.5
+mask_feature_length: 64
+layerdrop: 0.1  # NOTE: This will automatically be set to 0 in a multi-gpu setting
+ctc_loss_reduction: mean
+
+# Model-specific optimisation hyperparameters
+learning_rate: 1e-4
+
+# Decoder hyperparameters
+use_decoder: true
+decoder_num_ngrams: 3

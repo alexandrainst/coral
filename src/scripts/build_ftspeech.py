@@ -1,7 +1,7 @@
 """Script that builds the FTSpeech dataset from the raw data.
 
 Usage:
-    python build_ftspeech.py <raw_data_dir> <output_dir>
+    python src/scripts/build_ftspeech.py RAW_DATA_DIR OUTPUT_DIR
 """
 
 import logging
@@ -14,7 +14,12 @@ from datasets import Audio, Dataset, DatasetDict
 from pydub import AudioSegment
 from tqdm.auto import tqdm
 
-logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s ⋅ %(name)s ⋅ %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("build_ftspeech")
 
 
 @click.command("Builds and stores the FTSpeech dataset.")
@@ -24,9 +29,9 @@ def main(raw_data_dir: str | Path, output_dir: str | Path) -> None:
     """Builds and stores the FTSpeech dataset.
 
     Args:
-        input_dir (str or Path):
+        raw_data_dir:
             The directory where the raw dataset is stored.
-        output_dir (str or Path):
+        output_dir:
             The path to the resulting dataset.
 
     Raises:
@@ -105,9 +110,7 @@ def main(raw_data_dir: str | Path, output_dir: str | Path) -> None:
 
     logger.info(f"Saving the dataset to {output_dir}...")
     dataset.save_to_disk(
-        str(output_dir),
-        max_shard_size="500MB",
-        num_proc=mp.cpu_count() - 1,
+        str(output_dir), max_shard_size="500MB", num_proc=mp.cpu_count() - 1
     )
 
 

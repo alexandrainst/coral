@@ -2,6 +2,6 @@ ftspeech:
   id: alexandrainst/ftspeech
   subset: null
   train_name: train
-  val_name: dev_balanced
-  test_name: test_balanced
   text_column: sentence
+  audio_column: audio
+  filter_dataset: true

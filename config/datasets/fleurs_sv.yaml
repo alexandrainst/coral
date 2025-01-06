@@ -1,7 +1,0 @@
-fleurs_sv:
-  id: google/fleurs
-  subset: sv_se
-  train_name: train
-  val_name: validation
-  test_name: test
-  text_column: raw_transcription

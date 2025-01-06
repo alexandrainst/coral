@@ -1,67 +1,65 @@
 """Evaluate a speech model.
 
 Usage:
-    python evaluate_model.py <key>=<value> <key>=<value> ...
+    python src/scripts/evaluate_model.py [key=value] [key=value] ...
 """
 
+import logging
+from pathlib import Path
+from shutil import rmtree
+
 import hydra
-from datasets import DatasetDict, IterableDatasetDict, Sequence, Value
+import pandas as pd
+from dotenv import load_dotenv
 from omegaconf import DictConfig
-from transformers import Trainer, TrainingArguments
 
-from coral_models.data import load_data
-from coral_models.model_setup import load_model_setup
-from coral_models.protocols import Processor
-from coral_models.utils import transformers_output_ignored
+from coral.evaluate import evaluate
+
+load_dotenv()
 
 
-@hydra.main(config_path="../../config", config_name="config", version_base=None)
-def main(cfg: DictConfig) -> None:
-    """Evaluate a speech model on a dataset."""
-    eval_dataset_cfg = list(cfg.datasets.values())[0]
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s ⋅ %(name)s ⋅ %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("coral_evaluation")
 
-    with transformers_output_ignored():
-        model_data = load_model_setup(cfg).load_saved()
 
-    dataset: DatasetDict | IterableDatasetDict = load_data(cfg)
-    dataset = preprocess_transcriptions(dataset=dataset, processor=model_data.processor)
+@hydra.main(config_path="../../config", config_name="evaluation", version_base=None)
+def main(config: DictConfig) -> None:
+    """Evaluate a speech model on a dataset.
 
-    trainer = Trainer(
-        args=TrainingArguments(".", remove_unused_columns=False, report_to=[]),
-        model=model_data.model,
-        data_collator=model_data.data_collator,
-        compute_metrics=model_data.compute_metrics,
-        eval_dataset=dataset,
-        tokenizer=getattr(model_data.processor, "tokenizer"),
+    Args:
+        config:
+            The Hydra configuration object.
+    """
+    score_df = evaluate(config=config)
+
+    # Loading the pipeline stores it to the default HF cache, and they don't allow
+    # changing it for pipelines. So we remove the models stored in the cache manually,
+    # to avoid running out of disk space.
+    model_cache_dir = Path.home() / ".cache" / "huggingface" / "hub"
+    model_dirs = list(
+        model_cache_dir.glob(f"model--{config.model_id.replace('/', '--')}")
     )
+    if model_dirs:
+        for model_dir in model_dirs:
+            rmtree(path=model_dir)
 
-    metrics = trainer.evaluate(eval_dataset=dataset["test"])
-    wer = metrics["eval_wer"]
-
-    print(f"\n*** RESULTS ON {eval_dataset_cfg.dataset.name} ***")
-    print(f"{eval_dataset_cfg.hub_id} achieved a WER of {wer:.2%}.\n")
-
-
-def preprocess_transcriptions(
-    dataset: DatasetDict | IterableDatasetDict, processor: Processor
-) -> DatasetDict | IterableDatasetDict:
-    def tokenize_examples(example: dict) -> dict:
-        example["labels"] = processor(text=example["text"], truncation=True).input_ids
-        example["input_length"] = len(example["labels"])
-        return example
-
-    mapped = dataset.map(tokenize_examples)
-
-    # After calling `map` the DatasetInfo is lost, so we need to add it back in
-    for split in dataset.keys():
-        mapped[split]._info = dataset[split]._info
-        mapped[split]._info.features["labels"] = Sequence(
-            feature=Value(dtype="int64"), length=-1
-        )
-        mapped[split]._info.features["input_length"] = Value(dtype="int64")
-        mapped[split]._info = dataset[split]._info
-
-    return mapped
+    if config.store_results:
+        model_id_without_slashes = config.model_id.replace("/", "--")
+        if "coral" in config.dataset and config.detailed:
+            filename = Path(f"{model_id_without_slashes}-coral-scores.csv")
+            score_df.to_csv(filename, index=False)
+        else:
+            filename = Path("evaluation-results.csv")
+            if filename.exists():
+                score_df = pd.concat(
+                    objs=[pd.read_csv(filename, index_col=False), score_df],
+                    ignore_index=True,
+                )
+            score_df.to_csv(filename, index=False)
 
 
 if __name__ == "__main__":

@@ -1,136 +1,130 @@
-# CoRal Models
+# CoRal
 
-Danish ASR and TTS models associated with the CoRal project.
+Danish ASR and TTS datasets and models, as part of the [CoRal
+project](https://alexandra.dk/coral/), funded by the [Innovation
+Fund](https://innovationsfonden.dk/).
 
 ______________________________________________________________________
-[![Documentation](https://img.shields.io/badge/docs-passing-green)](https://alexandrainst.github.io/coral_models/coral_models.html)
-[![License](https://img.shields.io/github/license/alexandrainst/coral_models)](https://github.com/alexandrainst/coral_models/blob/main/LICENSE)
-[![LastCommit](https://img.shields.io/github/last-commit/alexandrainst/coral_models)](https://github.com/alexandrainst/coral_models/commits/main)
-[![Code Coverage](https://img.shields.io/badge/Coverage-54%25-orange.svg)](https://github.com/alexandrainst/coral_models/tree/main/tests)
+[![Documentation](https://img.shields.io/badge/docs-passing-green)](https://alexandrainst.github.io/coral/coral.html)
+[![License](https://img.shields.io/github/license/alexandrainst/coral)](https://github.com/alexandrainst/coral/blob/main/LICENSE)
+[![LastCommit](https://img.shields.io/github/last-commit/alexandrainst/coral)](https://github.com/alexandrainst/coral/commits/main)
+[![Code Coverage](https://img.shields.io/badge/Coverage-54%25-orange.svg)](https://github.com/alexandrainst/coral/tree/main/tests)
 
 
 Developers:
 
+- Anders Jess Pedersen (anders.j.pedersen@alexandra.dk)
 - Dan Saattrup Nielsen (dan.nielsen@alexandra.dk)
+- Simon Leminen Madsen (simon.leminen@alexandra.dk)
 
 
-## Setup
 
-### Set up the environment
+## Installation
 
-1. Run `make install`, which installs Poetry (if it isn't already installed), sets up a virtual environment and all Python dependencies therein.
+1. Run `make install`, which installs Poetry (if it isn't already installed), sets up a
+   virtual environment and all Python dependencies therein.
 2. Run `source .venv/bin/activate` to activate the virtual environment.
+3. Run `make` to see a list of available commands.
+
+
+## Usage
+
+### Finetuning an Acoustic Model for Automatic Speech Recognition (ASR)
+
+You can use the `finetune_asr_model` script to finetune your own ASR model:
+
+```bash
+python src/scripts/finetune_asr_model.py [key=value]...
+```
+
+Here are some of the more important available keys:
+
+- `model`: The base model to finetune. Supports the following values:
+  - `wav2vec2-small`
+  - `wav2vec2-medium`
+  - `wav2vec2-large`
+  - `whisper-xxsmall`
+  - `whisper-xsmall`
+  - `whisper-small`
+  - `whisper-medium`
+  - `whisper-large`
+  - `whisper-large-turbo`
+- `datasets`: The datasets to finetune the models on. Can be a single dataset or an
+  array of datasets (written like [dataset1,dataset2,...]). Supports the following
+  values:
+  - `coral`
+  - `common_voice_17`
+  - `common_voice_9`
+  - `fleurs`
+  - `ftspeech`
+  - `nota`
+  - `nst`
+- `dataset_probabilities`: In case you are finetuning on several datasets, you need to
+  specify the probability of sampling each one. This is an array of probabilities that
+  need to sum to 1. If not set, the datasets are sampled uniformly.
+- `model_id`: The model ID of the finetuned model. Defaults to the model type along with
+  a timestamp.
+- `push_to_hub`, `hub_organisation` and `private`: Whether to push the finetuned model
+  to the Hugging Face Hub, and if so, which organisation to push it to. If `private` is
+  set to `True`, the model will be private. The default is not to push the model to the
+  Hub.
+- `wandb`: Whether Weights and Biases should be used for monitoring during training.
+  Defaults to false.
+- `per_device_batch_size` and `dataloader_num_workers`: The batch size and number of
+  workers to use for training. Defaults to 8 and 4, respectively. Tweak these if you are
+  running out of GPU memory.
+- `model.learning_rate`, `total_batch_size`, `max_steps`, `warmup_steps`: Training
+  parameters that you can tweak, although it shouldn't really be needed.
+
+See all the finetuning options in the `config/asr_finetuning.yaml` file.
+
+
+### Evaluating an Automatic Speech Recognition (ASR) Model
+
+You can use the `evaluate_model` script to evaluate an ASR model:
+
+```bash
+python src/scripts/evaluate_model.py [key=value]...
+```
+
+Here are some of the more important available keys:
+
+- `model_id` (required): The Hugging Face model ID of the ASR model to evaluate.
+- `dataset`: The ASR dataset to evaluate the model on. Can be any ASR dataset on the
+  Hugging Face Hub. Note that subsets are separated with "::". For instance, to evaluate
+  on the Danish Common Voice 17 dataset, you would use
+  `mozilla-foundation/common_voice_17_0::da`. Defaults to
+  `alexandrainst/coral::read_aloud`.
+- `eval_split_name`: The dataset split to evaluate on. Defaults to `test`.
+- `text_column`: The name of the column in the dataset that contains the text. Defaults
+  to `text`.
+- `audio_column`: The name of the column in the dataset that contains the audio. Defaults
+  to `audio`.
+- `detailed`: Only relevant if evaluating on the (default) CoRal test dataset. This will
+  give a detailed evaluation across the different demographics in the dataset. If set to
+  False it will only give the overall scores. Defaults to True.
+
+See all the evaluation options in the `config/evaluation.yaml` file.
+
+You can produce a comparison plot of different models evaluated on the CoRal test
+dataset with `detailed=True` by running the following script:
+
+```bash
+python src/scripts/create_comparison_plot.py \
+  -f EVALUATION_FILE [-f EVALUATION_FILE ...] [--metric METRIC]
+```
+
+Here the `EVALUATION_FILE` arguments are the paths to the evaluation files produced by
+`evaluate_model.py` (they end in `-coral-scores.csv`). The `METRIC` argument is the
+metric to compare on, which can be one of `wer` and `cer`, for the word error rate and
+character error rate, respectively. The default is `cer`.
+
+
+## Troubleshooting
 
 If you're on MacOS and get an error saying something along the lines of "fatal error:
 'lzma.h' file not found" then try the following and rerun `make install` afterwards:
 
 ```
 export CPPFLAGS="-I$(brew --prefix)/include"
-```
-
-
-### Install new packages
-
-To install new PyPI packages, run:
-
-```
-$ poetry add <package-name>
-```
-
-### Get an overview of the available commands
-
-Simply write `make` to display a list of the commands available. This includes the
-above-mentioned `make install` command, as well as building and viewing documentation,
-publishing the code as a package and more.
-
-
-## Tools used in this project
-* [Poetry](https://towardsdatascience.com/how-to-effortlessly-publish-your-python-package-to-pypi-using-poetry-44b305362f9f): Dependency management
-* [hydra](https://hydra.cc/): Manage configuration files
-* [pre-commit plugins](https://pre-commit.com/): Automate code reviewing formatting
-* [pdoc](https://github.com/pdoc3/pdoc): Automatically create an API documentation for your project
-
-
-## Project structure
-```
-.
-├── .github
-│   └── workflows
-│       ├── ci.yaml
-│       └── docs.yaml
-├── .gitignore
-├── .pre-commit-config.yaml
-├── LICENSE
-├── README.md
-├── config
-│   ├── __init__.py
-│   ├── config.yaml
-│   ├── datasets
-│   │   ├── alvenir_test_set.yaml
-│   │   ├── common_voice_13_da.yaml
-│   │   ├── common_voice_13_nn.yaml
-│   │   ├── common_voice_13_sv.yaml
-│   │   ├── common_voice_9_da.yaml
-│   │   ├── fleurs_da.yaml
-│   │   ├── fleurs_nb.yaml
-│   │   ├── fleurs_sv.yaml
-│   │   ├── ftspeech.yaml
-│   │   ├── nota.yaml
-│   │   ├── nst_da.yaml
-│   │   └── test_dataset.yaml
-│   ├── hydra
-│   │   └── job_logging
-│   │       └── custom.yaml
-│   └── model
-│       ├── test_wav2vec2.yaml
-│       ├── test_whisper.yaml
-│       ├── wav2vec2.yaml
-│       ├── whisper_large.yaml
-│       ├── whisper_medium.yaml
-│       ├── whisper_small.yaml
-│       ├── whisper_xsmall.yaml
-│       └── whisper_xxsmall.yaml
-├── docs
-│   └── .gitkeep
-├── makefile
-├── poetry.lock
-├── poetry.toml
-├── pyproject.toml
-├── src
-│   ├── coral_models
-│   │   ├── __init__.py
-│   │   ├── compute_metrics.py
-│   │   ├── data.py
-│   │   ├── finetune.py
-│   │   ├── model_setup.py
-│   │   ├── plot.py
-│   │   ├── prepare_raw_data.py
-│   │   ├── protocols.py
-│   │   ├── utils.py
-│   │   ├── wav2vec2.py
-│   │   └── whisper.py
-│   └── scripts
-│       ├── build_coral_data.py
-│       ├── build_ftspeech.py
-│       ├── build_nota.py
-│       ├── build_nst_da.py
-│       ├── download_ftspeech.py
-│       ├── evaluate_model.py
-│       ├── find_faulty_audio_clips.py
-│       ├── finetune_model.py
-│       ├── fix_dot_env_file.py
-│       ├── plot_training_trajectory.py
-│       ├── push_to_hub.py
-│       ├── train_ngram_decoder.py
-│       └── versioning.py
-└── tests
-    ├── __init__.py
-    ├── conftest.py
-    ├── test_compute_metrics.py
-    ├── test_data.py
-    ├── test_finetune.py
-    ├── test_protocols.py
-    ├── test_utils.py
-    ├── test_wav2vec2.py
-    └── test_whisper.py
 ```

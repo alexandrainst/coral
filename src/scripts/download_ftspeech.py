@@ -1,7 +1,7 @@
 """Script that downloads the FTSpeech corpus.
 
 Usage:
-    python download_ftspeech.py <download_dir>
+    python src/scripts/download_ftspeech.py DOWNLOAD_DIR
 """
 
 try:
@@ -22,15 +22,22 @@ from pathlib import Path
 import click
 
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s ⋅ %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+    level=logging.INFO,
+    format="%(asctime)s ⋅ %(name)s ⋅ %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("download_ftspeech")
 
 
 @click.command("Downloads the FTSpeech corpus.")
 @click.argument("download_dir", type=click.Path())
 def main(download_dir) -> None:
-    """Downloads the FTSpeech corpus."""
+    """Downloads the FTSpeech corpus.
+
+    Args:
+        download_dir:
+            The directory to download the FTSpeech corpus to.
+    """
     download_dir = Path(download_dir)
 
     options = Options()

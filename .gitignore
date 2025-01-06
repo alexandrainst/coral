@@ -111,5 +111,16 @@ data/
 # Models
 models/
 
-# Weights and Biases experiment tracking
+# Experiment tracking
 wandb/
+mlruns/
+
+# Data files
+*.xlsx
+*.csv
+recordings/
+conversations/
+CoRal_public.db
+
+# Todo document
+todo.md

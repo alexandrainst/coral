@@ -1,0 +1,21 @@
+# ASR model parameters
+model_id: alexandrainst/roest-315m
+sampling_rate: 16_000
+
+# UI parameters
+title: Røst Speech-to-Text Demo
+description: >
+  This is a demo of the Danish speech recognition model
+  [Røst](https://huggingface.co/alexandrainst/roest-315m).
+
+  Press "Record" to record your own voice. When you're done you can press "Stop" to stop
+  recording and "Submit" to send the audio to the model for transcription. You can also
+  upload an audio file by pressing the
+  <svg xmlns="http://www.w3.org/2000/svg" width="14px" viewBox="0 0 24 24" fill="none"
+       stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round" style="display: inline;">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="17 8 12 3 7 8"/>
+    <line x1="12" y1="3" x2="12" y2="15"/>
+  </svg>
+  button.

@@ -1,0 +1,23 @@
+name: whisper-xsmall
+type: whisper
+pretrained_model_id: openai/whisper-base
+freeze_feature_encoder: false
+
+# Data hyperparameters
+lower_case: true
+clean_text: true
+
+# Model hyperparameters
+sampling_rate: 16_000
+dropout: 0.0
+activation_dropout: 0.1
+attention_dropout: 0.0
+mask_time_prob: 0.5
+mask_time_length: 10
+mask_feature_prob: 0.5
+mask_feature_length: 64
+layerdrop: 0.1  # NOTE: This will automatically be set to 0 in a multi-gpu setting
+max_length: 225
+
+# Model-specific optimisation hyperparameters
+learning_rate: 2e-5

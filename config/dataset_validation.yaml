@@ -1,0 +1,25 @@
+# Loading the dataset to be validated
+dataset: "alexandrainst/coral::read_aloud"
+train_name: train
+text_column: text
+audio_column: audio
+cache_dir: null
+
+# Filtering of the dataset
+min_seconds_per_example: 0.5
+max_seconds_per_example: 10
+
+# Processing of the dataset
+lower_case: true
+clean_text: true
+sampling_rate: 16_000
+characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
+
+# Validation parameters
+model_id: alexandrainst/coral-asr-bootstrap
+batch_size: 16
+max_cer: 0.6
+
+# Dataset that contains the validation data
+output_dataset_id: alexandrainst/coral
+output_dataset_subset: read_aloud
