@@ -284,6 +284,16 @@ def build_conversation_dataset(
     Returns:
         The CoRal conversation dataset.
     """
+    # Read database
+
+    # read audio files
+    # split audio files into audio bites
+
+    # read transcripts
+
+    # Build the dataset from the metadata, transcripts, and audio files. This embeds all the audio
+    # files into the dataset as parquet files
+
     dataset = Dataset.from_dict({})
     return dataset
 
