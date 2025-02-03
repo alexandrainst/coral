@@ -1,16 +1,19 @@
-import treelib
+from typing import List
+
 import graphviz
+import treelib
 
 
 class Dialect_Helper:
+    """Helper class for handling dialects."""
+
     def __init__(self):
+        """Initialize the dialect tree. and build dialect tree."""
         self.dialect_tree = treelib.Tree()
         self.build_tree()
 
     def build_tree(self):
-        """
-        Build the dialect tree.
-        """
+        """Build the dialect tree."""
         # Add root node
 
         # Add the root node
@@ -115,9 +118,7 @@ class Dialect_Helper:
                 parent_id = node_id  # Update parent for the next level
 
     def convert_to_graph(self):
-        """
-        Convert the tree to a Graphviz graph.
-        """
+        """Convert the tree to a Graphviz graph."""
         try:
             dot = graphviz.Digraph(comment="Dialect Tree")
 
@@ -139,20 +140,17 @@ class Dialect_Helper:
             return None
 
     def visualize_tree(self):
-        """
-        Visualize the dialect tree.
-        """
+        """Visualize the dialect tree."""
         self.dialect_tree.show()
         return
 
-    def get_nodes_sorted_by_depth(self, reverse=False):
-        """
-        Returns a list of all nodes in the tree sorted by depth.
+    def get_nodes_sorted_by_depth(self, reverse=False) -> List[treelib.node.Node]:
+        """Returns a list of all nodes in the tree sorted by depth.
 
         :return: List of nodes sorted by depth.
         """
         # Dictionary to hold nodes by depth
-        nodes_by_depth = {}
+        nodes_by_depth: dict[int, treelib.node.Node] = {}
 
         # Traverse all nodes in the tree
         for node in self.dialect_tree.all_nodes():
@@ -169,8 +167,8 @@ class Dialect_Helper:
         return sorted_nodes
 
     def _get_node_by_dialect(self, dialect):
-        """
-        Get the node by dialect.
+        """Get the node by dialect.
+
         :param dialect: The dialect to lookup.
         :return: The node with the specified tag, or None if not found.
         """
@@ -180,8 +178,8 @@ class Dialect_Helper:
         return None
 
     def convert_to_depth(self, dialect, depth):
-        """
-        Find the parent node at a specific depth.
+        """Find the parent node at a specific depth.
+
         :param dialect: The dialect to lookup.
         :param depth: The depth of the parent node to retrieve.
         :return: The parent node at the specified depth, or None if not found.
@@ -202,11 +200,12 @@ class Dialect_Helper:
             return node.tag
 
 
-# Usage example
-dialects = Dialect_Helper()
-nodes = dialects.get_nodes_sorted_by_depth()
+if __name__ == "__main__":
+    # Usage example
+    dialects = Dialect_Helper()
+    nodes = dialects.get_nodes_sorted_by_depth()
 
-nodes = nodes
-# dialects.visualize_tree()
-# print(dialects.convert_to_depth('himmerlandsk', 2))
-# a = 0
+    nodes = nodes
+    # dialects.visualize_tree()
+    # print(dialects.convert_to_depth('himmerlandsk', 2))
+    # a = 0

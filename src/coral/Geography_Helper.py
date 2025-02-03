@@ -1,7 +1,8 @@
-import os
-import pandas as pd
-import geopandas as gpd
 import json
+import os
+
+import geopandas as gpd
+import pandas as pd
 
 # should be defined in config
 dict_mapDirs = {
@@ -15,15 +16,14 @@ dict_mapDirs = {
 
 
 class Geography_Helper:
-    """
-    Helper class used to associate zipcodes, municipalities and regions in Denmark
+    """Helper class used to associate zipcodes, municipalities and regions in Denmark.
+
     To use the Class please download the following maps from kortforsyningen:
     "Danmarks Administrative Geografiske Inddeling 1:10.000"
     """
 
-    def __init__(
-        self,
-    ):
+    def __init__(self):
+        """Initialize the class and load the necessary data."""
         self.dir_external_data = os.path.join(os.getcwd(), "data", "external")
 
         self._dir_map_zipcode = os.path.join(
@@ -47,6 +47,7 @@ class Geography_Helper:
         self._create_lookup()
 
     def _prepare_maps(self):
+        """Prepare GeoPandas dataframes for zipcodes, municipalities and regions."""
         if os.path.exists(self._dir_map_zipcode):
             self.dfmap_zipcode = gpd.read_file(self._dir_map_zipcode)
             self.dfmap_municipality = gpd.read_file(self._dir_map_municipality)
@@ -87,6 +88,7 @@ class Geography_Helper:
             self.dfmap_region.to_file(self._dir_map_region, driver="GeoJSON")
 
     def _create_lookup(self):
+        """Create dictionaries to map zipcodes to municipalities and municipalities to regions."""
         if os.path.exists(self._dir_dict_zipmun):
             with open(self._dir_dict_zipmun, "r") as fp:
                 self.dict_zipmun = json.load(fp)
@@ -119,8 +121,7 @@ class Geography_Helper:
                 json.dump(self.dict_munreg, fp)
 
     def getMunicipality(self, zipcode):
-        """
-        Lookup best matching municipality for zipcode
+        """Lookup best matching municipality for zipcode.
 
         Args:
             zipcode (str): zipcode
@@ -134,8 +135,7 @@ class Geography_Helper:
             return None
 
     def getRegion(self, municipality):
-        """
-        Lookup region for municipality
+        """Lookup region for municipality.
 
         Args:
             municipality (str): municipality
@@ -149,14 +149,12 @@ class Geography_Helper:
             return None
 
     def get_dfmap(self, map_type):
-        """
-        Get Geopandas dataframe defining the geographical boundaries
-        for the desired map_type
+        """Get Geopandas dataframe defining the geographical boundaries for the desired map_type.
 
         Args:
             map_type (str): Type of map ['zipcode', 'municipality', 'region']
 
-        Return
+        Return:
             df: Geopandas dataframe
         """
         if map_type == "zipcode":
