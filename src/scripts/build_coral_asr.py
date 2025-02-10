@@ -14,6 +14,7 @@ from pathlib import Path
 from time import sleep
 
 import hydra
+import pandas as pd
 from datasets import Audio, Dataset, DatasetDict
 from joblib import Parallel, delayed
 from omegaconf import DictConfig
@@ -285,16 +286,52 @@ def build_conversation_dataset(
         The CoRal conversation dataset.
     """
     # Read database
+    conn = sqlite3.connect(metadata_database_path)
+    try:
+        df_speakers = pd.read_sql_query("SELECT * FROM Speakers", conn)
+        df_conversations = pd.read_sql_query("SELECT * FROM Conversations", conn)
+    finally:
+        conn.close()
 
-    # read audio files
+    # Join the dataframes on the speaker id column
+    df_speakers_temp = df_speakers.add_suffix("_a")
+    df = pd.merge(df_conversations, df_speakers_temp, on="id_speaker_a")
+
+    df_speakers_temp = df_speakers.add_suffix("_b")
+    df = pd.merge(df, df_speakers_temp, on="id_speaker_b")
+
+    df_speakers_temp = df_speakers.add_suffix("_recorder")
+    df_speakers_temp = df_speakers_temp.rename(
+        columns={"id_speaker_recorder": "id_recorder"}
+    )
+    df = pd.merge(df, df_speakers_temp, on="id_recorder")
+
+    # read transcripts and audio files and split them into segments
+    """ SAMPLE CODE
+    import pysubs2
+    from pydub import AudioSegment, effects
+    subs = pysubs2.load(path_transcript)
+
+    # Load the audio file (supports WAV, MP3, etc.)
+    audio = AudioSegment.from_file(path_audio)
+
     # split audio files into audio bites
+    for i, sub in enumerate(subs):
+        start_time = sub.start  # Start time in milliseconds
+        end_time = sub.end  # End time in milliseconds
 
-    # read transcripts
+        # Extract the audio segment
+        segment = audio[start_time:end_time]
+
+        # Save as separate file
+        output_path = f"{output_folder}segment_{i+1}.wav"
+        segment.export(output_path, format="wav")
+    """
 
     # Build the dataset from the metadata, transcripts, and audio files. This embeds all the audio
     # files into the dataset as parquet files
 
-    dataset = Dataset.from_dict({})
+    dataset = Dataset.from_dict({})  # Dataset.from_dataframe(df)
     return dataset
 
 
@@ -484,13 +521,13 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
     Args:
         audio_dir:
             The directory containing the audio files.
-        max_attempts (optional):
-            The maximum number of attempts to list the audio files. Defaults to 10.
+        compress (optional):
+            Whether to compress the folder containing the audio files before moving. Defaults to False.
 
     Returns:
         The new directory containing the audio files.
     """
-    new_audio_dir = Path.cwd() / audio_dir.name
+    new_audio_dir = Path.cwd() / "data" / audio_dir.name
     new_audio_dir.mkdir(exist_ok=True)
 
     # Get list of subdirectories of the audio directory, or abort of none exist
@@ -498,7 +535,7 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
     if not audio_subdirs:
         return new_audio_dir
 
-    # Compress all subdirectories that are not already compressed
+    # Compress all subdirectories
     with Parallel(n_jobs=mp.cpu_count(), backend="threading") as parallel:
         parallel(
             delayed(function=compress_dir)(directory=subdir)
@@ -523,6 +560,61 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
     return new_audio_dir
 
 
+def copy_files_to_cwd(source_dir: Path, use_compression: bool = False) -> Path:
+    """Copies files from the source directory to the destination directory. Optionally compresses the files before copying.
+
+    Args:
+        source_dir (Path): The source directory from which files will be copied.
+        use_compression (bool, optional): If True, compresses the files into a tar.xz archive before copying. Defaults to False.
+
+    Returns:
+        Path (Path): The destination directory where files have been copied.
+    """
+    dest_dir = Path.cwd() / "data" / source_dir.name
+
+    if not dest_dir.exists():
+        dest_dir.mkdir(parents=True)
+
+    # Identify files to be copied
+    files_to_copy = [
+        file
+        for file in source_dir.rglob("*")
+        if file.is_file() and file.suffix != ".tar.xz"
+    ]
+
+    if use_compression:
+        tar_path = source_dir / "temp_transfer.tar.xz"
+
+        compress_files(files_to_copy, tar_path)
+        decompress_file(tar_path, dest_dir)
+
+    else:
+        # Copy files without compression, flattening structure
+        with Parallel(n_jobs=mp.cpu_count(), backend="threading") as parallel:
+            parallel(
+                delayed(shutil.copy2)(file, dest_dir / file.name)
+                for file in tqdm(files_to_copy, desc="Copying files")
+            )
+
+    return dest_dir
+
+
+def compress_files(file_paths: list[Path], path_destination: Path) -> Path:
+    """Compress files from a list of paths using tarfile, to a new directory.
+
+    Args:
+        file_paths:
+            A list of paths to the files to compress.
+        path_destination:
+            The directory to save the compressed file.
+    """
+    path_destination.parent.mkdir(parents=True, exist_ok=True)
+    with tarfile.open(path_destination, mode="w:xz") as tar:
+        for file_path in file_paths:
+            tar.add(file_path, arcname=file_path.name)
+    return path_destination
+
+
 def compress_dir(directory: Path) -> Path:
     """Compress a directory using tar.
 
@@ -533,10 +625,12 @@ def compress_dir(directory: Path) -> Path:
     Returns:
         The path to the compressed file.
     """
-    if not directory.with_suffix(".tar.xz").exists():
-        with tarfile.open(name=f"{str(directory)}.tar.xz", mode="w:xz") as tar:
-            tar.add(name=directory, arcname=directory.name)
-    return directory.with_suffix(".tar.xz")
+    # if not directory.with_suffix(".tar.xz").exists():
+    archive_dir = f"{str(directory)}.tar.xz"
+    with tarfile.open(name=archive_dir, mode="w:xz") as tar:
+        tar.add(name=directory, arcname=directory.name)
+
+    return Path(archive_dir)
 
 
 def decompress_file(file: Path, destination_dir: Path) -> None:

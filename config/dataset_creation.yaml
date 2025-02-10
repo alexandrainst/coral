@@ -1,5 +1,6 @@
 # Input raw data
 audio_dir: /Volumes/CoRal/_new_structure/raw
+transcription_dir: /Volumes/CoRal/_new_structure/raw/transcriptions
 metadata_database_path: /Volumes/CoRal/_new_structure/raw/CoRal_public.db
 
 # Filtering of the dataset
