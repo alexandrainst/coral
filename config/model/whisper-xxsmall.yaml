@@ -1,3 +1,5 @@
+# On a single RTX A4000 (16GiB VRAM), with the default asr_finetuning configuration,
+# ~2 GiB of VRAM were allocated.
 name: whisper-xxsmall
 type: whisper
 pretrained_model_id: openai/whisper-tiny
