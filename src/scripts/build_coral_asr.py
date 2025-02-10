@@ -294,6 +294,7 @@ def build_conversation_dataset(
         conn.close()
 
     # Join the dataframes on the speaker id column
+    # THIS MERGE IS PROBABLY NOT NEEDED AS EACH SENTENCE AFTER THE SPLITTING WILL HAVE A SINGLE SPEAKER ID
     df_speakers_temp = df_speakers.add_suffix("_a")
     df = pd.merge(df_conversations, df_speakers_temp, on="id_speaker_a")
 
@@ -561,7 +562,7 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
 
 
 def copy_files_to_cwd(source_dir: Path, use_compression: bool = False) -> Path:
-    """Copies files from the source directory to the destination directory. Optionally compresses the files before copying.
+    """Copies files from the source directory to cwd data directory. Optionally compresses the files before copying. Data is stored in a flat structure at the destination.
 
     Args:
         source_dir (Path): The source directory from which files will be copied.
