@@ -67,12 +67,13 @@ def add_validations(
     processed_dataset = process_dataset(
         dataset=dataset,
         clean_text=clean_text,
+        lower_case=lower_case,
         characters_to_keep=characters_to_keep,
+        remove_input_dataset_columns=True,
         text_column=text_column,
         audio_column=audio_column,
         convert_numerals=False,
-        remove_input_dataset_columns=True,
-        lower_case=lower_case,
+        normalize_audio=False,
     )
 
     logger.info(f"Loading the {model_id!r} ASR model...")

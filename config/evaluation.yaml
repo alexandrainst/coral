@@ -13,6 +13,7 @@ max_seconds_per_example: 10
 clean_text: true
 lower_case: true
 characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
+normalize_audio: false
 
 # Evaluation parameters
 model_id: null

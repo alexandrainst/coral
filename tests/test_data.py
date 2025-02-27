@@ -35,12 +35,13 @@ class TestProcessDataset:
         processed_dataset = process_dataset(
             dataset=dataset,
             clean_text=True,
+            lower_case=True,
             characters_to_keep=None,
+            remove_input_dataset_columns=False,
             text_column="text",
             audio_column=None,
             convert_numerals=False,
-            remove_input_dataset_columns=False,
-            lower_case=True,
+            normalize_audio=False,
         )
         processed_samples = {sample["text"] for sample in processed_dataset}
         expected_samples = {
@@ -213,6 +214,7 @@ class TestProcessExample:
             clean_text=True,
             lower_case=lower_case,
             convert_numerals=False,
+            normalize_audio=False,
             processor=None,
         )[text_column]
         assert cleaned_transcription == expected
