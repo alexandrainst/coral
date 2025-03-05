@@ -1,7 +1,8 @@
-coral:
+coral_conversation_internal:
   id: alexandrainst/coral-internal
   subset: conversation
   train_name: train
   text_column: text
   audio_column: audio
   filter_dataset: false
+  normalize_audio: true

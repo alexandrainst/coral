@@ -1,5 +1,5 @@
 defaults:
-  - model: whisper-xxsmall
+  - model: whisper-large
   - datasets:
     - coral_readaloud_internal
     - coral_conversation_internal
@@ -26,9 +26,9 @@ remove_numeric_words: true
 min_seconds_per_example: 0.5
 max_seconds_per_example: 10
 characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
-dataset_num_workers: 4
+dataset_num_workers: 1
 dataloader_num_workers: 4
-streaming: true
+streaming: false
 cache_dir: null
 
 # Can be `longest`, `max_length` or `do_not_pad`
