@@ -182,6 +182,7 @@ def load_data_for_finetuning(
         ds = ds.cast_column(
             column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
         )
+
         ds = process_dataset(
             dataset=ds,
             clean_text=config.model.clean_text,
@@ -206,16 +207,16 @@ def load_data_for_finetuning(
             if config.dataset_probabilities is None and len(all_datasets) > 1:
                 logger.warning(
                     "No dataset probabilities were specified for the training split. "
-                    "This means that each dataset will be sampled with equal "
-                    "probability, which means that the smaller datasets will be "
-                    "sampled more often than the larger datasets. This is probably "
-                    "not what you want."
+                    "This means that each dataset will be sampled according to their "
+                    "relative sizes, which might not be what you want."
                 )
 
         probabilities = config.dataset_probabilities
         if probabilities is None:
-            probabilities = [1 / len(all_datasets)] * len(all_datasets)
+            sum_samples = sum(len(ds) for ds in all_datasets)
+            probabilities = [len(ds) / sum_samples for ds in all_datasets]
             probabilities[-1] = 1 - sum(probabilities[:-1])
+
         elif sum(probabilities) != 1:
             raise ValueError(
                 f"Dataset probabilities must sum to 1, but sum to {sum(probabilities)}"
