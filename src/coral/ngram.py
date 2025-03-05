@@ -223,12 +223,13 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
         dataset = process_dataset(
             dataset=dataset,
             clean_text=config.model.clean_text,
+            lower_case=config.model.lower_case,
             characters_to_keep=config.characters_to_keep,
-            text_column="text",
             remove_input_dataset_columns=False,
+            text_column="text",
             audio_column=None,
             convert_numerals=False,
-            lower_case=config.model.lower_case,
+            normalize_audio=config.model.normalize_audio,
         )
         assert isinstance(dataset, Dataset)
 

@@ -182,6 +182,19 @@ def load_data_for_finetuning(
         ds = ds.cast_column(
             column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
         )
+        ds = process_dataset(
+            dataset=ds,
+            clean_text=config.model.clean_text,
+            lower_case=config.model.lower_case,
+            characters_to_keep=config.characters_to_keep,
+            remove_input_dataset_columns=True,
+            text_column="text",
+            audio_column="audio",
+            convert_numerals=False,
+            normalize_audio=dataset_config.normalize_audio,
+            num_proc=config.dataset_num_workers,
+            processor=processor,
+        )
 
         all_datasets.append(ds)
 
@@ -217,19 +230,6 @@ def load_data_for_finetuning(
         )
     else:
         train = all_datasets[0]
-
-    train = process_dataset(
-        dataset=train,
-        clean_text=config.model.clean_text,
-        lower_case=config.model.lower_case,
-        characters_to_keep=config.characters_to_keep,
-        text_column="text",
-        audio_column="audio",
-        convert_numerals=False,
-        remove_input_dataset_columns=True,
-        processor=processor,
-        num_proc=config.dataset_num_workers,
-    )
 
     data_dict = dict(train=train)
     dataset = IterableDatasetDict(data_dict)
@@ -268,12 +268,13 @@ def load_data_for_finetuning(
         clean_text=config.model.clean_text,
         lower_case=config.model.lower_case,
         characters_to_keep=config.characters_to_keep,
+        remove_input_dataset_columns=True,
         text_column="text",
         audio_column="audio",
         convert_numerals=False,
-        remove_input_dataset_columns=True,
-        processor=processor,
+        normalize_audio=config.evaluation_dataset.normalize_audio,
         num_proc=config.dataset_num_workers,
+        processor=processor,
     )
     dataset["val"] = val
 
@@ -342,10 +343,11 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         clean_text=config.clean_text,
         lower_case=config.lower_case,
         characters_to_keep=config.characters_to_keep,
+        remove_input_dataset_columns=False,
         text_column=config.text_column,
         audio_column=config.audio_column,
-        remove_input_dataset_columns=False,
         convert_numerals=True,
+        normalize_audio=config.normalize_audio,
     )
 
     if config.cache_dir:
@@ -453,10 +455,11 @@ def process_dataset(
     clean_text: bool,
     lower_case: bool,
     characters_to_keep: Iterable[str] | None,
-    text_column: str,
     remove_input_dataset_columns: bool,
+    text_column: str,
     audio_column: str | None,
     convert_numerals: bool,
+    normalize_audio: bool = False,
     num_proc: int | None = None,
     processor: Callable | None = None,
 ) -> Data:
@@ -483,6 +486,8 @@ def process_dataset(
             does not have an audio column.
         convert_numerals:
             Whether to convert numerals to words.
+        normalize_audio:
+            Whether to normalize the audio.
         num_proc (optional):
             The number of processes to use for processing the dataset. If `None`, then
             no multiprocessing is used. Defaults to `None`.
@@ -507,6 +512,7 @@ def process_dataset(
         clean_text=clean_text,
         lower_case=lower_case,
         convert_numerals=convert_numerals,
+        normalize_audio=normalize_audio,
         processor=processor,
     )
     if isinstance(dataset, Dataset | DatasetDict):
@@ -531,6 +537,7 @@ def process_example(
     clean_text: bool,
     lower_case: bool,
     convert_numerals: bool,
+    normalize_audio: bool,
     processor: Callable | None,
 ) -> dict:
     """Helper function which cleans a single example.
@@ -554,6 +561,8 @@ def process_example(
             Whether to make the text lower case.
         convert_numerals:
             Whether to convert numerals to words.
+        normalize_audio:
+            Whether to normalize the audio.
         processor:
             The processor to use for processing the audio and transcriptions. If `None`,
             then the processor is not used. Requires `audio_column` to be specified.
@@ -610,7 +619,9 @@ def process_example(
     # Prepare audio
     audio = example[audio_column]
     sampling_rate = audio["sampling_rate"]
-    processed = processor(audio["array"], sampling_rate=sampling_rate)
+    processed = processor(
+        audio["array"], sampling_rate=sampling_rate, do_normalize=normalize_audio
+    )
     if "input_values" in processed:
         example["input_values"] = processed.input_values[0]
         example["num_seconds"] = len(example["input_values"]) / sampling_rate

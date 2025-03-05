@@ -6,6 +6,7 @@ freeze_feature_encoder: false
 # Data hyperparameters
 lower_case: true
 clean_text: true
+normalize_audio: false
 
 # Model hyperparameters
 sampling_rate: 16_000

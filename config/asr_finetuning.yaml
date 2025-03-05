@@ -19,6 +19,7 @@ evaluation_dataset:
   val_name: val
   text_column: text
   audio_column: audio
+  normalize_audio: false
 
 # Dataset parameters
 remove_numeric_words: true
