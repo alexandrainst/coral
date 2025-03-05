@@ -6,13 +6,11 @@ defaults:
     - wikipedia
     - common_voice
     - reddit
-  - experiment_tracking: wandb
+  - experiment_tracking: mlflow
   - override hydra/job_logging: custom
   - _self_
 
 seed: 4242
-
-experiment_tracking: null
 
 evaluation_dataset:
   id: alexandrainst/coral
@@ -20,6 +18,7 @@ evaluation_dataset:
   val_name: val
   text_column: text
   audio_column: audio
+  normalize_audio: false
 
 # Dataset parameters
 remove_numeric_words: true
