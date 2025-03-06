@@ -5,4 +5,3 @@ common_voice_17:
   text_column: sentence
   audio_column: audio
   filter_dataset: false
-  normalize_audio: false

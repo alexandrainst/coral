@@ -194,19 +194,6 @@ def load_data_for_finetuning(
         ds = ds.cast_column(
             column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
         )
-        ds = process_dataset(
-            dataset=ds,
-            clean_text=config.model.clean_text,
-            lower_case=config.model.lower_case,
-            characters_to_keep=config.characters_to_keep,
-            remove_input_dataset_columns=True,
-            text_column="text",
-            audio_column="audio",
-            convert_numerals=False,
-            normalize_audio=dataset_config.normalize_audio,
-            num_proc=config.dataset_num_workers,
-            processor=processor,
-        )
 
         all_datasets.append(ds)
 
@@ -240,6 +227,20 @@ def load_data_for_finetuning(
         )
     else:
         train = all_datasets[0]
+
+    train = process_dataset(
+        dataset=train,
+        clean_text=config.model.clean_text,
+        lower_case=config.model.lower_case,
+        characters_to_keep=config.characters_to_keep,
+        remove_input_dataset_columns=True,
+        text_column="text",
+        audio_column="audio",
+        convert_numerals=False,
+        normalize_audio=config.model.normalize_audio,
+        num_proc=config.dataset_num_workers,
+        processor=processor,
+    )
 
     data_dict = dict(train=train)
     dataset = IterableDatasetDict(data_dict)
@@ -282,7 +283,7 @@ def load_data_for_finetuning(
         text_column="text",
         audio_column="audio",
         convert_numerals=False,
-        normalize_audio=config.evaluation_dataset.normalize_audio,
+        normalize_audio=config.model.normalize_audio,
         num_proc=config.dataset_num_workers,
         processor=processor,
     )
