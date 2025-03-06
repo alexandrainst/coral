@@ -16,6 +16,7 @@ from datasets import (
     IterableDataset,
     IterableDatasetDict,
     NamedSplit,
+    get_dataset_config_info,
     interleave_datasets,
     load_dataset,
 )
@@ -97,6 +98,7 @@ def load_data_for_finetuning(
     is_main_process = os.getenv("RANK", "0") == "0"
 
     all_datasets: list[IterableDataset] | list[Dataset] = list()
+    len_datasets: list[int] = list()
     for dataset_name, dataset_config in config.datasets.items():
         if is_main_process:
             logger.info(f"Loading dataset {dataset_name!r}")
@@ -138,6 +140,8 @@ def load_data_for_finetuning(
                         cache_dir=config.cache_dir,
                     )
 
+            len_datasets.append(len(ds))
+
         # Load dataset from the Hugging Face Hub. The HUGGINGFACE_HUB_TOKEN is only
         # used during CI - normally it is expected that the user is logged in to the
         # Hugging Face Hub using the `huggingface-cli login` command.
@@ -150,6 +154,14 @@ def load_data_for_finetuning(
                 streaming=config.streaming,
                 trust_remote_code=True,
                 cache_dir=config.cache_dir,
+            )
+
+            len_datasets.append(
+                get_dataset_config_info(
+                    dataset_config.id, config_name=dataset_config.subset
+                )
+                .splits[dataset_config.train_name]
+                .num_examples
             )
 
         assert isinstance(
@@ -193,15 +205,13 @@ def load_data_for_finetuning(
             if config.dataset_probabilities is None and len(all_datasets) > 1:
                 logger.warning(
                     "No dataset probabilities were specified for the training split. "
-                    "This means that each dataset will be sampled with equal "
-                    "probability, which means that the smaller datasets will be "
-                    "sampled more often than the larger datasets. This is probably "
-                    "not what you want."
+                    "This means that each dataset will be sampled according to their "
+                    "relative sizes, which might not be what you want."
                 )
 
         probabilities = config.dataset_probabilities
         if probabilities is None:
-            probabilities = [1 / len(all_datasets)] * len(all_datasets)
+            probabilities = [n / sum(len_datasets) for n in len_datasets]
             probabilities[-1] = 1 - sum(probabilities[:-1])
         elif sum(probabilities) != 1:
             raise ValueError(
