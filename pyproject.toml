@@ -32,7 +32,7 @@ deepspeed = ">=0.12.3"
 python-dotenv = ">=1.0.1"
 joblib = "^1.4.2"
 kenlm = {url = "https://github.com/kpu/kenlm/archive/master.zip", optional=true}
-gradio = {version = "^5.5.0", optional=true}
+gradio = {version = "^5.11.0", optional=true}
 samplerate = {version="^0.2.1", optional=true}
 punctfix = {version="^0.11.1", optional=true}
 matplotlib = {version = "^3.9.2", optional = true}
