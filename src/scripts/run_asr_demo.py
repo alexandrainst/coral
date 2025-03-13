@@ -69,7 +69,7 @@ def main(config: DictConfig) -> None:
                 "again."
             )
 
-        audio = load_audio(audio_file, config.sample_rate)
+        audio = load_audio(audio_file, config.sampling_rate)
 
         logger.info(f"Transcribing audio clip of {len(audio) / 16_000:.2f} seconds...")
         if config.model_type == "whisper":
@@ -119,7 +119,7 @@ def main(config: DictConfig) -> None:
     )
 
     # Launch the app
-    demo.launch()
+    demo.launch(share=True, server_port=7860)
 
 
 if __name__ == "__main__":
