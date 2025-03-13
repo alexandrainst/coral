@@ -1,5 +1,6 @@
 # ASR model parameters
 model_id: alexandrainst/roest-315m
+model_type: wav2vec2
 sampling_rate: 16_000
 
 # UI parameters

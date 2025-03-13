@@ -1,5 +1,6 @@
 # ASR model parameters
 model_id: Alvenir/coral-1-whisper-large
+model_type: whisper
 sampling_rate: 16_000
 
 # UI parameters
