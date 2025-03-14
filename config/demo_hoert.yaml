@@ -12,7 +12,7 @@ description: >
   I CoRal-projektet er der indsamlet et omfattende datasæt med danske taledata, som kan bruges til at forbedre talegenkendelsesteknologier på dansk. Datasættet indeholder både oplæst tale og samtaledata fra et bredt og repræsentativt udsnit af den danske befolkning - inklusive dialekter og accenter. Dette danner grundlaget for udvikling af talegenkendelsesmodeller, der kan bruges af hele den danske befolkning og give adgang kunstig intelligens i stor skala.
 
 
-  Sådan burger du CoRal:
+  Sådan bruger du CoRal:
   <ol>
     <li>Tryk på "Record" og tal ind i mikrofonen</li>
     <li>Tryk på "Stop", når du er færdig</li>

@@ -103,26 +103,6 @@ def main(config: DictConfig) -> None:
 
     image_path = "resources/CoRal.png"
 
-    html_content = """
-        <div style="display: flex; justify-content: space-around; flex-wrap: wrap;">
-            <a href="https://www.alvenir.ai/">
-                <img src="https://static.wixstatic.com/media/b5799d_f473a732bdce46ca91c6f02f963309bc~mv2.png/v1/fill/w_164,h_88,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/b5799d_f473a732bdce46ca91c6f02f963309bc~mv2.png" alt="Partner 2" style="height: 100px; margin: 10px;">
-            </a>
-            <a href="https://www.corti.ai/">
-                <img src="https://cdn.prod.website-files.com/679910de24e675a93f045f3b/679917a13caaa280dd45d39b_corti-logo.svg" alt="Partner 1" style="height: 100px; margin: 10px;">
-            </a>
-            <a href="https://di.ku.dk/">
-                <img src="https://designguide.ku.dk/download/co-branding/ku_logo_dk_h.png" alt="Partner 2" style="height: 100px; margin: 10px;">
-            </a>
-            <a href="https://digst.dk/">
-                <img src="https://digst.dk/media/cdld0gfa/digst_logo_dk_aubergine_rgb_new_png.png?format=webp&quality=92" alt="Partner 2" style="height: 100px; margin: 10px;">
-            </a>
-            <a href="https://alexandra.dk/">
-                <img src="https://alexandra.dk/wp-content/uploads/2020/02/Alexandra-Instituttet_Logo_Sort_DK.webp" alt="Partner 2" style="height: 100px; margin: 10px;">
-            </a>
-        </div>
-    """
-
     demo = gr.Interface(
         fn=transcribe,
         inputs=gr.Audio(sources=["microphone", "upload"], type="filepath"),
@@ -153,16 +133,6 @@ def main(config: DictConfig) -> None:
         )
 
         demo.render()  # Render the Interface
-
-        gr.Markdown("")
-        gr.Markdown("")
-        gr.Markdown("")
-        gr.Markdown(
-            """
-            # Projekt Partnere:
-            """
-        )
-        gr.HTML(html_content)
 
     app.launch(server_name="0.0.0.0", server_port=7860)
 
