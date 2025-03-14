@@ -13,3 +13,7 @@ description: >
   Press "Record" to record your own voice. When you're done you can press "Stop" to stop
   recording and "Submit" to send the audio to the model for transcription. You can also
   upload an audio file by pressing the <img src="https://cdn-icons-png.flaticon.com/128/3097/3097412.png" width="14px" style="vertical-align: middle; display: inline;"> button.
+
+# Web server options
+server_name: 0.0.0.0
+server_port: 7860
