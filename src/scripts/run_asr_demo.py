@@ -100,6 +100,29 @@ def main(config: DictConfig) -> None:
         return cleaned_transcription
 
     # Gradio Interface with both microphone and file upload
+
+    image_path = "resources/CoRal.png"
+
+    html_content = """
+        <div style="display: flex; justify-content: space-around; flex-wrap: wrap;">
+            <a href="https://www.alvenir.ai/">
+                <img src="https://static.wixstatic.com/media/b5799d_f473a732bdce46ca91c6f02f963309bc~mv2.png/v1/fill/w_164,h_88,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/b5799d_f473a732bdce46ca91c6f02f963309bc~mv2.png" alt="Partner 2" style="height: 100px; margin: 10px;">
+            </a>
+            <a href="https://www.corti.ai/">
+                <img src="https://cdn.prod.website-files.com/679910de24e675a93f045f3b/679917a13caaa280dd45d39b_corti-logo.svg" alt="Partner 1" style="height: 100px; margin: 10px;">
+            </a>
+            <a href="https://di.ku.dk/">
+                <img src="https://designguide.ku.dk/download/co-branding/ku_logo_dk_h.png" alt="Partner 2" style="height: 100px; margin: 10px;">
+            </a>
+            <a href="https://digst.dk/">
+                <img src="https://digst.dk/media/cdld0gfa/digst_logo_dk_aubergine_rgb_new_png.png?format=webp&quality=92" alt="Partner 2" style="height: 100px; margin: 10px;">
+            </a>
+            <a href="https://alexandra.dk/">
+                <img src="https://alexandra.dk/wp-content/uploads/2020/02/Alexandra-Instituttet_Logo_Sort_DK.webp" alt="Partner 2" style="height: 100px; margin: 10px;">
+            </a>
+        </div>
+    """
+
     demo = gr.Interface(
         fn=transcribe,
         inputs=gr.Audio(sources=["microphone", "upload"], type="filepath"),
@@ -115,11 +138,33 @@ def main(config: DictConfig) -> None:
             "https://filedn.com/lRBwPhPxgV74tO0rDoe8SpH/audio-examples/accent.wav",
         ],
         cache_examples=False,
-        theme=gr.themes.Soft(primary_hue="blue"),
     )
 
-    # Launch the app
-    demo.launch(share=True, server_name='0.0.0.0', server_port=7860)
+    # Create a Gradio Blocks layout to include the image at the bottom
+    with gr.Blocks(theme=gr.themes.Soft(primary_hue="orange")) as app:
+        gr.Image(
+            image_path,
+            interactive=False,
+            container=False,
+            show_share_button=False,
+            show_download_button=False,
+            show_fullscreen_button=False,
+            show_label=False,
+        )
+
+        demo.render()  # Render the Interface
+
+        gr.Markdown("")
+        gr.Markdown("")
+        gr.Markdown("")
+        gr.Markdown(
+            """
+            # Projekt Partnere:
+            """
+        )
+        gr.HTML(html_content)
+
+    app.launch(server_name="0.0.0.0", server_port=7860)
 
 
 if __name__ == "__main__":
