@@ -20,7 +20,3 @@ description: >
     <line x1="12" y1="3" x2="12" y2="15"/>
   </svg>
   button.
-
-# Web server options
-server_name: 0.0.0.0
-server_port: 7860

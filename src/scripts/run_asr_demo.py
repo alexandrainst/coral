@@ -121,7 +121,7 @@ def main(config: DictConfig) -> None:
     )
 
     # Launch the app
-    demo.launch(share=True, server_port=7860)
+    demo.launch(share=True, server_name='0.0.0.0', server_port=7860)
 
 
 if __name__ == "__main__":
