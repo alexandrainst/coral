@@ -101,8 +101,6 @@ def main(config: DictConfig) -> None:
 
     # Gradio Interface with both microphone and file upload
     demo = gr.Interface(
-        server_name=config.server_name,
-        server_port=config.server_port,
         fn=transcribe,
         inputs=gr.Audio(sources=["microphone", "upload"], type="filepath"),
         outputs="text",
