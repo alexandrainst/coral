@@ -6,13 +6,11 @@ defaults:
     - wikipedia
     - common_voice
     - reddit
-  - experiment_tracking: wandb
+  - experiment_tracking: mlflow
   - override hydra/job_logging: custom
   - _self_
 
 seed: 4242
-
-experiment_tracking: null
 
 evaluation_dataset:
   id: alexandrainst/coral

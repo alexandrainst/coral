@@ -180,6 +180,7 @@ def compute_metrics_of_dataset_using_pipeline(
                 clean_text=True,
                 lower_case=True,
                 convert_numerals=True,
+                normalize_audio=False,
                 processor=None,
             )["text"]
 

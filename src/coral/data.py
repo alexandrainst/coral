@@ -16,6 +16,7 @@ from datasets import (
     IterableDataset,
     IterableDatasetDict,
     NamedSplit,
+    get_dataset_config_info,
     interleave_datasets,
     load_dataset,
 )
@@ -97,6 +98,7 @@ def load_data_for_finetuning(
     is_main_process = os.getenv("RANK", "0") == "0"
 
     all_datasets: list[IterableDataset] | list[Dataset] = list()
+    len_datasets: list[int] = list()
     for dataset_name, dataset_config in config.datasets.items():
         if is_main_process:
             logger.info(f"Loading dataset {dataset_name!r}")
@@ -138,6 +140,8 @@ def load_data_for_finetuning(
                         cache_dir=config.cache_dir,
                     )
 
+            len_datasets.append(len(ds))
+
         # Load dataset from the Hugging Face Hub. The HUGGINGFACE_HUB_TOKEN is only
         # used during CI - normally it is expected that the user is logged in to the
         # Hugging Face Hub using the `huggingface-cli login` command.
@@ -150,6 +154,14 @@ def load_data_for_finetuning(
                 streaming=config.streaming,
                 trust_remote_code=True,
                 cache_dir=config.cache_dir,
+            )
+
+            len_datasets.append(
+                get_dataset_config_info(
+                    dataset_config.id, config_name=dataset_config.subset
+                )
+                .splits[dataset_config.train_name]
+                .num_examples
             )
 
         assert isinstance(
@@ -193,15 +205,13 @@ def load_data_for_finetuning(
             if config.dataset_probabilities is None and len(all_datasets) > 1:
                 logger.warning(
                     "No dataset probabilities were specified for the training split. "
-                    "This means that each dataset will be sampled with equal "
-                    "probability, which means that the smaller datasets will be "
-                    "sampled more often than the larger datasets. This is probably "
-                    "not what you want."
+                    "This means that each dataset will be sampled according to their "
+                    "relative sizes, which might not be what you want."
                 )
 
         probabilities = config.dataset_probabilities
         if probabilities is None:
-            probabilities = [1 / len(all_datasets)] * len(all_datasets)
+            probabilities = [n / sum(len_datasets) for n in len_datasets]
             probabilities[-1] = 1 - sum(probabilities[:-1])
         elif sum(probabilities) != 1:
             raise ValueError(
@@ -223,12 +233,13 @@ def load_data_for_finetuning(
         clean_text=config.model.clean_text,
         lower_case=config.model.lower_case,
         characters_to_keep=config.characters_to_keep,
+        remove_input_dataset_columns=True,
         text_column="text",
         audio_column="audio",
         convert_numerals=False,
-        remove_input_dataset_columns=True,
-        processor=processor,
+        normalize_audio=config.model.normalize_audio,
         num_proc=config.dataset_num_workers,
+        processor=processor,
     )
 
     data_dict = dict(train=train)
@@ -268,12 +279,13 @@ def load_data_for_finetuning(
         clean_text=config.model.clean_text,
         lower_case=config.model.lower_case,
         characters_to_keep=config.characters_to_keep,
+        remove_input_dataset_columns=True,
         text_column="text",
         audio_column="audio",
         convert_numerals=False,
-        remove_input_dataset_columns=True,
-        processor=processor,
+        normalize_audio=config.model.normalize_audio,
         num_proc=config.dataset_num_workers,
+        processor=processor,
     )
     dataset["val"] = val
 
@@ -342,10 +354,11 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         clean_text=config.clean_text,
         lower_case=config.lower_case,
         characters_to_keep=config.characters_to_keep,
+        remove_input_dataset_columns=False,
         text_column=config.text_column,
         audio_column=config.audio_column,
-        remove_input_dataset_columns=False,
         convert_numerals=True,
+        normalize_audio=config.normalize_audio,
     )
 
     if config.cache_dir:
@@ -453,10 +466,11 @@ def process_dataset(
     clean_text: bool,
     lower_case: bool,
     characters_to_keep: Iterable[str] | None,
-    text_column: str,
     remove_input_dataset_columns: bool,
+    text_column: str,
     audio_column: str | None,
     convert_numerals: bool,
+    normalize_audio: bool = False,
     num_proc: int | None = None,
     processor: Callable | None = None,
 ) -> Data:
@@ -483,6 +497,8 @@ def process_dataset(
             does not have an audio column.
         convert_numerals:
             Whether to convert numerals to words.
+        normalize_audio:
+            Whether to normalize the audio.
         num_proc (optional):
             The number of processes to use for processing the dataset. If `None`, then
             no multiprocessing is used. Defaults to `None`.
@@ -507,6 +523,7 @@ def process_dataset(
         clean_text=clean_text,
         lower_case=lower_case,
         convert_numerals=convert_numerals,
+        normalize_audio=normalize_audio,
         processor=processor,
     )
     if isinstance(dataset, Dataset | DatasetDict):
@@ -531,6 +548,7 @@ def process_example(
     clean_text: bool,
     lower_case: bool,
     convert_numerals: bool,
+    normalize_audio: bool,
     processor: Callable | None,
 ) -> dict:
     """Helper function which cleans a single example.
@@ -554,6 +572,8 @@ def process_example(
             Whether to make the text lower case.
         convert_numerals:
             Whether to convert numerals to words.
+        normalize_audio:
+            Whether to normalize the audio.
         processor:
             The processor to use for processing the audio and transcriptions. If `None`,
             then the processor is not used. Requires `audio_column` to be specified.
@@ -610,7 +630,9 @@ def process_example(
     # Prepare audio
     audio = example[audio_column]
     sampling_rate = audio["sampling_rate"]
-    processed = processor(audio["array"], sampling_rate=sampling_rate)
+    processed = processor(
+        audio["array"], sampling_rate=sampling_rate, do_normalize=normalize_audio
+    )
     if "input_values" in processed:
         example["input_values"] = processed.input_values[0]
         example["num_seconds"] = len(example["input_values"]) / sampling_rate
