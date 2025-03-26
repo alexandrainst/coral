@@ -65,6 +65,8 @@ def main(evaluation_file: tuple[str], metric: str) -> None:
     plt.tight_layout(pad=2)
     plt.show()
 
+    plt.savefig("results_vis.png")
+
 
 def load_evaluation_df(file: Path) -> pd.DataFrame:
     """Loads the evaluation data from a CSV file into a pandas DataFrame.

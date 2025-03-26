@@ -48,18 +48,21 @@ def main(config: DictConfig) -> None:
             rmtree(path=model_dir)
 
     if config.store_results:
+        dataset_without_slashes = config.dataset.replace("/", "-").replace("::", "-")
+        results_dir = Path("results") / dataset_without_slashes
+        Path.mkdir(results_dir, exist_ok=True)
         model_id_without_slashes = config.model_id.replace("/", "--")
         if "coral" in config.dataset and config.detailed:
-            filename = Path(f"{model_id_without_slashes}-coral-scores.csv")
-            score_df.to_csv(filename, index=False)
+            path_results = results_dir / Path(f"{model_id_without_slashes}-scores.csv")
+            score_df.to_csv(path_results, index=False)
         else:
-            filename = Path("evaluation-results.csv")
-            if filename.exists():
+            path_results = results_dir / Path("evaluation-results.csv")
+            if path_results.exists():
                 score_df = pd.concat(
-                    objs=[pd.read_csv(filename, index_col=False), score_df],
+                    objs=[pd.read_csv(path_results, index_col=False), score_df],
                     ignore_index=True,
                 )
-            score_df.to_csv(filename, index=False)
+            score_df.to_csv(path_results, index=False)
 
 
 if __name__ == "__main__":
