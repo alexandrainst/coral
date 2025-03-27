@@ -50,7 +50,8 @@ def main(config: DictConfig) -> None:
     if config.store_results:
         dataset_without_slashes = config.dataset.replace("/", "-").replace("::", "-")
         results_dir = Path("results") / dataset_without_slashes
-        Path.mkdir(results_dir, exist_ok=True)
+        results_dir.mkdir(parents=True, exist_ok=True)
+
         model_id_without_slashes = config.model_id.replace("/", "--")
         if "coral" in config.dataset and config.detailed:
             path_results = results_dir / Path(f"{model_id_without_slashes}-scores.csv")
