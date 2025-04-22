@@ -1,0 +1,106 @@
+# Input raw data
+audio_dir: /Volumes/CoRal/raw/conversations
+transcripts_dir: /Volumes/CoRal/raw/transcriptions
+metadata_database_path: /Volumes/CoRal/raw/CoRal_public.db
+
+# Directory to save new files to
+new_local_dir: /redacted_conversations/
+
+# Validation parameters
+validation:
+  lower_case: true
+  clean_text: true
+  model_id: alexandrainst/coral-asr-bootstrap
+  sampling_rate: 16_000
+  characters_to_keep: "abcdefghijklmnopqrstuvwxyzæøå0123456789éü"
+  batch_size: 16
+  max_cer: 0.6
+
+# Hugging Face Hub ID of output dataset
+hub_id: alexandrainst/coral
+
+personal_information: "***PI***"
+
+# Estimated number of hours: 8.84
+# Actual number of hours: 9.43
+# Difficulty: 0.05
+# Gender distribution:
+# - female: 55%
+# - male: 45%
+# Dialect distribution:
+# - Bornholmsk: 10%
+# - Fynsk: 11%
+# - Københavnsk: 10%
+# - Nordjysk: 12%
+# - Sjællandsk: 12%
+# - Sydømål: 11%
+# - Sønderjysk: 10%
+# - Vestjysk: 10%
+# - Østjysk: 13%
+# Age_group distribution:
+# - 0-24: 29%
+# - 25-49: 42%
+# - 50-: 29%
+# Accent distribution:
+# - native: 88%
+# - non-native: 12%
+test_speakers:
+  - spe_f52921e1e787609ab99623340c5dd212
+  - spe_cdb17db7c331cbb89e40dcbbecf4d560
+  - spe_e3742811d83011e22ec2ef5a7af32065
+  - spe_42de8f7200a57e1d28ae5b415ba5b934
+  - spe_d84ebbfd3b0a3fbc12df4f960fe44ae3
+  - spe_199e03b334b15576a69be73ea39a34d5
+  - spe_0f8c666aaf602dfc580d99254e37ac77
+  - spe_e33e46611f54ae91ed7b235c11ef2628
+  - spe_37a526e88c934c7966038d34af9debf0
+  - spe_07c0276e66e920209cf22266b24fa5e4
+  - spe_9b8d26599c6b7932dbac00832b73dcf8
+  - spe_6a029298b9eaa3d7e7f8f74510f88e70
+  - spe_7b8398c898a828791c0fc40d6d146b3f
+  - spe_5e319f90767d47e11731d95e314e4670
+  - spe_4b7ba1403d8540b3101c07b9c8a19474
+  - spe_436e439616edf662c232486b3face2f1
+  - spe_647d4e905427d45ab699abe73d80ef1d
+  - spe_51b02c4d372de72ba1cab851642ab363
+  - spe_50cddf66f739637c1b3c534938649b8e
+  - spe_6e7cb65603907f863e06d7a02e00fb67
+  - spe_f1d26280a22ad55b85083b19d61f243a
+  - spe_9f92cb4d6feb94dab9c691811656e33e
+  - spe_55028d05581a88a8655fa1f74ddfb5a1
+
+# Estimated number of hours: 2.56
+# Actual number of hours: 3.05
+# Difficulty: 0.06
+# Gender distribution:
+# - female: 58%
+# - male: 42%
+# Dialect distribution:
+# - Bornholmsk: 19%
+# - Fynsk: 10%
+# - Københavnsk: 17%
+# - Nordjysk: 5%
+# - Sjællandsk: 11%
+# - Sydømål: 13%
+# - Sønderjysk: 11%
+# - Vestjysk: 7%
+# - Østjysk: 8%
+# Age_group distribution:
+# - 0-24: 29%
+# - 25-49: 37%
+# - 50-: 35%
+# Accent distribution:
+# - native: 68%
+# - non-native: 32%
+val_speakers:
+  - spe_9c4dc6be57f6c63860331813a71417e5
+  - spe_4a7e760bd0a2775337880155e8ac0ec2
+  - spe_03e8b9d0ee8d3192e113ff62c61e4916
+  - spe_92fea6e4419210f4c4219e84ec89837e
+  - spe_b977ebc0a2ba961cbe158190fce0dc06
+  - spe_4aa23a60464a18e3597cdeb3606ac572
+  - spe_20b91d51f72ee56930ca778cb16c29da
+  - spe_fbf3381f525dbe5ddf1a2a1d36e9c4b9
+  - spe_4d03787c2092b6bee053e75e2cfa4aa3
+  - spe_877ac9c88e53b43ebfe464da79aa6da3
+  - spe_ffc1068fc082deac40144691e1ae754c
