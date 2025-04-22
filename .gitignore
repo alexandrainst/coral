@@ -107,6 +107,7 @@ docs/search.json
 
 # Data
 data/
+redacted_conversations/
 
 # Models
 models/
