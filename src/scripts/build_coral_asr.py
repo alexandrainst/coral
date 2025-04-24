@@ -267,7 +267,7 @@ def build_read_aloud_dataset(metadata_database_path: Path, audio_dir: Path) -> D
 
 
 def list_audio_files(
-    audio_dir: Path, max_attempts: int = 10, extensions=["wav"]
+    audio_dir: Path, max_attempts: int = 10, extensions: list[str] = ["wav"]
 ) -> list[Path]:
     """List all the audio files in the given directory.
 
