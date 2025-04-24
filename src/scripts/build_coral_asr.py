@@ -190,7 +190,7 @@ def build_read_aloud_dataset(metadata_database_path: Path, audio_dir: Path) -> D
         cursor = connection.cursor()
         cursor.execute(selection_query)
         rows = list(map(list, cursor.fetchall()))
-    
+
     recording_ids: list[str] = [row[0] for row in rows]
     logger.info(f"Got {len(recording_ids)} recording ids")
 
@@ -211,7 +211,7 @@ def build_read_aloud_dataset(metadata_database_path: Path, audio_dir: Path) -> D
             delayed(list_audio_files)(subdir)
             for subdir in tqdm(audio_subdirs, desc="Collecting audio file paths")
         )
-    
+
     all_audio_paths_list = list(chain.from_iterable(all_audio_path_lists))
     all_audio_paths = {path.stem: path for path in all_audio_paths_list}
     logger.info(f"Got {len(all_audio_paths)} audio paths")
