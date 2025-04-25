@@ -69,6 +69,7 @@ def main(config: DictConfig) -> None:
     read_aloud_dataset = build_read_aloud_dataset(
         metadata_database_path=temp_metadata_database_path,
         audio_dir=temp_read_aloud_dir,
+        additional_logging=config.debug_logging,
     )
 
     logger.info("Building the CoRal conversation speech recognition dataset...")
@@ -77,6 +78,7 @@ def main(config: DictConfig) -> None:
         audio_dir=temp_conversation_dir,
         transcript_dir=temp_transcription_dir,
         segment_dir=temp_segment_dir,
+        additional_logging=config.debug_logging,
     )
 
     logger.info("Validating and filtering the datasets...")
@@ -124,7 +126,9 @@ def main(config: DictConfig) -> None:
 ##########################################
 
 
-def build_read_aloud_dataset(metadata_database_path: Path, audio_dir: Path) -> Dataset:
+def build_read_aloud_dataset(
+    metadata_database_path: Path, audio_dir: Path, additional_logging: bool = False
+) -> Dataset:
     """Build the CoRal read-aloud dataset.
 
     Args:
@@ -132,6 +136,8 @@ def build_read_aloud_dataset(metadata_database_path: Path, audio_dir: Path) -> D
             Path to the SQLite database containing the metadata.
         audio_dir:
             Path to the directory containing the audio files.
+        additional_logging:
+            Flag to turn on additional logging useful for debugging
 
     Returns:
         The CoRal read-aloud dataset.
@@ -198,10 +204,13 @@ def build_read_aloud_dataset(metadata_database_path: Path, audio_dir: Path) -> D
         logger.info(
             f"Expected to get all {num_metadata_samples} samples but got {len(rows)} which means {num_metadata_samples - len(rows)} are missing"
         )
-        # with sqlite3.connect(database=metadata_database_path) as conn:
-        #     cursor = conn.execute("SELECT id_recording FROM Recordings")
-        #     all_ids = [row[0] for row in list(map(list, cursor.fetchall()))]
-        #     logger.info(f"The missing rows are {set(all_ids).difference(set(recording_ids))}")
+        if additional_logging:
+            with sqlite3.connect(database=metadata_database_path) as conn:
+                cursor = conn.execute("SELECT id_recording FROM Recordings")
+                all_ids = [row[0] for row in list(map(list, cursor.fetchall()))]
+                logger.info(
+                    f"The missing rows are {set(all_ids).difference(set(recording_ids))}"
+                )
 
     # Get a list of all the audio file paths. We need this since the audio files lie in
     # subdirectories of the main audio directory
@@ -233,12 +242,16 @@ def build_read_aloud_dataset(metadata_database_path: Path, audio_dir: Path) -> D
                 missing_audio_paths.append(id)
         logger.info(f"Got {len(matching_audio_paths)} matched audio paths")
         logger.info(f"Got {len(missing_audio_paths)} missing audio paths")
-        # logger.info(f"The missing paths are {missing_audio_paths}")
+        if additional_logging:
+            logger.info(f"The missing paths are {missing_audio_paths}")
         if len(matching_audio_paths) != len(all_audio_paths):
             logger.info(
                 f"Found {len(all_audio_paths)} audio paths but could only match {len(matching_audio_paths)} of them to rows which means there are {len(all_audio_paths) - len(matching_audio_paths)} too many audio paths"
             )
-            # logger.info(f"The additional paths are rows are {set(all_audio_paths.values()).difference(set(matching_audio_paths))}")
+            if additional_logging:
+                logger.info(
+                    f"The additional paths are rows are {set(all_audio_paths.values()).difference(set(matching_audio_paths))}"
+                )
 
     rows = [
         row + [str(audio_path)]
@@ -305,6 +318,7 @@ def build_conversation_dataset(
     audio_dir: Path,
     transcript_dir: Path,
     segment_dir: Path,
+    additional_logging: bool = False,
 ) -> Dataset:
     """Build the CoRal conversation dataset.
 
@@ -317,6 +331,8 @@ def build_conversation_dataset(
             Path to the directory containing the transcription files.
         segment_dir:
             Path to the directory to output the segment files.
+        additional_logging:
+            Flag to turn on additional logging useful for debugging
 
     Returns:
         The CoRal conversation dataset.
@@ -396,12 +412,16 @@ def build_conversation_dataset(
                 missing_audio_paths.append(id)
         logger.info(f"Got {len(matching_audio_paths)} matched audio paths")
         logger.info(f"Got {len(missing_audio_paths)} missing audio paths")
-        # logger.info(f"The missing paths are {missing_audio_paths}")
+        if additional_logging:
+            logger.info(f"The missing paths are {missing_audio_paths}")
         if len(matching_audio_paths) != len(all_audio_paths):
             logger.info(
                 f"Found {len(all_audio_paths)} audio paths but could only match {len(matching_audio_paths)} of them to rows which means there are {len(all_audio_paths) - len(matching_audio_paths)} too many audio paths"
             )
-            # logger.info(f"The additional paths are rows are {set(all_audio_paths.values()).difference(set(matching_audio_paths))}")
+            if additional_logging:
+                logger.info(
+                    f"The additional paths are rows are {set(all_audio_paths.values()).difference(set(matching_audio_paths))}"
+                )
 
     matched_audio_paths = [
         all_audio_paths.get(conversation_id)
@@ -434,12 +454,16 @@ def build_conversation_dataset(
         logger.info(
             f"Got {len(missing_transcription_paths)} missing transcription paths"
         )
-        # logger.info(f"The missing paths are {missing_transcription_paths}")
+        if additional_logging:
+            logger.info(f"The missing paths are {missing_transcription_paths}")
         if len(matching_transcription_paths) != len(all_transcription_paths):
             logger.info(
                 f"Found {len(all_transcription_paths)} transcription paths but could only match {len(matching_transcription_paths)} of them to rows which means there are {len(all_transcription_paths) - len(matching_transcription_paths)} too many transcription paths"
             )
-            # logger.info(f"The additional paths are rows are {set(all_transcription_paths.values()).difference(set(matching_transcription_paths))}")
+            if additional_logging:
+                logger.info(
+                    f"The additional paths are rows are {set(all_transcription_paths.values()).difference(set(matching_transcription_paths))}"
+                )
 
     matched_transcription_paths = [
         all_transcription_paths.get(conversation_id)
@@ -485,7 +509,6 @@ def build_conversation_dataset(
             speaker_b = speaker_rows[
                 speaker_rows["id_speaker"] == str(conversation_row.id_speaker_b)
             ].squeeze()
-            # recorder = speaker_rows[speaker_rows["id_speaker"] == str(conversation_row.id_recorder)].squeeze()
 
             transcription = pysubs2.load(conversation_row.transcription_path)
             audio = AudioSegment.from_file(conversation_row.audio_path)

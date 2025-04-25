@@ -19,6 +19,9 @@ validation:
 # Hugging Face Hub ID of output dataset
 hub_id: CoRal-project/coral-v2
 
+# Turn on additional logging
+debug_logging: false
+
 # TODO: Update stats
 # Estimated number of hours: 8.84
 # Actual number of hours: 9.43
