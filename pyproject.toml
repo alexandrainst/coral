@@ -37,6 +37,8 @@ samplerate = {version="^0.2.1", optional=true}
 punctfix = {version="^0.11.1", optional=true}
 matplotlib = {version = "^3.9.2", optional = true}
 mlflow = "^2.20.3"
+pysubs2 = "^1.8.0"
+progress = "^1.6"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.1.1"

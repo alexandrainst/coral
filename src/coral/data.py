@@ -357,7 +357,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
 def filter_dataset(
     dataset: Data,
     audio_column: str,
-    min_seconds_per_example: int,
+    min_seconds_per_example: int | float,
     max_seconds_per_example: int,
     is_main_process: bool,
     num_proc: int | None = None,
@@ -416,7 +416,7 @@ def filter_dataset(
 def filter_example(
     sample: dict[str, Any],
     audio_column: str,
-    min_seconds_per_example: int,
+    min_seconds_per_example: int | float,
     max_seconds_per_example: int,
 ) -> bool:
     """Filter samples based on the validation status.
