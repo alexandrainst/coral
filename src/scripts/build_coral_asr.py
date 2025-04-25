@@ -277,7 +277,7 @@ def list_audio_files(
         max_attempts (optional):
             The maximum number of attempts to list the audio files. Defaults to 10.
         extensions (optional):
-            A list of extensions to consider when listing the audio files
+            A list of extensions to consider when listing the audio files. Defaults to ["wav"].
 
     Returns:
         A list of paths to the audio files.
