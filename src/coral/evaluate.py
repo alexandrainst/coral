@@ -3,6 +3,7 @@
 import itertools as it
 import logging
 from collections import defaultdict
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -27,7 +28,7 @@ load_dotenv()
 logger = logging.getLogger(__package__)
 
 
-def evaluate(config: DictConfig) -> pd.DataFrame:
+def evaluate(config: DictConfig) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Evaluate a model on the CoRal evaluation dataset.
 
     Args:
@@ -36,6 +37,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
 
     Returns:
         A DataFrame with the evaluation scores.
+
     """
     assert (
         config.model_id is not None
@@ -48,7 +50,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     transcriber = load_asr_pipeline(model_id=config.model_id, no_lm=config.no_lm)
 
     logger.info("Computing the scores...")
-    _, _, all_scores = compute_metrics_of_dataset_using_pipeline(
+    preds, labels, all_scores = compute_metrics_of_dataset_using_pipeline(
         dataset=dataset,
         transcriber=transcriber,
         metric_names=config.metrics,
@@ -56,6 +58,14 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
         text_column=config.text_column,
         audio_column=config.audio_column,
         batch_size=config.batch_size,
+    )
+    # Create a DataFrame with predictions, labels, and scores
+    df_predictions = pd.DataFrame(
+        {
+            "predictions": preds,
+            "labels": labels,
+            **{metric: all_scores[metric] for metric in config.metrics},
+        }
     )
 
     logger.info("Bootstrapping the scores...")
@@ -90,7 +100,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
             f"Bootstrap scores of {config.model_id} on {config.dataset}:\n"
             f"- {score_string}"
         )
-        df = pd.DataFrame(
+        df_scores = pd.DataFrame(
             {
                 "model": [config.model_id],
                 "dataset": [config.dataset],
@@ -102,7 +112,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
                 },
             }
         )
-        return df
+        return df_scores, df_predictions
 
     logger.info(
         "Converting the dataset to a dataframe computing the scores for each "
@@ -113,12 +123,12 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     )
     for metric_name in config.metrics:
         df[metric_name] = all_scores[metric_name]
-    score_df = get_score_df(
+    df_scores = get_score_df(
         df=df,
         categories=["age_group", "gender", "dialect"],
         metric_names=config.metrics,
     )
-    return score_df
+    return df_scores, df_predictions
 
 
 def convert_evaluation_dataset_to_df(

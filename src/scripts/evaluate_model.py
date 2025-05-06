@@ -34,7 +34,7 @@ def main(config: DictConfig) -> None:
         config:
             The Hydra configuration object.
     """
-    score_df = evaluate(config=config)
+    df_scores, df_predictions = evaluate(config=config)
 
     # Loading the pipeline stores it to the default HF cache, and they don't allow
     # changing it for pipelines. So we remove the models stored in the cache manually,
@@ -48,21 +48,31 @@ def main(config: DictConfig) -> None:
             rmtree(path=model_dir)
 
     if config.store_results:
+        # prepare the output names and directory
         dataset_without_slashes = config.dataset.replace("/", "-").replace("::", "-")
-        results_dir = Path("results") / dataset_without_slashes
-        Path.mkdir(results_dir, exist_ok=True)
+        results_dir = Path("outputs") / Path("results") / dataset_without_slashes
+        results_dir.mkdir(exist_ok=True, parents=True)
+
         model_id_without_slashes = config.model_id.replace("/", "--")
+
+        # Save evaluation scores
         if "coral" in config.dataset and config.detailed:
             path_results = results_dir / Path(f"{model_id_without_slashes}-scores.csv")
-            score_df.to_csv(path_results, index=False)
+            df_scores.to_csv(path_results, index=False)
         else:
             path_results = results_dir / Path("evaluation-results.csv")
             if path_results.exists():
-                score_df = pd.concat(
-                    objs=[pd.read_csv(path_results, index_col=False), score_df],
+                df_scores = pd.concat(
+                    objs=[pd.read_csv(path_results, index_col=False), df_scores],
                     ignore_index=True,
                 )
-            score_df.to_csv(path_results, index=False)
+            df_scores.to_csv(path_results, index=False)
+
+        # Save predictions
+        path_predictions = results_dir / Path(
+            f"{model_id_without_slashes}-predictions.csv"
+        )
+        df_predictions.to_csv(path_predictions, index=False)
 
 
 if __name__ == "__main__":
