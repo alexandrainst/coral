@@ -292,12 +292,14 @@ def load_data_for_finetuning(
     return dataset
 
 
-def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
+def load_dataset_for_evaluation(config: DictConfig, dataset_config: DictConfig) -> Dataset:
     """Load the evaluation dataset.
 
     Args:
         config:
             The Hydra configuration object.
+        dataset_config:
+            The Hydra configuration object specific to the dataset.
 
     Returns:
         A DatasetDict containing the validation and test datasets.
@@ -305,13 +307,13 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     # Note if we're on the main process, if we are running in a distributed setting
     is_main_process = os.getenv("RANK", "0") == "0"
 
-    dataset_id, dataset_subset, dataset_revision = interpret_dataset_name(
-        dataset_name=config.dataset
-    )
+    dataset_id = dataset_config.id
+    dataset_subset = dataset_config.subset
+    dataset_revision = None
 
     if is_main_process:
         logger.info(
-            f"Loading the {config.eval_split_name!r} split of the {dataset_id} "
+            f"Loading the {dataset_config.eval_split_name!r} split of the {dataset_id}::{dataset_subset} "
             "dataset..."
         )
 
@@ -325,29 +327,30 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     dataset = load_dataset(
         path=dataset_id,
         name=dataset_subset,
-        split=config.eval_split_name,
+        split=dataset_config.eval_split_name,
         revision=dataset_revision,
         token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
         trust_remote_code=True,
         cache_dir=config.cache_dir,
         streaming=True,
     )
+
     assert isinstance(dataset, IterableDataset)
     dataset = convert_iterable_dataset_to_dataset(
         iterable_dataset=dataset,
-        split_name=config.eval_split_name,
+        split_name=dataset_config.eval_split_name,
         cache_dir=config.cache_dir,
     )
     assert isinstance(dataset, Dataset)
     dataset = filter_dataset(
         dataset=dataset,
-        audio_column=config.audio_column,
+        audio_column=dataset_config.audio_column,
         min_seconds_per_example=config.min_seconds_per_example,
         max_seconds_per_example=config.max_seconds_per_example,
         is_main_process=is_main_process,
     )
     dataset = dataset.cast_column(
-        column=config.audio_column, feature=Audio(sampling_rate=config.sampling_rate)
+        column=dataset_config.audio_column, feature=Audio(sampling_rate=config.sampling_rate)
     )
     dataset = process_dataset(
         dataset=dataset,
@@ -355,8 +358,8 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         lower_case=config.lower_case,
         characters_to_keep=config.characters_to_keep,
         remove_input_dataset_columns=False,
-        text_column=config.text_column,
-        audio_column=config.audio_column,
+        text_column=dataset_config.text_column,
+        audio_column=dataset_config.audio_column,
         convert_numerals=True,
         normalize_audio=config.normalize_audio,
     )

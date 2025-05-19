@@ -34,45 +34,48 @@ def main(config: DictConfig) -> None:
         config:
             The Hydra configuration object.
     """
-    df_scores, df_predictions = evaluate(config=config)
 
-    # Loading the pipeline stores it to the default HF cache, and they don't allow
-    # changing it for pipelines. So we remove the models stored in the cache manually,
-    # to avoid running out of disk space.
-    model_cache_dir = Path.home() / ".cache" / "huggingface" / "hub"
-    model_dirs = list(
-        model_cache_dir.glob(f"model--{config.model_id.replace('/', '--')}")
-    )
-    if model_dirs:
-        for model_dir in model_dirs:
-            rmtree(path=model_dir)
+    for dataset_name, dataset_config  in config['datasets'].items():
 
-    if config.store_results:
-        # prepare the output names and directory
-        dataset_without_slashes = config.dataset.replace("/", "-").replace("::", "-")
-        results_dir = Path("outputs") / Path("results") / dataset_without_slashes
-        results_dir.mkdir(exist_ok=True, parents=True)
+        df_scores, df_predictions = evaluate(config=config, dataset_config=dataset_config)
 
-        model_id_without_slashes = config.model_id.replace("/", "--")
-
-        # Save evaluation scores
-        if "coral" in config.dataset and config.detailed:
-            path_results = results_dir / Path(f"{model_id_without_slashes}-scores.csv")
-            df_scores.to_csv(path_results, index=False)
-        else:
-            path_results = results_dir / Path("evaluation-results.csv")
-            if path_results.exists():
-                df_scores = pd.concat(
-                    objs=[pd.read_csv(path_results, index_col=False), df_scores],
-                    ignore_index=True,
-                )
-            df_scores.to_csv(path_results, index=False)
-
-        # Save predictions
-        path_predictions = results_dir / Path(
-            f"{model_id_without_slashes}-predictions.csv"
+        # Loading the pipeline stores it to the default HF cache, and they don't allow
+        # changing it for pipelines. So we remove the models stored in the cache manually,
+        # to avoid running out of disk space.
+        model_cache_dir = Path.home() / ".cache" / "huggingface" / "hub"
+        model_dirs = list(
+            model_cache_dir.glob(f"model--{config.model_id.replace('/', '--')}")
         )
-        df_predictions.to_csv(path_predictions, index=False)
+        if model_dirs:
+            for model_dir in model_dirs:
+                rmtree(path=model_dir)
+
+        if config.store_results:
+            # prepare the output names and directory
+            dataset_without_slashes = dataset_config.id.replace("/", "-")
+            results_dir = Path("outputs") / Path("results") / dataset_without_slashes
+            results_dir.mkdir(exist_ok=True, parents=True)
+
+            model_id_without_slashes = config.model_id.replace("/", "--")
+
+            # Save evaluation scores
+            if config.detailed:
+                path_results = results_dir / Path(f"{model_id_without_slashes}-{dataset_name}-scores.csv")
+                df_scores.to_csv(path_results, index=False)
+            else:
+                path_results = results_dir / Path("evaluation-results.csv")
+                if path_results.exists():
+                    df_scores = pd.concat(
+                        objs=[pd.read_csv(path_results, index_col=False), df_scores],
+                        ignore_index=True,
+                    )
+                df_scores.to_csv(path_results, index=False)
+
+            # Save predictions
+            path_predictions = results_dir / Path(
+                f"{model_id_without_slashes}-{dataset_name}-predictions.csv"
+            )
+            df_predictions.to_csv(path_predictions, index=False)
 
 
 if __name__ == "__main__":

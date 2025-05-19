@@ -2,6 +2,12 @@ fleurs:
   id: google/fleurs
   subset: da_dk
   train_name: train
+  eval_split_name: test
   text_column: raw_transcription
   audio_column: audio
   filter_dataset: true
+  eval_categories:
+    gender:
+      0: male
+      1: female
+      2: other
