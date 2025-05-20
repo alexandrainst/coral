@@ -115,6 +115,9 @@ models/
 wandb/
 mlruns/
 
+# Default cache dir
+.coral-cache/
+
 # Data files
 *.xlsx
 *.csv
