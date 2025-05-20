@@ -1,0 +1,8 @@
+appen-oss:
+  id: Alvenir/alvenir_asr_da_eval
+  subset: oss
+  train_name: null
+  eval_split_name: test
+  text_column: sentence
+  audio_column: audio
+  filter_dataset: true

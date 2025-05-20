@@ -4,6 +4,8 @@ defaults:
     - common_voice_17
     - fleurs
     - nst
+    - appen_oss
+    - appen_wiki
 
 cache_dir: ".coral-cache"
 
