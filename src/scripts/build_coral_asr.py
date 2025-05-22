@@ -232,25 +232,23 @@ def build_read_aloud_dataset(
         all_audio_paths.get(recording_id) for recording_id in recording_ids
     ]
     if len(recording_ids) != len(all_audio_paths):
-        matching_audio_paths = []
-        missing_audio_paths = []
-        for id in recording_ids:
-            path = all_audio_paths.get(id)
-            if path is not None:
-                matching_audio_paths.append(path)
-            else:
-                missing_audio_paths.append(id)
+        matching_audio_paths = [
+            path for path in matched_audio_paths if path is not None
+        ]
+        ids_with_missing_paths = [
+            id_ for id_, path in zip(recording_ids, matched_audio_paths) if path is None
+        ]
         logger.info(f"Got {len(matching_audio_paths)} matched audio paths")
-        logger.info(f"Got {len(missing_audio_paths)} missing audio paths")
+        logger.info(f"Got {len(ids_with_missing_paths)} missing audio paths")
         if additional_logging:
-            logger.info(f"The missing paths are {missing_audio_paths}")
+            logger.info(f"The missing paths are {ids_with_missing_paths}")
         if len(matching_audio_paths) != len(all_audio_paths):
             logger.info(
                 f"Found {len(all_audio_paths)} audio paths but could only match {len(matching_audio_paths)} of them to rows which means there are {len(all_audio_paths) - len(matching_audio_paths)} too many audio paths"
             )
             if additional_logging:
                 logger.info(
-                    f"The additional paths are rows are {set(all_audio_paths.values()).difference(set(matching_audio_paths))}"
+                    f"The additional paths are {set(all_audio_paths.values()).difference(set(matching_audio_paths))}"
                 )
 
     rows = [
@@ -439,23 +437,29 @@ def build_conversation_dataset(
 
     # Match the transcription files to the metadata
     logger.info("Matching the transcription files to the metadata...")
+    matched_transcription_paths = [
+        all_transcription_paths.get(conversation_id)
+        for conversation_id in conversation_rows["id_conversation"].values
+    ]
     if len(conversation_rows["id_conversation"].values) != len(all_transcription_paths):
-        matching_transcription_paths = []
-        missing_transcription_paths = []
-        for id in conversation_rows["id_conversation"].values:
-            path = all_transcription_paths.get(id)
-            if path is not None:
-                matching_transcription_paths.append(path)
-            else:
-                missing_transcription_paths.append(id)
+        matching_transcription_paths = [
+            path for path in matched_transcription_paths if path is not None
+        ]
+        ids_with_missing_transcription_paths = [
+            id_
+            for id_, path in zip(
+                conversation_rows["id_conversation"], matched_transcription_paths
+            )
+            if path is None
+        ]
         logger.info(
             f"Got {len(matching_transcription_paths)} matched transcription paths"
         )
         logger.info(
-            f"Got {len(missing_transcription_paths)} missing transcription paths"
+            f"Got {len(ids_with_missing_transcription_paths)} missing transcription paths"
         )
         if additional_logging:
-            logger.info(f"The missing paths are {missing_transcription_paths}")
+            logger.info(f"The missing paths are {ids_with_missing_transcription_paths}")
         if len(matching_transcription_paths) != len(all_transcription_paths):
             logger.info(
                 f"Found {len(all_transcription_paths)} transcription paths but could only match {len(matching_transcription_paths)} of them to rows which means there are {len(all_transcription_paths) - len(matching_transcription_paths)} too many transcription paths"
@@ -465,10 +469,6 @@ def build_conversation_dataset(
                     f"The additional paths are rows are {set(all_transcription_paths.values()).difference(set(matching_transcription_paths))}"
                 )
 
-    matched_transcription_paths = [
-        all_transcription_paths.get(conversation_id)
-        for conversation_id in conversation_rows["id_conversation"].values
-    ]
     conversation_rows["transcription_path"] = matched_transcription_paths
     conversation_rows = conversation_rows.dropna(subset=["transcription_path"])
     logger.info(f"Got {len(conversation_rows)} total matched rows")
