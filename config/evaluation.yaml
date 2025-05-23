@@ -6,6 +6,7 @@ defaults:
     - nst
     - appen_oss
     - appen_wiki
+    - coral2conv
 
 cache_dir: ".coral-cache"
 
