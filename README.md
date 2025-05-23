@@ -88,23 +88,26 @@ python src/scripts/evaluate_model.py [key=value]...
 ```
 
 Here are some of the more important available keys:
-
 - `model_id` (required): The Hugging Face model ID of the ASR model to evaluate.
-- `dataset`: The ASR dataset to evaluate the model on. Can be any ASR dataset on the
-  Hugging Face Hub. Note that subsets are separated with "::". For instance, to evaluate
-  on the Danish Common Voice 17 dataset, you would use
-  `mozilla-foundation/common_voice_17_0::da`. Defaults to
-  `alexandrainst/coral::read_aloud`.
-- `eval_split_name`: The dataset split to evaluate on. Defaults to `test`.
-- `text_column`: The name of the column in the dataset that contains the text. Defaults
-  to `text`.
-- `audio_column`: The name of the column in the dataset that contains the audio. Defaults
-  to `audio`.
-- `detailed`: Only relevant if evaluating on the (default) CoRal test dataset. This will
-  give a detailed evaluation across the different demographics in the dataset. If set to
-  False it will only give the overall scores. Defaults to True.
+- `datasets`: =[<dataset1>,<dataset2>] Specify one or more datasets for model evaluation. Choose from available datasets: coral, common_voice_17, fleurs, nst, appen_oss, appen_wiki, and coral2conv. Default is all.
+- `detailed`: Mostly relevant if evaluating on the CoRal test dataset, as this dataset contains the most demographic metadata. This will
+  give a detailed evaluation across the different demographics in the dataset. If set to False it will only give the overall scores, but with confidence intervals. Defaults to True.
 
 See all the evaluation options in the `config/evaluation.yaml` file.
+
+You can add an custom evaluation data set if it is available in hugging face by defining the id, subset, eval_split_name, text_column and audio_column like so:
+```bash
+python src/scripts/evaluate_model.py +datasets.custom.id=<custom_dataset_id> +datasets.custom.subset=<custom_subset> +datasets.custom.eval_split_name=<eval_split> +datasets.custom.text_column=<text_column> +datasets.custom.audio_column=<audio_column>
+```
+
+The keys to set:
+- `id`: Hugging face Dataset ID.
+- `subset`: Subset of the dataset.
+- `eval_split_name`: Determine the dataset split to evaluate on.
+- `text_column`: Identify the column containing text data in the dataset.
+- `audio_column`: Specify the column with audio in the dataset.
+
+Alternatively, you can introduce new dataset configurations within the config directory to provide predefined settings that can be selected via the command line using just the dataset name.
 
 You can produce a comparison plot of different models evaluated on the CoRal test
 dataset with `detailed=True` by running the following script:
