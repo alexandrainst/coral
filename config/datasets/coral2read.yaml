@@ -1,22 +1,24 @@
-coral:
-  id: alexandrainst/coral
+coral2-read:
+  id: CoRal-dataset/coral-v2
   subset: read_aloud
   train_name: train
-  eval_split_name: test
   text_column: text
   audio_column: audio
   filter_dataset: false
+  eval_split_name: test
   eval_categories:
     age:
       (0,25): "0-25"
       (26,50): "25-50"
       (50,None): "50+"
     gender:
-      male: male
-      female: female
+      male: Male
+      female: Female
+      nonbinary: Non-binary
     dialect:
       midtøstjysk: Østjysk
       østjysk: Østjysk
+      københavnsk: Københavnsk
       amagermål: Københavnsk
       nørrejysk: Nordjysk
       vestjysk: Vestjysk
@@ -49,3 +51,6 @@ coral:
       ommersysselsk: Østjysk
       sydfalstersk: Sydømål
       fjandbomål: Vestjysk
+
+
+

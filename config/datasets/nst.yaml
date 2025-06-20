@@ -2,6 +2,25 @@ nst:
   id: alexandrainst/nst-da
   subset: null
   train_name: train
+  eval_split_name: test
   text_column: text
   audio_column: audio
   filter_dataset: true
+  eval_sample_size: 1000
+  eval_categories:
+    age:
+      (0,25): "0-25"
+      (26,50): "25-50"
+      (50,None): "50+"
+    sex:
+      Female: female
+      Male: male
+    dialect:
+      Storkøbenhavn: Storkøbenhavn
+      Nordjylland: Nordjylland
+      Vestjylland: Vestjylland
+      Østjylland: Østjylland
+      Fyn: Fyn
+      Vest- og Sydsjælland: Vest- og Sydsjælland
+      Sønderjylland: Sønderjylland
+

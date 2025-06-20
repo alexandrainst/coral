@@ -1,9 +1,16 @@
-# Evaluation dataset parameters
-dataset: "alexandrainst/coral::read_aloud"
-eval_split_name: test
-text_column: text
-audio_column: audio
+defaults:
+  - datasets:
+    - coral
+    - common_voice_17
+    - fleurs
+    - nst
+    - appen_oss
+    - appen_wiki
+    - coral2conv
+
 cache_dir: ".coral-cache"
+
+subset_size: null #null if using all of data
 
 # Filtering of the dataset
 min_seconds_per_example: 0.5
@@ -25,40 +32,4 @@ metrics:
 batch_size: 16
 bootstrap_samples: 1000
 store_results: true
-detailed: true  # Only relevant if the evaluation dataset is CoRal
-
-sub_dialect_to_dialect:
-  midtøstjysk: Østjysk
-  østjysk: Østjysk
-  amagermål: Københavnsk
-  nørrejysk: Nordjysk
-  vestjysk: Vestjysk
-  nordsjællandsk: Sjællandsk
-  sjællandsk: Sjællandsk
-  fynsk: Fynsk
-  bornholmsk: Bornholmsk
-  sønderjysk: Sønderjysk
-  vendsysselsk (m. hanherred og læsø): Nordjysk
-  østligt sønderjysk (m. als): Sønderjysk
-  nordvestsjællandsk: Sjællandsk
-  thybomål: Vestjysk
-  himmerlandsk: Nordjysk
-  djurslandsk (nord-, syddjurs m. nord- og sydsamsø, anholt): Østjysk
-  sydsjællandsk (sydligt sydsjællandsk): Sjællandsk
-  sydfynsk: Fynsk
-  morsingmål: Vestjysk
-  sydøstjysk: Østjysk
-  østsjællandsk: Sjællandsk
-  "syd for rigsgrænsen: mellemslesvisk, angelmål, fjoldemål": Sønderjysk
-  vestfynsk (nordvest-, sydvestfynsk): Fynsk
-  vestlig sønderjysk (m. mandø og rømø): Sønderjysk
-  sydvestjysk (m. fanø): Vestjysk
-  sallingmål: Vestjysk
-  nordfalstersk: Sydømål
-  langelandsk: Fynsk
-  sydvestsjællandsk: Sjællandsk
-  lollandsk: Sydømål
-  sydømål: Sydømål
-  ommersysselsk: Østjysk
-  sydfalstersk: Sydømål
-  fjandbomål: Vestjysk
+detailed: true

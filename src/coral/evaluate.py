@@ -3,10 +3,13 @@
 import itertools as it
 import logging
 from collections import defaultdict
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
 import torch
+import random
+
 from datasets import Dataset
 from dotenv import load_dotenv
 from omegaconf import DictConfig
@@ -19,7 +22,7 @@ from transformers import (
 
 from .compute_metrics import compute_metrics_of_dataset_using_pipeline
 from .data import load_dataset_for_evaluation
-from .utils import transformers_output_ignored
+from .utils import transformers_output_ignored, create_mappings_for_categories_in_df
 
 load_dotenv()
 
@@ -27,39 +30,57 @@ load_dotenv()
 logger = logging.getLogger(__package__)
 
 
-def evaluate(config: DictConfig) -> pd.DataFrame:
+def evaluate(config: DictConfig, dataset_config: DictConfig) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Evaluate a model on the CoRal evaluation dataset.
 
     Args:
         config:
             The Hydra configuration object.
+        dataset_config:
+            The Hydra configuration object specific to the dataset.
 
     Returns:
         A DataFrame with the evaluation scores.
+
     """
     assert (
         config.model_id is not None
     ), "`model_id` must be set to perform an evaluation!"
 
     logger.info("Loading the dataset...")
-    dataset = load_dataset_for_evaluation(config=config)
+    dataset = load_dataset_for_evaluation(config=config, dataset_config=dataset_config)
+
+    # Pick a random subset if subset_size is given
+    if config.get("subset_size", None):
+        subset_size = min(config.get("subset_size", None), len(dataset))
+        logger.info(f"Using subset of size {subset_size}")
+        dataset = dataset.select(random.sample(range(len(dataset)), subset_size))
 
     logger.info(f"Loading the {config.model_id!r} ASR model...")
     transcriber = load_asr_pipeline(model_id=config.model_id, no_lm=config.no_lm)
 
     logger.info("Computing the scores...")
-    _, _, all_scores = compute_metrics_of_dataset_using_pipeline(
+    preds, labels, all_scores = compute_metrics_of_dataset_using_pipeline(
         dataset=dataset,
         transcriber=transcriber,
         metric_names=config.metrics,
         characters_to_keep=config.characters_to_keep,
-        text_column=config.text_column,
-        audio_column=config.audio_column,
+        text_column=dataset_config.text_column,
+        audio_column=dataset_config.audio_column,
         batch_size=config.batch_size,
     )
 
-    logger.info("Bootstrapping the scores...")
-    if not config.detailed or "coral" not in config.dataset:
+    # Create a DataFrame with predictions, labels, and scores
+    df_predictions = pd.DataFrame(
+        {
+            "predictions": preds,
+            "labels": labels,
+            **{metric: all_scores[metric] for metric in config.metrics},
+        }
+    )
+
+    if not config.detailed:
+        logger.info("Bootstrapping the scores...")
         bootstrap_scores = defaultdict(list)
         bootstrap_std_errs = defaultdict(list)
         for metric in config.metrics:
@@ -87,13 +108,13 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
             ]
         )
         logger.info(
-            f"Bootstrap scores of {config.model_id} on {config.dataset}:\n"
+            f"Bootstrap scores of {config.model_id} on {dataset_config.id}::{dataset_config.subset}:\n"
             f"- {score_string}"
         )
-        df = pd.DataFrame(
+        df_scores = pd.DataFrame(
             {
                 "model": [config.model_id],
-                "dataset": [config.dataset],
+                "dataset": [dataset_config.id +"::"+str(dataset_config.subset)],
                 **{
                     f"{metric}_mean": [mean_scores[metric]] for metric in config.metrics
                 },
@@ -102,58 +123,27 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
                 },
             }
         )
-        return df
+        return df_scores, df_predictions
 
     logger.info(
         "Converting the dataset to a dataframe computing the scores for each "
         "metadata category..."
     )
-    df = convert_evaluation_dataset_to_df(
-        dataset=dataset, sub_dialect_to_dialect_mapping=config.sub_dialect_to_dialect
-    )
+
+    df = dataset.to_pandas()
+    eval_categories = dataset_config.eval_categories if "eval_categories" in list(dataset_config.keys()) else {}
+
+    df = create_mappings_for_categories_in_df(df=df, eval_categories=eval_categories)
+
     for metric_name in config.metrics:
         df[metric_name] = all_scores[metric_name]
-    score_df = get_score_df(
+
+    df_scores = get_score_df(
         df=df,
-        categories=["age_group", "gender", "dialect"],
+        categories=list(eval_categories.keys()),
         metric_names=config.metrics,
     )
-    return score_df
-
-
-def convert_evaluation_dataset_to_df(
-    dataset: Dataset, sub_dialect_to_dialect_mapping: dict[str, str]
-) -> pd.DataFrame:
-    """Convert the evaluation dataset to a DataFrame.
-
-    Args:
-        dataset:
-            The evaluation dataset.
-        sub_dialect_to_dialect_mapping:
-            The mapping from sub-dialect to dialect.
-
-    Returns:
-        A DataFrame with the evaluation dataset.
-    """
-    df = dataset.to_pandas()
-    assert isinstance(df, pd.DataFrame)
-
-    age_group_mapping = {"0-25": (0, 25), "25-50": (26, 50), "50+": (50, None)}
-    df["age_group"] = df.age.map(
-        lambda x: next(
-            group
-            for group, (start, end) in age_group_mapping.items()
-            if (start is None or x >= start) and (end is None or x < end)
-        )
-    )
-
-    df.dialect = df.dialect.map(sub_dialect_to_dialect_mapping)
-
-    # For non-native speakers, we use the accent as the dialect
-    df.country_birth = df.country_birth.map(lambda x: "DK" if x is None else x)
-    df.loc[df.country_birth != "DK", "dialect"] = "Non-native"
-
-    return df
+    return df_scores, df_predictions
 
 
 def load_asr_pipeline(model_id: str, no_lm: bool) -> AutomaticSpeechRecognitionPipeline:

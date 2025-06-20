@@ -1,6 +1,6 @@
-coral:
-  id: alexandrainst/coral
-  subset: read_aloud
+coral2-conv:
+  id: CoRal-dataset/coral-v2
+  subset: conversation
   train_name: train
   eval_split_name: test
   text_column: text
@@ -12,11 +12,13 @@ coral:
       (26,50): "25-50"
       (50,None): "50+"
     gender:
-      male: male
-      female: female
+      male: Male
+      female: Female
+      nonbinary: Non-binary
     dialect:
       midtøstjysk: Østjysk
       østjysk: Østjysk
+      københavnsk: Københavnsk
       amagermål: Københavnsk
       nørrejysk: Nordjysk
       vestjysk: Vestjysk

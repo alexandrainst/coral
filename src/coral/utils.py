@@ -8,6 +8,7 @@ import re
 import warnings
 from functools import partialmethod
 from pathlib import Path
+import pandas as pd
 
 import datasets.utils.logging as ds_logging
 import tqdm as tqdm_package
@@ -19,6 +20,7 @@ from datasets import (
     disable_progress_bar,
     enable_progress_bar,
 )
+from omegaconf import DictConfig
 from huggingface_hub import CommitInfo, upload_folder
 from tqdm.auto import tqdm
 from transformers import Trainer
@@ -454,3 +456,81 @@ def convert_numeral_to_words(numeral: str, inside_larger_numeral: bool = False) 
             return numeral
 
     return re.sub(r" +", " ", result).strip()
+
+
+def create_mappings_for_categories_in_df(
+    df: pd.DataFrame, eval_categories: DictConfig, new_cats: bool= False
+) -> pd.DataFrame:
+    """Convert the evaluation dataset to a DataFrame.
+
+    Args:
+        dataset:
+            The evaluation dataset.
+        eval_categories:
+            The mapping from sub-categories to categories.
+        new_cats:
+            Create new columns in dataframe (if True) or overwrite old columns (if False) 
+
+    Returns:
+        A DataFrame with the evaluation dataset.
+    """
+    assert isinstance(df, pd.DataFrame)
+    mapped_columns = []
+
+    for cat, subcats in eval_categories.items():
+        if cat not in df.columns:
+            logger.info(f"Category {cat} not in dataframe, skipping this cat")
+            continue  # Skip if the category column is not in the dataframe
+        if new_cats:
+            df[f"{cat}_mapped"] = df[cat].map(lambda x: map_value_to_category(x, subcats)) 
+            mapped_columns.append(f"{cat}_mapped")
+        else:
+            df[cat] = df[cat].map(lambda x: map_value_to_category(x, subcats)) 
+
+    if "country_birth" in df.columns and "dialect" in df.columns:
+        # For non-native speakers, we use the accent as the dialect
+        df.country_birth = df.country_birth.map(lambda x: "DK" if x is None else x)
+        df.loc[df.country_birth != "DK", "dialect"] = "Non-native"
+        if new_cats:
+            df.loc[df.country_birth != "DK", "dialect_mapped"] = "Non-native"
+    
+    return df
+
+
+def map_value_to_category(value, mapping):
+    """Map a value according to the category mapping rules."""
+    for key, mapped_value in mapping.items():
+        # checks if key is a tuple in string format and returns the tuple or just the string of the key
+        key = parse_key(key)
+        if isinstance(key, tuple):
+            # Handle tuple as interval (start, end)
+            start, end = key
+            if (start is None or value >= start) and (end is None or value < end):
+                return mapped_value
+        else:
+            # Direct mapping
+            if value == key:
+                return mapped_value
+    return None
+
+def parse_key(key):
+    """If key string represents a tuple then parse into an actual tuple or return key as is."""
+    if isinstance(key, str) and key.startswith("(") and key.endswith(")"):
+        try:
+            # Strip parentheses and split on commas
+            parts = key[1:-1].split(",")
+            # Convert elements to integers or None
+            return tuple(None if part.strip() == "None" else int(part.strip()) for part in parts)
+        except ValueError:
+            pass  # Ignore errors if not actual tuple representation
+    
+    #Check if key is a number:
+    elif isinstance(key, str):
+        try:
+            return int(key)
+        except ValueError:
+            try:
+                return float(key)
+            except ValueError:
+                pass
+    return key  # Return the original key if not a tuple

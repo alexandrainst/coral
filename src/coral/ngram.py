@@ -260,21 +260,28 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
     # Load the evaluation sentences, which are not allowed to be in the training dataset
     evaluation_config = DictConfig(
         dict(
-            dataset="alexandrainst/coral::read_aloud",
             cache_dir=cache_dir,
-            eval_split_name="test",
-            text_column="text",
-            audio_column="audio",
             sampling_rate=16_000,
             min_seconds_per_example=0.0,
             max_seconds_per_example=1e6,
             clean_text=config.model.clean_text,
             lower_case=config.model.lower_case,
             characters_to_keep="abcdefghijklmnopqrstuvwxyzæøå0123456789éü",
+            normalize_audio = config.model.normalize_audio,
         )
     )
-    evaluation_dataset = load_dataset_for_evaluation(config=evaluation_config)
-    evaluation_sentences = set(evaluation_dataset[evaluation_config.text_column])
+    evaluation_dataset_config = DictConfig(
+        dict(
+            id="alexandrainst/coral",
+            subset="read_aloud",
+            eval_split_name="test",
+            text_column="text",
+            audio_column="audio",
+            filter_dataset="false",
+        )
+    )
+    evaluation_dataset = load_dataset_for_evaluation(config=evaluation_config, dataset_config=evaluation_dataset_config)
+    evaluation_sentences = set(evaluation_dataset[evaluation_dataset_config.text_column])
 
     def remove_evaluation_sentences(sentence: str) -> tuple[str, bool]:
         """Remove evaluation sentences from a sentence.

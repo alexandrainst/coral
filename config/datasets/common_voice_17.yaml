@@ -2,6 +2,18 @@ common_voice_17:
   id: mozilla-foundation/common_voice_17_0
   subset: da
   train_name: train
+  eval_split_name: test
   text_column: sentence
   audio_column: audio
   filter_dataset: false
+  eval_categories:
+    age:
+      teens: 0-30
+      twenties: 0-30
+      thirties: 31-50
+      fourties: 31-50
+      fifties: 50+
+      sixties: 50+
+    gender:
+      male_masculine: male
+      female_feminine: female
