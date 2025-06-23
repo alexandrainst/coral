@@ -52,7 +52,9 @@ def main(config: DictConfig) -> None:
 
         if config.store_results:
             # prepare the output names and directory
-            dataset_without_slashes = dataset_config.id.replace("/", "-")
+            dataset_without_slashes = (
+                dataset_config.id.replace("/", "-") + "-" + dataset_config.subset
+            )
             results_dir = Path("outputs") / Path("results") / dataset_without_slashes
             results_dir.mkdir(exist_ok=True, parents=True)
 

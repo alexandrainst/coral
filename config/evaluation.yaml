@@ -1,6 +1,6 @@
 defaults:
   - datasets:
-    - coral
+    - coral2read
     - common_voice_17
     - fleurs
     - nst
