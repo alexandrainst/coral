@@ -122,5 +122,11 @@ recordings/
 conversations/
 CoRal_public.db
 
+# Coral cache
+.coral-cache/
+
+# Gradio
+.gradio/
+
 # Todo document
 todo.md
