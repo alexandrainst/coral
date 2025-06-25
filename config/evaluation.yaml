@@ -1,12 +1,7 @@
 defaults:
   - datasets:
-    - coral2read
-    - common_voice_17
-    - fleurs
-    - nst
-    - appen_oss
-    - appen_wiki
     - coral2conv
+    - coral2read
 
 cache_dir: ".coral-cache"
 

@@ -63,7 +63,7 @@ def main(config: DictConfig) -> None:
             # Save evaluation scores
             if config.detailed:
                 path_results = results_dir / Path(
-                    f"{model_id_without_slashes}-{dataset_name}-scores.csv"
+                    f"{model_id_without_slashes}-scores.csv"
                 )
                 df_scores.to_csv(path_results, index=False)
             else:
@@ -77,7 +77,7 @@ def main(config: DictConfig) -> None:
 
             # Save predictions
             path_predictions = results_dir / Path(
-                f"{model_id_without_slashes}-{dataset_name}-predictions.csv"
+                f"{model_id_without_slashes}-predictions.csv"
             )
             df_predictions.to_csv(path_predictions, index=False)
 
