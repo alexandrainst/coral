@@ -24,7 +24,7 @@ logger = logging.getLogger("asr-demo")
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 
-@hydra.main(config_path="../../config", config_name="demo_hoert", version_base=None)
+@hydra.main(config_path="../../config", config_name="demo", version_base=None)
 def main(config: DictConfig) -> None:
     """Run the ASR demo.
 
@@ -101,7 +101,7 @@ def main(config: DictConfig) -> None:
 
     # Gradio Interface with both microphone and file upload
 
-    image_path = "resources/CoRal.png"
+    image_path = "resources/CoRal_logo.png"
 
     demo = gr.Interface(
         fn=transcribe,

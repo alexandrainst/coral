@@ -124,3 +124,5 @@ CoRal_public.db
 
 # Todo document
 todo.md
+
+.coral-cache/
