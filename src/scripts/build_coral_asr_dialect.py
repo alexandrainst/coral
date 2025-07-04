@@ -1,11 +1,24 @@
 """Filter and prepare the CoRal ASR dataset for a specific Danish dialect."""
 
+import logging
 import os
+import warnings
 
+import hydra
 import pandas as pd
 import soundfile as sf
 from datasets import Audio, Dataset, DatasetDict, load_dataset
 from huggingface_hub import HfFolder, create_repo, upload_folder
+from omegaconf import DictConfig
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s ⋅ %(name)s ⋅ %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("roest-asr-demo")
+
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 # ------------ CONFIGURATION ------------ #
 DIALECT_FILTER = "Nordjysk"  # e.g. "Sønderjysk", "Bornholmsk"
@@ -98,7 +111,12 @@ def push_to_huggingface():
     print("✅ Upload complete!")
 
 
-def main():
+@hydra.main(
+    config_path="../../config",
+    config_name="dataset_dialect_creation",
+    version_base=None,
+)
+def main(config: DictConfig) -> None:
     """Main function to filter and upload the CoRal dataset."""
     for subset in SUBSETS:
         filter_and_save_subset(subset)
