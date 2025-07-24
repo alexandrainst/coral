@@ -22,6 +22,7 @@ from pathlib import Path
 import click
 import matplotlib.pyplot as plt
 import pandas as pd
+import os
 
 plt.style.use("ggplot")
 
@@ -79,6 +80,8 @@ def main(dataset: tuple[str], model: tuple[str], metric: str, dir: Path) -> None
         metric:
             The metric to plot. Either "cer" or "wer".
     """
+    os.makedirs("outputs/vis/comparisons", exist_ok=True)
+
     datasets = list(dataset)
     models = list(model)
 

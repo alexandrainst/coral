@@ -27,9 +27,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import Levenshtein
 import numpy as np
+import os
 
 plt.style.use("ggplot")
-
 
 METRIC_NAMES = dict(cer="Character Error Rate", wer="Word Error Rate")
 
@@ -68,6 +68,8 @@ DATASET_NAMES = {
     help="The path to the directory with results structured into folders with eval datasets",
 )
 def main(dataset: tuple[str], model: tuple[str], dir: Path) -> None:
+    os.makedirs("outputs/vis/levenshtein", exist_ok=True)
+
     plot_stacked_histograms(dataset, model, dir)
 
 def plot_stacked_histograms(dataset: tuple[str], model: tuple[str], dir: Path):
