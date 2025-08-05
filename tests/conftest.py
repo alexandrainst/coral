@@ -38,7 +38,9 @@ def pytest_unconfigure() -> None:
     ),
     ids=lambda x: f"model: {x[0]}, dataset: {x[1]}",
 )
-def finetuning_config(request) -> Generator[DictConfig, None, None]:
+def finetuning_config(
+    request: pytest.FixtureRequest,
+) -> Generator[DictConfig, None, None]:
     """Hydra configuration."""
     model, datasets = request.param
     yield compose(
@@ -57,7 +59,7 @@ def finetuning_config(request) -> Generator[DictConfig, None, None]:
 
 
 @pytest.fixture(scope="session")
-def dataset(finetuning_config) -> Generator[Dataset, None, None]:
+def dataset(finetuning_config: DictConfig) -> Generator[Dataset, None, None]:
     """Load the dataset for testing."""
     dataset_config = list(finetuning_config.datasets.values())[0]
     dataset = load_dataset(

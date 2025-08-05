@@ -101,7 +101,8 @@ def load_data_for_finetuning(
         if is_main_process:
             logger.info(f"Loading dataset {dataset_name!r}")
 
-        # Load from disk if the dataset ID is a path and it is stored as an arrow dataset
+        # Load from disk if the dataset ID is a path and it is stored as an arrow
+        # dataset
         if Path(dataset_config.id).exists():
             train_path = Path(dataset_config.id) / dataset_config.train_name
             data_files = list(map(str, train_path.glob("data-*.arrow")))
@@ -152,9 +153,9 @@ def load_data_for_finetuning(
                 cache_dir=config.cache_dir,
             )
 
-        assert isinstance(
-            ds, Dataset | IterableDataset
-        ), f"Unsupported dataset type: {type(ds)}"
+        assert isinstance(ds, Dataset | IterableDataset), (
+            f"Unsupported dataset type: {type(ds)}"
+        )
 
         if dataset_config.text_column != "text":
             ds = ds.rename_column(dataset_config.text_column, "text")

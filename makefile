@@ -10,12 +10,6 @@ ifeq (,$(wildcard .env))
   $(shell touch .env)
 endif
 
-# Create poetry env file if it does not already exist
-ifeq (,$(wildcard ${HOME}/.poetry/env))
-  $(shell mkdir ${HOME}/.poetry)
-  $(shell touch ${HOME}/.poetry/env)
-endif
-
 # Includes environment variables from the .env file
 include .env
 
@@ -23,103 +17,79 @@ include .env
 export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=1
 export GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1
 
-# Ensure that `pipx` and `poetry` will be able to run, since `pip` and `brew` put these
-# in the following folders on Unix systems
-export PATH := ${HOME}/.local/bin:/opt/homebrew/bin:$(PATH)
+# Set the PATH env var used by cargo and uv
+export PATH := ${HOME}/.local/bin:${HOME}/.cargo/bin:$(PATH)
 
-# Prevent DBusErrorResponse during `poetry install`
-# (see https://stackoverflow.com/a/75098703 for more information)
-export PYTHON_KEYRING_BACKEND := keyring.backends.null.Keyring
+# Set the shell to bash, enabling the use of `source` statements
+SHELL := /bin/bash
 
 help:
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' makefile | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[0-9a-zA-Z_-]+:.*?## .*$$' makefile | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 install: ## Install dependencies
-	@echo "Installing the 'coral' project..."
-	@$(MAKE) --quiet install-brew
-	@$(MAKE) --quiet install-pipx
-	@$(MAKE) --quiet install-poetry
-	@$(MAKE) --quiet setup-poetry
+	@echo "Installing the 'CoRal' project..."
+	@$(MAKE) --quiet install-uv
+	@$(MAKE) --quiet install-dependencies
 	@$(MAKE) --quiet setup-environment-variables
-	@echo "Installed the 'coral' project. If you want to use pre-commit hooks, run 'make install-pre-commit'."
+	@$(MAKE) --quiet setup-git
+	@$(MAKE) --quiet install-pre-commit
+	@echo "Installed the 'CoRal' project! You can now activate your virtual environment with 'source .venv/bin/activate'."
+	@echo "Note that this is a 'uv' project. Use 'uv add <package>' to install new dependencies and 'uv remove <package>' to remove them."
 
-install-brew:
-	@if [ $$(uname) = "Darwin" ] && [ "$(shell which brew)" = "" ]; then \
-		/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; \
-		echo "Installed Homebrew."; \
+install-uv:
+	@if [ "$(shell which uv)" = "" ]; then \
+		if [ "$(shell which rustup)" = "" ]; then \
+			curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y; \
+			echo "Installed Rust."; \
+		fi; \
+		curl -LsSf https://astral.sh/uv/install.sh | sh; \
+		echo "Installed uv."; \
+    else \
+		echo "Updating uv..."; \
+		uv self update || true; \
 	fi
 
-install-pipx:
-	@if [ "$(shell which pipx)" = "" ]; then \
-		uname=$$(uname); \
-			case $${uname} in \
-				(*Linux*) installCmd='sudo apt install pipx'; ;; \
-				(*Darwin*) installCmd='brew install pipx'; ;; \
-				(*CYGWIN*) installCmd='py -3 -m pip install --upgrade --user pipx'; ;; \
-				(*) installCmd='python3 -m pip install --upgrade --user pipx'; ;; \
-			esac; \
-			$${installCmd}; \
-		pipx ensurepath --force; \
-		echo "Installed pipx."; \
-	fi
+install-pre-commit:
+	@uv run pre-commit install
+	@uv run pre-commit autoupdate
 
-install-poetry:
-	@if [ ! "$(shell poetry --version)" = "Poetry (version 1.8.2)" ]; then \
-		python3 -m pip uninstall -y poetry poetry-core poetry-plugin-export; \
-		pipx install --force poetry==1.8.2; \
-		echo "Installed Poetry."; \
-	fi
-
-setup-poetry:
-	@poetry env use python3.11 && poetry install --extras all
+install-dependencies:
+	@uv python install 3.11
+	@uv sync --python 3.11
 
 setup-environment-variables:
-	@poetry run python src/scripts/fix_dot_env_file.py
+	@uv run python src/scripts/fix_dot_env_file.py
 
 setup-environment-variables-non-interactive:
-	@poetry run python src/scripts/fix_dot_env_file.py --non-interactive
+	@uv run python src/scripts/fix_dot_env_file.py --non-interactive
 
-docs:  ## Generate documentation
-	@poetry run pdoc --docformat google src/coral -o docs
-	@echo "Saved documentation."
-
-view-docs:  ## View documentation
-	@echo "Viewing API documentation..."
-	@uname=$$(uname); \
-		case $${uname} in \
-			(*Linux*) openCmd='xdg-open'; ;; \
-			(*Darwin*) openCmd='open'; ;; \
-			(*CYGWIN*) openCmd='cygstart'; ;; \
-			(*) echo 'Error: Unsupported platform: $${uname}'; exit 2; ;; \
-		esac; \
-		"$${openCmd}" docs/coral.html
+setup-git:
+	@git config --global init.defaultBranch main
+	@git init
+	@git config --local user.name "${GIT_NAME}"
+	@git config --local user.email "${GIT_EMAIL}"
 
 test:  ## Run tests
-	@poetry run pytest && poetry run readme-cov
+	@uv run pytest && uv run readme-cov
 
 tree:  ## Print directory tree
 	@tree -a --gitignore -I .git .
 
-install-pre-commit:  ## Install pre-commit hooks
-	@poetry run pre-commit install
+lint:  ## Lint the project
+	uv run ruff check . --fix --unsafe-fixes
 
-clean: lint format type-check  ## Lint, format, and type-check the code
+format:  ## Format the project
+	uv run ruff format .
 
-lint:  ## Lint the code
-	@poetry run ruff check . --fix
-
-format:  ## Format the code
-	@poetry run ruff format .
-
-type-check:  ## Run type checking
-	@poetry run mypy . \
+type-check:  ## Type-check the project
+	@uv run mypy . \
 		--install-types \
 		--non-interactive \
 		--ignore-missing-imports \
 		--show-error-codes \
 		--check-untyped-defs
 
-check: lint format type-check  ## Check the code
+check: lint format type-check  ## Lint, format, and type-check the code
 
 roest-315m:  ## Train the Røst-315M model
 	@OMP_NUM_THREADS=1 \

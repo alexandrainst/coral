@@ -58,8 +58,9 @@ class WhisperModelSetup(ModelSetup):
         # Whisper tokenizers are misconfigured with a max_length that is too high, but
         # the correct max_length is stored in the model config, so we'll update it here.
         hf_config = AutoConfig.from_pretrained(self.config.model.pretrained_model_id)
-        self.processor.tokenizer.model_max_length = min(
-            self.processor.tokenizer.model_max_length, hf_config.max_length
+        self.processor.tokenizer.model_max_length = min(  # type: ignore[attr-defined]
+            self.processor.tokenizer.model_max_length,  # type: ignore[attr-defined]
+            hf_config.max_length,
         )
 
         return self.processor
@@ -72,9 +73,9 @@ class WhisperModelSetup(ModelSetup):
                 dropout=self.config.model.dropout,
                 activation_dropout=self.config.model.activation_dropout,
                 attention_dropout=self.config.model.attention_dropout,
-                pad_token_id=self.processor.tokenizer.pad_token_id,
-                bos_token_id=self.processor.tokenizer.bos_token_id,
-                eos_token_id=self.processor.tokenizer.eos_token_id,
+                pad_token_id=self.processor.tokenizer.pad_token_id,  # type: ignore[attr-defined]
+                bos_token_id=self.processor.tokenizer.bos_token_id,  # type: ignore[attr-defined]
+                eos_token_id=self.processor.tokenizer.eos_token_id,  # type: ignore[attr-defined]
                 apply_spec_augment=True,
                 mask_time_prob=self.config.model.mask_time_prob,
                 mask_time_length=self.config.model.mask_time_length,
@@ -200,7 +201,6 @@ class WhisperModelSetup(ModelSetup):
             use_cpu=hasattr(sys, "_called_from_test"),
             dataloader_num_workers=self.config.dataloader_num_workers,
             ddp_find_unused_parameters=False,
-            dispatch_batches=False,
         )
         return args
 

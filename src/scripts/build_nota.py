@@ -44,7 +44,7 @@ SAMPLE_RATE = 16_000
 
 @click.command("Builds and stores the Nota dataset.")
 @click.argument("destination_dir", type=click.Path())
-def main(destination_dir) -> None:
+def main(destination_dir: str | Path) -> None:
     """Downloads and builds the Nota dataset.
 
     Args:

@@ -152,10 +152,11 @@ def train_ngram_model(kenlm_build_dir: Path, config: DictConfig) -> Path:
                 # Increment the 1-gram count by 1
                 if not has_added_eos and "ngram 1=" in line:
                     count = line.strip().split("=")[-1]
-                    new_line = line.replace(f"{count}", f"{int(count)+1}")
+                    new_line = line.replace(f"{count}", f"{int(count) + 1}")
                     f_out.write(new_line)
 
-                # Add the end-of-sentence marker right after the start-of-sentence marker
+                # Add the end-of-sentence marker right after the start-of-sentence
+                # marker
                 elif not has_added_eos and "<s>" in line:
                     f_out.write(line)
                     f_out.write(line.replace("<s>", "</s>"))
@@ -252,8 +253,7 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
     num_sentences_before = len(dataset["text"])
     sentences = list(set(dataset["text"]))
     logger.info(
-        f"Removed {num_sentences_before - len(sentences):,} duplicates from the "
-        f"dataset"
+        f"Removed {num_sentences_before - len(sentences):,} duplicates from the dataset"
     )
 
     # Load the evaluation sentences, which are not allowed to be in the training dataset

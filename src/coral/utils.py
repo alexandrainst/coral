@@ -1,5 +1,6 @@
 """General utility functions."""
 
+import collections.abc as c
 import contextlib
 import logging
 import multiprocessing as mp
@@ -52,13 +53,20 @@ class transformers_output_ignored:
         """Enter the context manager."""
         hf_logging.set_verbosity_error()
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: type[BaseException] | None,
+    ) -> None:
         """Exit the context manager."""
         hf_logging.set_verbosity_info()
 
 
 @contextlib.contextmanager
-def monkeypatched(obj, name, patch):
+def monkeypatched(
+    obj: object, name: str, patch: c.Callable
+) -> c.Generator[None, None, None]:
     """Temporarily monkeypatch.
 
     Args:
@@ -78,10 +86,10 @@ def monkeypatched(obj, name, patch):
 
 
 @contextlib.contextmanager
-def disable_tqdm():
+def disable_tqdm() -> c.Generator[None, None, None]:
     """Context manager to disable tqdm."""
 
-    def _patch(old_init):
+    def _patch(old_init: c.Callable[..., None]) -> partialmethod:
         return partialmethod(old_init, disable=True)
 
     with monkeypatched(tqdm_package.std.tqdm, "__init__", _patch):
@@ -122,7 +130,7 @@ def convert_iterable_dataset_to_dataset(
     splits_info = iterable_dataset.info.splits
     num_examples = None if splits_info is None else splits_info[split_name].num_examples
 
-    def gen_from_iterable_dataset():
+    def gen_from_iterable_dataset() -> c.Generator[dict, None, None]:
         yield from tqdm(
             iterable=iterable_dataset,
             total=num_examples,
@@ -148,11 +156,16 @@ def convert_iterable_dataset_to_dataset(
 class no_datasets_progress_bars:
     """Context manager that disables the `datasets` progress bars."""
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         """Disable the progress bar."""
         disable_progress_bar()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: type[BaseException] | None,
+    ) -> None:
         """Re-enable the progress bar."""
         enable_progress_bar()
 
@@ -181,12 +194,12 @@ def interpret_dataset_name(dataset_name: str) -> tuple[str, str | None, str | No
     if ":" in dataset_name and "::" not in dataset_name:
         dataset_name = dataset_name.replace(":", "::")
 
-    assert (
-        dataset_name.count("@") <= 1
-    ), "You cannot include more than one '@' in the dataset name"
-    assert (
-        dataset_name.count("::") <= 1
-    ), "You cannot include more than one ':' in the dataset name"
+    assert dataset_name.count("@") <= 1, (
+        "You cannot include more than one '@' in the dataset name"
+    )
+    assert dataset_name.count("::") <= 1, (
+        "You cannot include more than one ':' in the dataset name"
+    )
 
     dataset_id = dataset_name
     dataset_subset = None
@@ -277,7 +290,7 @@ def push_model_to_hub(
     return upload_folder(
         repo_id=trainer.hub_model_id or "",
         create_pr=create_pr,
-        folder_path=trainer.args.output_dir,
+        folder_path=trainer.args.output_dir or ".",
         commit_message=commit_message,
         token=token or True,
         ignore_patterns=["_*", "checkpoint-*"],

@@ -21,7 +21,7 @@ Developers:
 
 ## Installation
 
-1. Run `make install`, which installs Poetry (if it isn't already installed), sets up a
+1. Run `make install`, which installs `uv` (if it isn't already installed), sets up a
    virtual environment and all Python dependencies therein.
 2. Run `source .venv/bin/activate` to activate the virtual environment.
 3. Run `make` to see a list of available commands.
@@ -127,4 +127,12 @@ If you're on MacOS and get an error saying something along the lines of "fatal e
 
 ```
 export CPPFLAGS="-I$(brew --prefix)/include"
+```
+
+Another MacOS issue can happen if you get something like "fatal error: 'cstddef' file
+not found" and/or "fatal error: 'climits' file not found". In this case, first ensure
+that [you have Homebrew installed](https://brew.sh/), after which you run the following:
+
+```
+brew install cmake boost zlib eigen
 ```

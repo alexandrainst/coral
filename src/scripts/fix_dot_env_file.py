@@ -10,7 +10,7 @@ DESIRED_ENVIRONMENT_VARIABLES = dict(
 )
 
 
-def fix_dot_env_file():
+def fix_dot_env_file() -> None:
     """Ensures that the .env file exists and contains all desired variables."""
     env_file_path = Path(".env")
     env_file_path.touch(exist_ok=True)
