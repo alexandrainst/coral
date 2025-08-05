@@ -15,6 +15,7 @@ from transformers import (
     AutomaticSpeechRecognitionPipeline,
     EvalPrediction,
     PreTrainedTokenizerBase,
+    Wav2Vec2ProcessorWithLM,
 )
 from transformers.pipelines.pt_utils import KeyDataset
 
@@ -48,7 +49,7 @@ def compute_wer_metrics(
     pad_token = tokenizer.pad_token_id
 
     # Shape: [batch_size, seq_len, vocab_size] or [batch_size, seq_len]
-    predictions: NDArray[np.number] = pred.predictions
+    predictions: NDArray[np.number] = pred.predictions  # type: ignore[assignment]
 
     # Set the ground truth labels with label id -100 to be the padding token id. This
     # ensures that the WER metric does not consider these labels in its computation.
@@ -59,7 +60,12 @@ def compute_wer_metrics(
     # Whisper decoding
     pred_ids: NDArray[np.int_]
     if predictions.ndim == 2:
-        predictions_str = processor.batch_decode(predictions, skip_special_tokens=True)
+        if isinstance(processor, Wav2Vec2ProcessorWithLM):
+            predictions_str = processor.batch_decode(predictions)
+        else:
+            predictions_str = processor.batch_decode(
+                predictions, skip_special_tokens=True
+            )
         labels_str = tokenizer.batch_decode(sequences=labels, skip_special_tokens=True)
 
     # Wav2Vec2 decoding
@@ -166,7 +172,7 @@ def compute_metrics_of_dataset_using_pipeline(
     ):
         for idx, out in enumerate(
             transcriber(
-                KeyDataset(dataset=dataset, key=audio_column),
+                KeyDataset(dataset=dataset, key=audio_column),  # type: ignore[arg-type]
                 batch_size=batch_size,
                 generate_kwargs=dict(language="danish", task="transcribe"),
             )
@@ -189,9 +195,9 @@ def compute_metrics_of_dataset_using_pipeline(
                 )
                 for metric_name, metric in metrics.items()
             }
-            assert all(
-                isinstance(score, float) for score in scores.values()
-            ), f"Expected the scores to be floats, but found {scores}"
+            assert all(isinstance(score, float) for score in scores.values()), (
+                f"Expected the scores to be floats, but found {scores}"
+            )
 
             for metric, score in scores.items():
                 all_scores[metric].append(score)

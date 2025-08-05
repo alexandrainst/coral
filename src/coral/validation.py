@@ -64,7 +64,8 @@ def add_validations(
         column=audio_column, feature=Audio(sampling_rate=sampling_rate)
     )
 
-    # We have to filter the dataset for audioclips that are too small or too big to ASR validate
+    # We have to filter the dataset for audioclips that are too small or too big to ASR
+    # validate
     dataset = filter_dataset(
         dataset=dataset,
         audio_column=audio_column,

@@ -1,5 +1,5 @@
 coral:
-  id: alexandrainst/coral
+  id: CoRal-project/coral
   subset: read_aloud
   train_name: train
   text_column: text

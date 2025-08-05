@@ -15,7 +15,7 @@ seed: 4242
 experiment_tracking: null
 
 evaluation_dataset:
-  id: alexandrainst/coral
+  id: CoRal-project/coral
   subset: read_aloud
   val_name: val
   text_column: text

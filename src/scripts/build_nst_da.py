@@ -45,7 +45,7 @@ SAMPLE_RATE = 16_000
 
 @click.command("Builds and stores the Danish part of the NST dataset.")
 @click.argument("destination_dir", type=click.Path())
-def main(destination_dir) -> None:
+def main(destination_dir: str | Path) -> None:
     """Downloads, builds and uploads the Danish part of the NST dataset.
 
     Args:

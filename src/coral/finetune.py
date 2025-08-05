@@ -4,7 +4,7 @@ import logging
 import os
 
 from omegaconf import DictConfig
-from transformers import EarlyStoppingCallback, TrainerCallback
+from transformers.trainer_callback import EarlyStoppingCallback, TrainerCallback
 
 from .data import load_data_for_finetuning
 from .data_models import ModelSetup
