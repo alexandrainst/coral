@@ -32,6 +32,7 @@ dependencies = [
     "soundfile>=0.13.1",
     "torch>=2.7.1",
     "torchaudio>=2.7.1",
+    "torchcodec>=0.5",
     "transformers>=4.54.1",
     "wandb>=0.21.0",
 ]
