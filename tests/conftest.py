@@ -67,7 +67,6 @@ def dataset(finetuning_config: DictConfig) -> Generator[Dataset, None, None]:
         name=dataset_config.subset,
         split=dataset_config.train_name,
         token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-        trust_remote_code=True,
     )
     assert isinstance(dataset, Dataset)
     if dataset_config.text_column != "text":

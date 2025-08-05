@@ -204,7 +204,6 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
             name=dataset_config.subset,
             split=dataset_config.split,
             token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-            trust_remote_code=True,
             cache_dir=str(cache_dir),
             streaming=True,
         )
