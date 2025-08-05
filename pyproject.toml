@@ -50,8 +50,8 @@ plotting = [
 ]
 
 [project.urls]
-Repository = "https://github.com/alexandrainst/coral"
-Issues = "https://github.com/alexandrainst/coral/issues"
+Repository = "https://github.com/CoRal-project/coral"
+Issues = "https://github.com/CoRal-project/coral/issues"
 
 [project.license]
 file = "LICENSE"

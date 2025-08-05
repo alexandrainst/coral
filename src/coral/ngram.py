@@ -258,7 +258,7 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
     # Load the evaluation sentences, which are not allowed to be in the training dataset
     evaluation_config = DictConfig(
         dict(
-            dataset="alexandrainst/coral::read_aloud",
+            dataset="CoRal-project/coral::read_aloud",
             cache_dir=cache_dir,
             eval_split_name="test",
             text_column="text",

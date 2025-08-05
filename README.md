@@ -6,9 +6,9 @@ Fund](https://innovationsfonden.dk/).
 
 ______________________________________________________________________
 [![Documentation](https://img.shields.io/badge/docs-passing-green)](https://alexandrainst.github.io/coral/coral.html)
-[![License](https://img.shields.io/github/license/alexandrainst/coral)](https://github.com/alexandrainst/coral/blob/main/LICENSE)
-[![LastCommit](https://img.shields.io/github/last-commit/alexandrainst/coral)](https://github.com/alexandrainst/coral/commits/main)
-[![Code Coverage](https://img.shields.io/badge/Coverage-54%25-orange.svg)](https://github.com/alexandrainst/coral/tree/main/tests)
+[![License](https://img.shields.io/github/license/CoRal-project/coral)](https://github.com/CoRal-project/coral/blob/main/LICENSE)
+[![LastCommit](https://img.shields.io/github/last-commit/CoRal-project/coral)](https://github.com/CoRal-project/coral/commits/main)
+[![Code Coverage](https://img.shields.io/badge/Coverage-54%25-orange.svg)](https://github.com/CoRal-project/coral/tree/main/tests)
 
 
 Developers:
@@ -94,7 +94,7 @@ Here are some of the more important available keys:
   Hugging Face Hub. Note that subsets are separated with "::". For instance, to evaluate
   on the Danish Common Voice 17 dataset, you would use
   `mozilla-foundation/common_voice_17_0::da`. Defaults to
-  `alexandrainst/coral::read_aloud`.
+  `CoRal-project/coral::read_aloud`.
 - `eval_split_name`: The dataset split to evaluate on. Defaults to `test`.
 - `text_column`: The name of the column in the dataset that contains the text. Defaults
   to `text`.
