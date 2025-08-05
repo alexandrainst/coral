@@ -149,7 +149,6 @@ def load_data_for_finetuning(
                 split=dataset_config.train_name,
                 token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
                 streaming=config.streaming,
-                trust_remote_code=True,
                 cache_dir=config.cache_dir,
             )
 
@@ -244,7 +243,6 @@ def load_data_for_finetuning(
         split=config.evaluation_dataset.val_name,
         token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
         streaming=True,
-        trust_remote_code=True,
         cache_dir=config.cache_dir,
     )
     assert isinstance(val, IterableDataset)
@@ -317,7 +315,6 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         split=config.eval_split_name,
         revision=dataset_revision,
         token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-        trust_remote_code=True,
         cache_dir=config.cache_dir,
         streaming=True,
     )
