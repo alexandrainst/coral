@@ -3,8 +3,9 @@
 from dataclasses import dataclass
 
 import torch
-from transformers import BatchEncoding, BatchFeature
 from transformers.data.data_collator import DataCollatorMixin
+from transformers.feature_extraction_utils import BatchFeature
+from transformers.tokenization_utils_base import BatchEncoding
 
 from .data_models import Processor
 
@@ -58,7 +59,7 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
             raise ValueError(
                 "Features must contain either 'input_values' or 'audio' key."
             )
-        batch: BatchFeature = self.processor.pad(
+        batch: BatchFeature = self.processor.pad(  # type: ignore[union-attr]
             audio_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
@@ -66,11 +67,11 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
         )
 
         label_features = [dict(input_ids=feature["labels"]) for feature in features]
-        labels_batch: BatchEncoding = self.processor.pad(
+        labels_batch: BatchEncoding = self.processor.pad(  # type: ignore[union-attr]
             labels=label_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
-            max_length=min(self.processor.tokenizer.model_max_length, 512),
+            max_length=min(self.processor.tokenizer.model_max_length, 512),  # type: ignore[union-attr]
         )
 
         # Replace padding with -100 to ignore loss correctly
@@ -132,7 +133,7 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
             raise ValueError(
                 "Features must contain either 'input_features' or 'audio' key."
             )
-        batch = self.processor.feature_extractor.pad(
+        batch = self.processor.feature_extractor.pad(  # type: ignore[union-attr]
             audio_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
@@ -143,11 +144,11 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
         label_features = [{"input_ids": feature["labels"]} for feature in features]
 
         # Pad the labels to max length
-        labels_batch = self.processor.tokenizer.pad(
+        labels_batch = self.processor.tokenizer.pad(  # type: ignore[union-attr]
             label_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
-            max_length=min(self.processor.tokenizer.model_max_length, 512),
+            max_length=min(self.processor.tokenizer.model_max_length, 512),  # type: ignore[union-attr]
         )
 
         # Replace padding with -100 to ignore loss correctly
@@ -157,7 +158,7 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
 
         # If bos token is appended in previous tokenization step, cut BOS token here as
         # it's appended later anyway
-        if (labels[:, 0] == self.processor.tokenizer.bos_token_id).all().cpu().item():
+        if (labels[:, 0] == self.processor.tokenizer.bos_token_id).all().cpu().item():  # type: ignore[union-attr]
             labels = labels[:, 1:]
 
         batch["labels"] = labels

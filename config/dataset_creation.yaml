@@ -3,11 +3,11 @@ audio_dir: /Volumes/CoRal/_new_structure/raw
 transcription_dir: /Volumes/CoRal/_new_structure/raw/transcriptions
 metadata_database_path: /Volumes/CoRal/_new_structure/raw/CoRal_public.db
 
-# Filtering of the dataset
+# Filtering of the dataset
 min_seconds_per_example: 0.5
 max_seconds_per_example: 10
 
-# Validation parameters
+# Validation parameters
 validation:
   lower_case: true
   clean_text: true
@@ -17,9 +17,13 @@ validation:
   batch_size: 16
   max_cer: 0.6
 
-# Hugging Face Hub ID of output dataset
-hub_id: alexandrainst/coral
+# Hugging Face Hub ID of output dataset
+hub_id: CoRal-project/coral-v2
 
+# Turn on additional logging
+debug_logging: false
+
+# TODO: Update stats
 # Estimated number of hours: 8.84
 # Actual number of hours: 9.43
 # Difficulty: 0.05
@@ -44,30 +48,43 @@ hub_id: alexandrainst/coral
 # - native: 88%
 # - non-native: 12%
 test_speakers:
- - spe_f52921e1e787609ab99623340c5dd212
- - spe_cdb17db7c331cbb89e40dcbbecf4d560
- - spe_e3742811d83011e22ec2ef5a7af32065
- - spe_42de8f7200a57e1d28ae5b415ba5b934
- - spe_d84ebbfd3b0a3fbc12df4f960fe44ae3
- - spe_199e03b334b15576a69be73ea39a34d5
- - spe_0f8c666aaf602dfc580d99254e37ac77
- - spe_e33e46611f54ae91ed7b235c11ef2628
- - spe_37a526e88c934c7966038d34af9debf0
- - spe_07c0276e66e920209cf22266b24fa5e4
- - spe_9b8d26599c6b7932dbac00832b73dcf8
- - spe_6a029298b9eaa3d7e7f8f74510f88e70
- - spe_7b8398c898a828791c0fc40d6d146b3f
+ - spe_de430b1197cf26cb5f4011656a728ee5
+ - spe_040c7192f1c56491f9b00c558ce87d83
+ - spe_6e67cbe51a49d9e4abbd7699a4a89d91
+ - spe_9f6f2d21463e94f5403f67754913fabc
+ - spe_8948a0cc310c6fa8161665d4eda79846
+ - spe_fade5754bc6e205fcce917e85dd8def1
+ - spe_04be495fbbcf0187a0f17708b556ea13
+ - spe_066938532ac270d527696f89d81f0de4
+ - spe_fa6a417205bd632f6832f42120d291ea
+ - spe_01fc2b156c7fe429f1b72bd3be5ad3c3
+ - spe_290d17059a29fe3df395be2311c96fc1
+ - spe_2f15ff95f96e7e173ffd77d5ce867858
+ - spe_deedf738efa054ae460989be3033a3cf
+ - spe_7d6e87835e35371cba677fffefb10fb1
+ - spe_ab9690f6ac8dd2226f4bb14699444ed5
+ - spe_c4ece6eb8bf41ab959af9e2f57a5aae6
+ - spe_741ba3dd1acd26458718a591a980d743
+ - spe_2937b289da4c0a7b9877c56ecead4794
+ - spe_d19f3558739cb61e2cc2d8be52c19141
+ - spe_65c05e58f399d854594d4716454a806b
+ - spe_d772d2cc8215cdcf3a962c7757156deb
+ - spe_3fbe6022caf3c819597d4a28eafc092e
+ - spe_fa639f5932359117682753884585d883
+ - spe_df3293886215084f5fd6a447bb379b11
+ - spe_dbf8b55bf5364a9d6eaed082697b36fc
+ - spe_71d9860fe866f922740368df660bd1d4
+ - spe_26b2833fc94cadba302aba2a631da193
+ - spe_4aa23a60464a18e3597cdeb3606ac572
+ - spe_03e8b9d0ee8d3192e113ff62c61e4916
+ - spe_fbf3381f525dbe5ddf1a2a1d36e9c4b9
  - spe_5e319f90767d47e11731d95e314e4670
- - spe_4b7ba1403d8540b3101c07b9c8a19474
- - spe_436e439616edf662c232486b3face2f1
- - spe_647d4e905427d45ab699abe73d80ef1d
- - spe_51b02c4d372de72ba1cab851642ab363
- - spe_50cddf66f739637c1b3c534938649b8e
+ - spe_7b8398c898a828791c0fc40d6d146b3f
  - spe_6e7cb65603907f863e06d7a02e00fb67
- - spe_f1d26280a22ad55b85083b19d61f243a
- - spe_9f92cb4d6feb94dab9c691811656e33e
  - spe_55028d05581a88a8655fa1f74ddfb5a1
+ - spe_199e03b334b15576a69be73ea39a34d5
 
+# TODO: Update stats
 # Estimated number of hours: 2.56
 # Actual number of hours: 3.05
 # Difficulty: 0.06
@@ -92,14 +109,14 @@ test_speakers:
 # - native: 68%
 # - non-native: 32%
 val_speakers:
- - spe_9c4dc6be57f6c63860331813a71417e5
- - spe_4a7e760bd0a2775337880155e8ac0ec2
- - spe_03e8b9d0ee8d3192e113ff62c61e4916
- - spe_92fea6e4419210f4c4219e84ec89837e
- - spe_b977ebc0a2ba961cbe158190fce0dc06
- - spe_4aa23a60464a18e3597cdeb3606ac572
- - spe_20b91d51f72ee56930ca778cb16c29da
- - spe_fbf3381f525dbe5ddf1a2a1d36e9c4b9
- - spe_4d03787c2092b6bee053e75e2cfa4aa3
- - spe_877ac9c88e53b43ebfe464da79aa6da3
- - spe_ffc1068fc082deac40144691e1ae754c
+ - spe_3dd62e87b39a71dc50aaf90199dad34b
+ - spe_a55cdc8a6a4230777bbe421825db705a
+ - spe_046c02b65af055859e0f0a1885b2cc5c
+ - spe_2dd1aa67190b348710f31482d291418c
+ - spe_dabbad0be26f953503dcf196440eb7a7
+ - spe_6aeb15b456086536f45918dbdfc63ec6
+ - spe_349834612439f09df8374bd3016ba57e
+ - spe_8685f47cbde80df2b261c1dff5649f22
+ - spe_af2f2d470c277174a74583322f89c8bd
+ - spe_4b7ba1403d8540b3101c07b9c8a19474
+ - spe_51b02c4d372de72ba1cab851642ab363

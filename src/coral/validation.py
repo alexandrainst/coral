@@ -9,7 +9,7 @@ from datasets import Audio, Dataset, DatasetDict
 from transformers import AutomaticSpeechRecognitionPipeline, pipeline
 
 from .compute_metrics import compute_metrics_of_dataset_using_pipeline
-from .data import process_dataset
+from .data import filter_dataset, process_dataset
 
 logger = logging.getLogger(__package__)
 
@@ -64,6 +64,16 @@ def add_validations(
         column=audio_column, feature=Audio(sampling_rate=sampling_rate)
     )
 
+    # We have to filter the dataset for audioclips that are too small or too big to ASR
+    # validate
+    dataset = filter_dataset(
+        dataset=dataset,
+        audio_column=audio_column,
+        min_seconds_per_example=0.25,
+        max_seconds_per_example=60 * 60,
+        is_main_process=False,
+    )
+
     processed_dataset = process_dataset(
         dataset=dataset,
         clean_text=clean_text,
@@ -71,13 +81,15 @@ def add_validations(
         text_column=text_column,
         audio_column=audio_column,
         convert_numerals=False,
-        remove_input_dataset_columns=True,
+        remove_input_dataset_columns=False,
         lower_case=lower_case,
     )
 
     logger.info(f"Loading the {model_id!r} ASR model...")
     if torch.cuda.is_available():
         device = torch.device("cuda")
+    elif torch.mps.is_available():
+        device = torch.device("mps")
     else:
         device = torch.device("cpu")
     transcriber = pipeline(
@@ -90,7 +102,7 @@ def add_validations(
         predictions, labels, score_dict = compute_metrics_of_dataset_using_pipeline(
             dataset=split,
             transcriber=transcriber,
-            metric_names=["cer"],
+            metric_names=["wer", "cer"],
             characters_to_keep=characters_to_keep,
             text_column=text_column,
             audio_column=audio_column,

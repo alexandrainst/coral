@@ -37,9 +37,9 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     Returns:
         A DataFrame with the evaluation scores.
     """
-    assert (
-        config.model_id is not None
-    ), "`model_id` must be set to perform an evaluation!"
+    assert config.model_id is not None, (
+        "`model_id` must be set to perform an evaluation!"
+    )
 
     logger.info("Loading the dataset...")
     dataset = load_dataset_for_evaluation(config=config)

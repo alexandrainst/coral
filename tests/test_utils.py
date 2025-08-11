@@ -18,7 +18,12 @@ class output_blocked:
         """Block terminal output."""
         block_terminal_output()
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: type[BaseException] | None,
+    ) -> None:
         """Unblock terminal output."""
         ds_logging.set_verbosity_warning()
 
@@ -114,6 +119,6 @@ def test_transformers_output_ignored() -> None:
         ("10.102,92", "ti tusind et hundrede og to komma ni to"),
     ],
 )
-def test_convert_numeral_to_words(numeral, expected):
+def test_convert_numeral_to_words(numeral: str, expected: str) -> None:
     """Test that the `convert_numeral_to_words` function works as expected."""
     assert convert_numeral_to_words(numeral=numeral) == expected

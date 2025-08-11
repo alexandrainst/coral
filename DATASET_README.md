@@ -30,7 +30,7 @@ example of how to load and use the dataset with Hugging Face's `datasets` librar
 from datasets import load_dataset
 
 # Load the Coral dataset
-coral = load_dataset("alexandrainst/coral", "read_aloud")
+coral = load_dataset("CoRal-project/coral", "read_aloud")
 
 # Example: Accessing an audio sample and its transcription
 sample = coral['train'][0]
@@ -171,14 +171,14 @@ Analyse the linguistic features of different Danish dialects.
 
 Speech Synthesis and Biometric Identification are not allowed using the CoRal dataset.
 For more information, see addition 4 in our
-[license](https://huggingface.co/datasets/alexandrainst/coral/blob/main/LICENSE).
+[license](https://huggingface.co/datasets/CoRal-project/coral/blob/main/LICENSE).
 
 
 ## License
 The dataset is licensed under an OpenRAIL-D license, adapted from OpenRAIL-M, which
 allows commercial use with a few restrictions (such as speech synthesis and biometric
 identification). See
-[license](https://huggingface.co/datasets/alexandrainst/coral/blob/main/LICENSE).
+[license](https://huggingface.co/datasets/CoRal-project/coral/blob/main/LICENSE).
 
 
 ## Creators and Funders
@@ -201,6 +201,6 @@ your research or development, please cite it as follows:
   author    = {Dan Saattrup Nielsen, Sif Bernstorff Lehmann, Simon Leminen Madsen, Anders Jess Pedersen, Anna Katrine van Zee and Torben Blach},
   title     = {CoRal: A Diverse Danish ASR Dataset Covering Dialects, Accents, Genders, and Age Groups},
   year      = {2024},
-  url       = {https://hf.co/datasets/alexandrainst/coral},
+  url       = {https://hf.co/datasets/CoRal-project/coral},
 }
 ```

@@ -28,25 +28,22 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Install ffmpeg
         uses: FedericoCarboni/setup-ffmpeg@v2
 
-      - name: Install Poetry
-        run: pip3 install poetry==1.8.2
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Install uv and set up Python
+        uses: astral-sh/setup-uv@v5
         with:
+          enable-cache: false
           python-version: ${{ matrix.python-version }}
-          cache: "poetry"
 
       - name: Install Dependencies
-        run: |
-          poetry env use "${{ matrix.python-version }}"
-          poetry install --no-interaction --no-cache
+        run: uv sync --no-dev --all-extras
 
       - name: Test with pytest
-        run: poetry run pytest
+        run: uv run pytest
         env:
           HUGGINGFACE_HUB_TOKEN: ${{ secrets.HUGGINGFACE_HUB_TOKEN }}
