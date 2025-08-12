@@ -1,7 +1,13 @@
+build_read_aloud: false
+build_conversation: true
+
+save_local: true
+upload_to_hub: false
+
 # Input raw data
-audio_dir: /Volumes/CoRal/_new_structure/raw
-transcription_dir: /Volumes/CoRal/_new_structure/raw/transcriptions
-metadata_database_path: /Volumes/CoRal/_new_structure/raw/CoRal_public.db
+audio_dir: /mnt/Coral_NAS/raw
+transcription_dir: ${audio_dir}/transcriptions
+metadata_database_path: ${audio_dir}/CoRal_public.db
 
 # Filtering of the dataset
 min_seconds_per_example: 0.5
@@ -18,7 +24,7 @@ validation:
   max_cer: 0.6
 
 # Hugging Face Hub ID of output dataset
-hub_id: CoRal-project/coral-v2
+hub_id: CoRal-project/coral-v3
 
 # Turn on additional logging
 debug_logging: false

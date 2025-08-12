@@ -51,70 +51,85 @@ def main(config: DictConfig) -> None:
     read_aloud_dir = Path(config.audio_dir) / "recordings"
     conversation_dir = Path(config.audio_dir) / "conversations"
     transcription_dir = Path(config.audio_dir) / "transcriptions"
-    segment_dir = Path(config.audio_dir) / "segments"
 
-    logger.info("Copying the raw files to the current working directory...")
-    temp_read_aloud_dir = copy_audio_directory_to_cwd(audio_dir=read_aloud_dir)
-    temp_conversation_dir = copy_audio_directory_to_cwd(audio_dir=conversation_dir)
-    temp_transcription_dir = copy_audio_directory_to_cwd(audio_dir=transcription_dir)
-    temp_segment_dir = copy_audio_directory_to_cwd(audio_dir=segment_dir)
-
-    # Copy the metadata database to the current working directory, since that massively
-    # speeds up the SQL queries
-    logger.info("Copying the metadata database to the current working directory...")
     temp_metadata_database_path = Path.cwd() / metadata_database_path.name
     shutil.copy(src=metadata_database_path, dst=temp_metadata_database_path)
 
-    logger.info("Building the CoRal read-aloud speech recognition dataset...")
-    read_aloud_dataset = build_read_aloud_dataset(
-        metadata_database_path=temp_metadata_database_path,
-        audio_dir=temp_read_aloud_dir,
-        additional_logging=config.debug_logging,
-    )
+    if config.build_read_aloud:
+        logger.info("Building the CoRal read-aloud speech recognition dataset...")
+        logger.debug("Copying read-aloud audio files...")
+        temp_read_aloud_dir = copy_audio_directory_to_cwd(audio_dir=read_aloud_dir)
 
-    logger.info("Building the CoRal conversation speech recognition dataset...")
-    conversation_dataset = build_conversation_dataset(
-        metadata_database_path=temp_metadata_database_path,
-        audio_dir=temp_conversation_dir,
-        transcript_dir=temp_transcription_dir,
-        segment_dir=temp_segment_dir,
-        additional_logging=config.debug_logging,
-    )
+        logger.debug("Building the read-aloud dataset...")
+        read_aloud_dataset = build_read_aloud_dataset(
+            metadata_database_path=temp_metadata_database_path,
+            audio_dir=temp_read_aloud_dir,
+            additional_logging=config.debug_logging,
+        )
 
-    logger.info("Validating and filtering the datasets...")
-    read_aloud_dataset = add_validations(
-        dataset=read_aloud_dataset,
-        text_column="text",
-        audio_column="audio",
-        model_id=config.validation.model_id,
-        clean_text=config.validation.clean_text,
-        lower_case=config.validation.lower_case,
-        sampling_rate=config.validation.sampling_rate,
-        characters_to_keep=config.validation.characters_to_keep,
-        batch_size=config.validation.batch_size,
-        max_cer=config.validation.max_cer,
-    )
+        logger.debug("Validating the read-aloud dataset...")
+        read_aloud_dataset = add_validations(
+            dataset=read_aloud_dataset,
+            text_column="text",
+            audio_column="audio",
+            model_id=config.validation.model_id,
+            clean_text=config.validation.clean_text,
+            lower_case=config.validation.lower_case,
+            sampling_rate=config.validation.sampling_rate,
+            characters_to_keep=config.validation.characters_to_keep,
+            batch_size=config.validation.batch_size,
+            max_cer=config.validation.max_cer,
+        )
 
-    logger.info("Splitting the datasets into train, validation and test sets...")
-    read_aloud_dataset = split_dataset(
-        dataset=read_aloud_dataset,
-        test_speakers=config.test_speakers,
-        val_speakers=config.val_speakers,
-    )
-    conversation_dataset = split_dataset(
-        dataset=conversation_dataset,
-        test_speakers=config.test_speakers,
-        val_speakers=config.val_speakers,
-    )
+        logger.debug("Splitting the read-aloud dataset...")
+        read_aloud_dataset = split_dataset(
+            dataset=read_aloud_dataset,
+            test_speakers=config.test_speakers,
+            val_speakers=config.val_speakers,
+        )
+    else:
+        read_aloud_dataset = None
 
-    logger.info(
-        f"Uploading the datasets to {config.hub_id!r} on the Hugging Face Hub..."
-    )
-    upload_dataset(
-        read_aloud_dataset=read_aloud_dataset,
-        conversation_dataset=conversation_dataset,
-        hub_id=config.hub_id,
-    )
+    if config.build_conversation:
+        logger.info("Building the CoRal conversation speech recognition dataset...")
+
+        logger.debug("Copying conversation and transcription files...")
+        temp_conversation_dir = copy_files_to_cwd(source_dir=conversation_dir)
+        temp_transcription_dir = copy_files_to_cwd(source_dir=transcription_dir)
+
+        logger.debug("Building the conversation dataset...")
+        conversation_dataset = build_conversation_dataset(
+            metadata_database_path=temp_metadata_database_path,
+            audio_dir=temp_conversation_dir,
+            transcript_dir=temp_transcription_dir,
+            additional_logging=config.debug_logging,
+        )
+
+        logger.debug("Splitting the conversation dataset...")
+        conversation_dataset = split_dataset(
+            dataset=conversation_dataset,
+            test_speakers=config.test_speakers,
+            val_speakers=config.val_speakers,
+        )
+    else:
+        conversation_dataset = None
+
+    if config.save_local:
+        logger.info("Saving the datasets to local disk...")
+        save_dataset(
+            read_aloud_dataset=read_aloud_dataset,
+            conversation_dataset=conversation_dataset,
+        )
+
+    if config.upload_to_hub:
+        logger.info(
+            f"Uploading the datasets to {config.hub_id!r} on the Hugging Face Hub..."
+        )
+        upload_dataset(
+            read_aloud_dataset=read_aloud_dataset,
+            conversation_dataset=conversation_dataset,
+            hub_id=config.hub_id,
+        )
 
     logger.info(
         f"All done! See the datasets at https://hf.co/datasets/{config.hub_id}."
@@ -322,7 +337,6 @@ def build_conversation_dataset(
     metadata_database_path: Path,
     audio_dir: Path,
     transcript_dir: Path,
-    segment_dir: Path,
     additional_logging: bool = False,
 ) -> Dataset:
     """Build the CoRal conversation dataset.
@@ -334,8 +348,6 @@ def build_conversation_dataset(
             Path to the directory containing the audio files.
         transcript_dir:
             Path to the directory containing the transcription files.
-        segment_dir:
-            Path to the directory to output the segment files.
         additional_logging:
             Flag to turn on additional logging useful for debugging
 
@@ -531,8 +543,10 @@ def build_conversation_dataset(
             transcription = pysubs2.load(conversation_row.transcription_path)
             audio = AudioSegment.from_file(conversation_row.audio_path)
 
-            conversation_dir = segment_dir / Path(conversation_row.id_conversation)
-            conversation_dir.mkdir(exist_ok=True)
+            conversation_dir = (
+                audio_dir / "segments" / Path(conversation_row.id_conversation)
+            )
+            conversation_dir.mkdir(parents=True, exist_ok=True)
 
             for i, segment in enumerate(transcription):
                 # Skip segments with unuseable transcript
@@ -556,10 +570,12 @@ def build_conversation_dataset(
                 audio_clip.export(segment_path, format="wav")
 
                 speaker_entry = speaker_a if speaker == "A" else speaker_b
+                id_conversation = conversation_row.id_conversation + "_{:05d}".format(i)
+
                 entry = pd.DataFrame(
                     [
                         {
-                            "id_conversation": conversation_row.id_conversation,
+                            "id_conversation": id_conversation,
                             "location": conversation_row.location,
                             "location_roomdim": conversation_row.location_roomdim,
                             "noise_level": conversation_row.noise_level,
@@ -708,9 +724,35 @@ def examples_belong_to_test(
     return [speaker_id in test_speakers for speaker_id in examples["id_speaker"]]
 
 
-#####################################
-##### Uploading of the datasets #####
-#####################################
+################################################
+##### Saving and uploading of the datasets #####
+################################################
+
+
+def save_dataset(
+    read_aloud_dataset: DatasetDict | None,
+    conversation_dataset: DatasetDict | None,
+    dir_dest: Path | None = None,
+) -> None:
+    """Save the datasets to local disk.
+
+    Args:
+        read_aloud_dataset:
+            The read-aloud dataset, or None if no such dataset exists.
+        conversation_dataset:
+            The conversation dataset, or None if no such dataset exists.
+        dir_dest:
+            The directory where the datasets should be saved.
+    """
+    if dir_dest is None:
+        dir_dest = Path.cwd() / "data" / "processed"
+    dir_dest.mkdir(parents=True, exist_ok=True)
+
+    if read_aloud_dataset is not None:
+        read_aloud_dataset.save_to_disk(str(dir_dest / "coral_read_aloud_dataset"))
+
+    if conversation_dataset is not None:
+        conversation_dataset.save_to_disk(str(dir_dest / "coral_conversation_dataset"))
 
 
 def upload_dataset(
@@ -782,7 +824,7 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
     Returns:
         The new directory containing the audio files.
     """
-    new_audio_dir = Path.cwd() / "data" / audio_dir.name
+    new_audio_dir = Path.cwd() / "data" / "raw" / audio_dir.name
     new_audio_dir.mkdir(exist_ok=True)
 
     # Get list of subdirectories of the audio directory, or abort of none exist
@@ -815,20 +857,23 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
     return new_audio_dir
 
 
-def copy_files_to_cwd(source_dir: Path, use_compression: bool = False) -> Path:
+def copy_files_to_cwd(
+    source_dir: Path, use_compression: bool = False, dest_dir: Path | None = None
+) -> Path:
     """Copies files from the source directory to cwd data directory.
 
     Args:
         source_dir (Path): The source directory from which files will be copied.
         use_compression (bool, optional): Compresses the files before copying.
+        dest_dir (Path, optional): The destination directory where files will be copied.
 
     Returns:
         Path (Path): The destination directory where files have been copied.
     """
-    dest_dir = Path.cwd() / "data" / source_dir.name
+    if dest_dir is None:
+        dest_dir = Path.cwd() / "data" / "raw" / source_dir.name
 
-    if not dest_dir.exists():
-        dest_dir.mkdir(parents=True)
+    dest_dir.mkdir(parents=True, exist_ok=True)
 
     # Identify files to be copied
     files_to_copy = [
@@ -844,10 +889,28 @@ def copy_files_to_cwd(source_dir: Path, use_compression: bool = False) -> Path:
         decompress_file(tar_path, dest_dir)
 
     else:
+
+        def copy_func(file: Path) -> None:
+            """Copy a file to the destination directory."""
+            target = dest_dir / file.name
+
+            if target.exists():
+                # Quick check: size & mtime
+                src_stat = file.stat()
+                dst_stat = target.stat()
+                if (
+                    src_stat.st_size == dst_stat.st_size
+                    and src_stat.st_mtime == dst_stat.st_mtime
+                ):
+                    return  # Skip identical file
+
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(file, target)
+
         # Copy files without compression, flattening structure
         with Parallel(n_jobs=mp.cpu_count(), backend="threading") as parallel:
             parallel(
-                delayed(shutil.copy2)(file, dest_dir / file.name)
+                delayed(copy_func)(file)
                 for file in tqdm(files_to_copy, desc="Copying files")
             )
 
