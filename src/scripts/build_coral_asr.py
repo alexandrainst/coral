@@ -119,6 +119,7 @@ def main(config: DictConfig) -> None:
         save_dataset(
             read_aloud_dataset=read_aloud_dataset,
             conversation_dataset=conversation_dataset,
+            dir_dest=config.dir_save_local,
         )
 
     if config.upload_to_hub:
@@ -436,7 +437,7 @@ def build_conversation_dataset(
             logger.info(
                 f"Found {len(all_audio_paths)} audio paths but could only match "
                 f"{len(matching_audio_paths)} of them to rows which means there "
-                "are {len(all_audio_paths) - len(matching_audio_paths)} too many "
+                f"are {len(all_audio_paths) - len(matching_audio_paths)} too many "
                 "audio paths"
             )
             if additional_logging:
@@ -572,6 +573,21 @@ def build_conversation_dataset(
                 speaker_entry = speaker_a if speaker == "A" else speaker_b
                 id_conversation = conversation_row.id_conversation + "_{:05d}".format(i)
 
+                # Check with previous segment
+                if i > 0 and segment.start < transcription[i - 1].end:
+                    overlap_prev = True
+                else:
+                    overlap_prev = False
+
+                # Check with next segment
+                if (
+                    i < len(transcription) - 1
+                    and segment.end > transcription[i + 1].start
+                ):
+                    overlap_next = True
+                else:
+                    overlap_next = False
+
                 entry = pd.DataFrame(
                     [
                         {
@@ -587,7 +603,7 @@ def build_conversation_dataset(
                             "country_birth": speaker_entry["country_birth"],
                             "education": speaker_entry["education"],
                             "occupation": speaker_entry["occupation"],
-                            "id_segment": i,
+                            "overlap": overlap_prev or overlap_next,
                             "text": text,
                             "audio": str(segment_path),
                         }

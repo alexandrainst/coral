@@ -1,9 +1,6 @@
 build_read_aloud: false
 build_conversation: true
 
-save_local: true
-upload_to_hub: false
-
 # Input raw data
 audio_dir: /mnt/Coral_NAS/raw
 transcription_dir: ${audio_dir}/transcriptions
@@ -23,7 +20,11 @@ validation:
   batch_size: 16
   max_cer: 0.6
 
+save_local: false
+dir_save_local: /mnt/Coral_NAS/processed/coral-v3
+
 # Hugging Face Hub ID of output dataset
+upload_to_hub: true
 hub_id: CoRal-project/coral-v3
 
 # Turn on additional logging
