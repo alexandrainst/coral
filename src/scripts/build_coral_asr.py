@@ -48,22 +48,25 @@ def main(config: DictConfig) -> None:
             The Hydra configuration object
     """
     metadata_database_path = Path(config.metadata_database_path)
-    read_aloud_dir = Path(config.audio_dir) / "recordings"
-    conversation_dir = Path(config.audio_dir) / "conversations"
-    transcription_dir = Path(config.audio_dir) / "transcriptions"
+    dir_read_aloud = Path(config.dir_data_raw) / "recordings"
+    dir_conversation = Path(config.dir_data_raw) / "conversations"
+    dir_transcription = Path(config.dir_data_raw) / "transcriptions"
 
-    temp_metadata_database_path = Path.cwd() / metadata_database_path.name
+    temp_metadata_database_path = (
+        Path.cwd() / "data" / "raw" / metadata_database_path.name
+    )
     shutil.copy(src=metadata_database_path, dst=temp_metadata_database_path)
 
     if config.build_read_aloud:
         logger.info("Building the CoRal read-aloud speech recognition dataset...")
         logger.debug("Copying read-aloud audio files...")
-        temp_read_aloud_dir = copy_audio_directory_to_cwd(audio_dir=read_aloud_dir)
+        if config.download2disk:
+            dir_read_aloud = copy_audio_directory_to_cwd(audio_dir=dir_read_aloud)
 
         logger.debug("Building the read-aloud dataset...")
         read_aloud_dataset = build_read_aloud_dataset(
             metadata_database_path=temp_metadata_database_path,
-            audio_dir=temp_read_aloud_dir,
+            audio_dir=dir_read_aloud,
             additional_logging=config.debug_logging,
         )
 
@@ -94,14 +97,15 @@ def main(config: DictConfig) -> None:
         logger.info("Building the CoRal conversation speech recognition dataset...")
 
         logger.debug("Copying conversation and transcription files...")
-        temp_conversation_dir = copy_files_to_cwd(source_dir=conversation_dir)
-        temp_transcription_dir = copy_files_to_cwd(source_dir=transcription_dir)
+        if config.download2disk:
+            dir_conversation = copy_files_to_cwd(source_dir=dir_conversation)
+            dir_transcription = copy_files_to_cwd(source_dir=dir_transcription)
 
         logger.debug("Building the conversation dataset...")
         conversation_dataset = build_conversation_dataset(
             metadata_database_path=temp_metadata_database_path,
-            audio_dir=temp_conversation_dir,
-            transcript_dir=temp_transcription_dir,
+            audio_dir=dir_conversation,
+            transcript_dir=dir_transcription,
             additional_logging=config.debug_logging,
         )
 
@@ -114,12 +118,12 @@ def main(config: DictConfig) -> None:
     else:
         conversation_dataset = None
 
-    if config.save_local:
+    if config.save2disk:
         logger.info("Saving the datasets to local disk...")
         save_dataset(
             read_aloud_dataset=read_aloud_dataset,
             conversation_dataset=conversation_dataset,
-            dir_dest=config.dir_save_local,
+            dir_dest=config.dir_save,
         )
 
     if config.upload_to_hub:
@@ -544,10 +548,12 @@ def build_conversation_dataset(
             transcription = pysubs2.load(conversation_row.transcription_path)
             audio = AudioSegment.from_file(conversation_row.audio_path)
 
-            conversation_dir = (
-                audio_dir / "segments" / Path(conversation_row.id_conversation)
+            dir_conversation = (
+                audio_dir.parent
+                / "conversation_segments"
+                / Path(conversation_row.id_conversation)
             )
-            conversation_dir.mkdir(parents=True, exist_ok=True)
+            dir_conversation.mkdir(parents=True, exist_ok=True)
 
             for i, segment in enumerate(transcription):
                 # Skip segments with unuseable transcript
@@ -566,7 +572,7 @@ def build_conversation_dataset(
                     continue
 
                 audio_clip = audio[segment.start : segment.end]
-                segment_path = conversation_dir / f"{i}.wav"
+                segment_path = dir_conversation / f"{i}.wav"
 
                 audio_clip.export(segment_path, format="wav")
 

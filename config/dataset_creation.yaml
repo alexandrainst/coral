@@ -1,10 +1,13 @@
-build_read_aloud: false
+# Subset selection
+build_read_aloud: true
 build_conversation: true
 
+# Download from NAS to local disk
+download2disk: false
+
 # Input raw data
-audio_dir: /mnt/Coral_NAS/raw
-transcription_dir: ${audio_dir}/transcriptions
-metadata_database_path: ${audio_dir}/CoRal_public.db
+dir_data_raw: /mnt/Coral_NAS/raw
+metadata_database_path: ${dir_data_raw}/CoRal_public.db
 
 # Filtering of the dataset
 min_seconds_per_example: 0.5
@@ -20,8 +23,8 @@ validation:
   batch_size: 16
   max_cer: 0.6
 
-save_local: false
-dir_save_local: /mnt/Coral_NAS/processed/coral-v3
+save2disk: true
+dir_save: /mnt/Coral_NAS/processed/coral-v3
 
 # Hugging Face Hub ID of output dataset
 upload_to_hub: true
