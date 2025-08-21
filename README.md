@@ -11,12 +11,9 @@ ______________________________________________________________________
 [![Code Coverage](https://img.shields.io/badge/Coverage-54%25-orange.svg)](https://github.com/CoRal-project/coral/tree/main/tests)
 
 
-Developers:
+Author and maintainer:
 
-- Anders Jess Pedersen (anders.j.pedersen@alexandra.dk)
-- Dan Saattrup Nielsen (dan.nielsen@alexandra.dk)
-- Simon Leminen Madsen (simon.leminen@alexandra.dk)
-
+- Dan Saattrup Smart (dan.smart@alexandra.dk)
 
 
 ## Installation
