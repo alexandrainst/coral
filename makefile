@@ -55,7 +55,7 @@ install-pre-commit:
 
 install-dependencies:
 	@uv python install 3.11
-	@uv sync --python 3.11
+	@uv sync --python 3.11 --all-extras
 
 setup-environment-variables:
 	@uv run python src/scripts/fix_dot_env_file.py
