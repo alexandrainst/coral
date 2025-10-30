@@ -5,9 +5,19 @@ build_conversation: true
 # Download from NAS to local disk
 download2disk: false
 
-# Input raw data
+# Dataset version
+dataset_name: coral_v3
+
+# Directories for raw and processed data
 dir_data_raw: /mnt/Coral_NAS/raw
+dir_data_processed: /mnt/Coral_NAS/processed
+
+# Metadata path
 metadata_database_path: ${dir_data_raw}/CoRal_public.db
+
+# Output dataset local saving
+save2disk: true
+dir_save:  ${dir_data_processed}/${dataset_name}
 
 # Filtering of the dataset
 min_seconds_per_example: 0.5
@@ -23,12 +33,11 @@ validation:
   batch_size: 16
   max_cer: 0.6
 
-save2disk: true
-dir_save: /mnt/Coral_NAS/processed/coral-v3
+
 
 # Hugging Face Hub ID of output dataset
 upload_to_hub: true
-hub_id: CoRal-project/coral-v3
+hub_id: CoRal-project/${dataset_name}
 
 # Turn on additional logging
 debug_logging: false
