@@ -14,6 +14,7 @@ from functools import partial
 from itertools import chain
 from pathlib import Path
 from time import sleep
+from typing import Dict, List, Tuple
 
 import hydra
 import pandas as pd
@@ -21,7 +22,6 @@ import pysubs2
 from datasets import Audio, Dataset, DatasetDict
 from joblib import Parallel, delayed
 from omegaconf import DictConfig
-from progress.bar import IncrementalBar
 from pydub import AudioSegment
 from requests import HTTPError
 from tqdm.auto import tqdm
@@ -239,7 +239,7 @@ def build_read_aloud_dataset(
     audio_subdirs = list(audio_dir.iterdir())
     with Parallel(n_jobs=mp.cpu_count(), backend="threading") as parallel:
         all_audio_path_lists = parallel(
-            delayed(list_audio_files)(subdir)
+            delayed(list_files)(subdir)
             for subdir in tqdm(audio_subdirs, desc="Collecting audio file paths")
         )
 
@@ -303,19 +303,19 @@ def build_read_aloud_dataset(
     return dataset
 
 
-def list_audio_files(
+def list_files(
     audio_dir: Path, max_attempts: int = 10, extensions: list[str] = ["wav"]
 ) -> list[Path]:
-    """List all the audio files in the given directory.
+    """List all files in the given directory, with a given set of extensions.
 
     Args:
         audio_dir:
-            The directory containing the audio files.
+            The directory containing the files.
         max_attempts (optional):
-            The maximum number of attempts to list the audio files. Defaults to 10.
+            The maximum number of attempts to list the files. Defaults to 10.
         extensions (optional):
-            A list of extensions to consider when listing the audio files. Defaults to
-            ["wav"].
+            A list of extensions to consider when listing the files. Defaults to
+            audio files with extension: ["wav"].
 
     Returns:
         A list of paths to the audio files.
@@ -336,6 +336,401 @@ def list_audio_files(
 ############################################
 ##### Building the conversation subset #####
 ############################################
+
+# Constants
+SPEAKER_A = "A"
+SPEAKER_B = "B"
+PATTERN_STARS = re.compile(r"\*\*\*(.*?)\*\*\*")
+PATTERN_BRACKETS = re.compile(r"\[(.*?)\]")
+
+
+def load_conv_speakers(conn: sqlite3.Connection) -> pd.DataFrame:
+    """Load speaker metadata from database that participate in conversations.
+
+    Args:
+        conn: SQLite database connection
+
+    Returns:
+        DataFrame with speaker information
+    """
+    query = """
+        SELECT
+            id_speaker,
+            age,
+            gender,
+            dialect,
+            country_birth,
+            education,
+            occupation
+        FROM
+            Speakers
+        WHERE
+            id_speaker IN (
+                SELECT id_speaker_a FROM Conversations UNION
+                SELECT id_speaker_b FROM Conversations UNION
+                SELECT id_recorder FROM Conversations
+            )
+    """
+    return pd.read_sql(query, conn)
+
+
+def load_conversations_from_db(conn: sqlite3.Connection) -> pd.DataFrame:
+    """Load conversation metadata from database.
+
+    Args:
+        conn: SQLite database connection
+
+    Returns:
+        DataFrame with conversation information
+    """
+    query = """
+        SELECT
+            id_conversation,
+            id_speaker_a,
+            id_speaker_b,
+            id_recorder,
+            location,
+            location_roomdim,
+            noise_level,
+            noise_type
+        FROM
+            Conversations
+        WHERE
+            id_speaker_a IN (SELECT id_speaker FROM Speakers) OR
+            id_speaker_b IN (SELECT id_speaker FROM Speakers) OR
+            id_recorder IN (SELECT id_speaker FROM Speakers)
+    """
+    return pd.read_sql(query, conn)
+
+
+def build_file_path_dict(file_paths: List[Path]) -> Dict[str, Path]:
+    """Build dictionary mapping file stems to paths.
+
+    Args:
+        file_paths: List of file paths
+
+    Returns:
+        Dictionary mapping stem to path
+    """
+    return {path.stem: path for path in file_paths}
+
+
+def match_files_to_conversations(
+    conversation_ids: pd.Series,
+    file_paths_dict: Dict[str, Path],
+    file_type: str,
+    additional_logging: bool = False,
+) -> Tuple[List[Path | None], Dict[str, int]]:
+    """Match files to conversation IDs.
+
+    Args:
+        conversation_ids: Series of conversation IDs
+        file_paths_dict: Dictionary mapping IDs to file paths
+        file_type: Type of files being matched (for logging)
+        additional_logging: Enable detailed logging
+
+    Returns:
+        Tuple of (matched paths list, statistics dict)
+    """
+    matched_paths: List[Path | None] = []
+    missing_ids: List[Path | None] = []
+
+    for conv_id in conversation_ids:
+        path = file_paths_dict.get(conv_id)
+        if path is not None:
+            matched_paths.append(path)
+        else:
+            missing_ids.append(conv_id)
+            matched_paths.append(None)
+
+    stats = {
+        "total_files": len(file_paths_dict),
+        "matched": len([p for p in matched_paths if p is not None]),
+        "missing": len(missing_ids),
+        "extra": len(file_paths_dict)
+        - len([p for p in matched_paths if p is not None]),
+    }
+
+    logger.info(f"Got {stats['matched']} matched {file_type} paths")
+    logger.info(f"Got {stats['missing']} missing {file_type} paths")
+
+    if additional_logging and missing_ids:
+        logger.info(f"The missing {file_type} IDs are: {missing_ids}")
+
+    if stats["extra"] > 0:
+        logger.info(
+            f"Found {stats['total_files']} {file_type} paths but could only match "
+            f"{stats['matched']} of them, leaving {stats['extra']} unmatched"
+        )
+        if additional_logging:
+            matched_paths_set = set(p for p in matched_paths if p)
+            extra_paths = set(file_paths_dict.values()) - matched_paths_set
+            logger.info(f"The additional {file_type} paths are: {extra_paths}")
+
+    return matched_paths, stats
+
+
+def get_speaker_info(df_speakers: pd.DataFrame, speaker_id: str) -> pd.Series:
+    """Get speaker information by ID.
+
+    Args:
+        speaker_rows: DataFrame containing speaker data
+        speaker_id: Speaker ID to look up
+
+    Returns:
+        Series with speaker information
+
+    Raises:
+        ValueError: If speaker not found or multiple matches
+    """
+    matches = df_speakers[df_speakers["id_speaker"] == str(speaker_id)]
+    if len(matches) == 0:
+        raise ValueError(f"Speaker {speaker_id} not found")
+    if len(matches) > 1:
+        raise ValueError(f"Multiple entries found for speaker {speaker_id}")
+    return matches.iloc[0]
+
+
+def is_valid_segment(text: str, speaker_label: str) -> bool:
+    """Check if a transcript segment is valid for processing.
+
+    Args:
+        text: Transcript text
+        speaker_label: Speaker identifier label from transcription (e.g., "A" or "B")
+
+    Returns:
+        True if segment should be processed, False otherwise
+    """
+    text = text.strip()
+
+    # Skip empty
+    if not text:
+        return False
+
+    # Skip text with special markers
+    if PATTERN_STARS.search(text) or PATTERN_BRACKETS.search(text):
+        return False
+
+    # Validate speaker label
+    speaker_label = speaker_label.strip().upper()
+    if speaker_label not in (SPEAKER_A, SPEAKER_B):
+        return False
+
+    return True
+
+
+def check_overlap(
+    segment_index: int,
+    segment_start: int,
+    segment_end: int,
+    transcription: pysubs2.SSAFile,
+) -> bool:
+    """Check if segment overlaps with adjacent segments.
+
+    Args:
+        segment_index: Index of current segment
+        segment_start: Start time of segment
+        segment_end: End time of segment
+        transcription: Full transcription object
+
+    Returns:
+        True if overlap exists with previous or next segment
+    """
+    overlap_prev = False
+    overlap_next = False
+
+    # Check with previous segment
+    if segment_index > 0:
+        if segment_start < transcription[segment_index - 1].end:
+            overlap_prev = True
+
+    # Check with next segment
+    if segment_index < len(transcription) - 1:
+        if segment_end > transcription[segment_index + 1].start:
+            overlap_next = True
+
+    return overlap_prev or overlap_next
+
+
+def extract_segment_data(
+    segment: pysubs2.SSAEvent,
+    segment_index: int,
+    row_conversation: pd.Series,
+    speaker_a: pd.Series,
+    speaker_b: pd.Series,
+    transcription: pysubs2.SSAFile,
+    segment_path: Path,
+) -> Dict:
+    """Extract all data for a single segment.
+
+    Args:
+        segment: Transcription segment
+        segment_index: Index of segment in conversation
+        row_conversation: Row with conversation metadata
+        speaker_a: Speaker A information
+        speaker_b: Speaker B information
+        transcription: Full transcription
+        segment_path: Path where audio segment is saved
+
+    Returns:
+        Dictionary with segment data
+    """
+    speaker_label = segment.name.strip().upper()
+    speaker_info = speaker_a if speaker_label == SPEAKER_A else speaker_b
+
+    id_segment = f"{row_conversation.id_conversation}_{segment_index:05d}"
+
+    has_overlap = check_overlap(
+        segment_index, segment.start, segment.end, transcription
+    )
+
+    return {
+        "id_conversation": id_segment,
+        "location": row_conversation.location,
+        "location_roomdim": row_conversation.location_roomdim,
+        "noise_level": row_conversation.noise_level,
+        "noise_type": row_conversation.noise_type,
+        "id_speaker": speaker_info["id_speaker"],
+        "age": speaker_info["age"],
+        "gender": speaker_info["gender"],
+        "dialect": speaker_info["dialect"],
+        "country_birth": speaker_info["country_birth"],
+        "education": speaker_info["education"],
+        "occupation": speaker_info["occupation"],
+        "overlap": has_overlap,
+        "text": segment.text.strip(),
+        "audio": str(segment_path),
+    }
+
+
+def process_single_conversation(
+    row_conversation: pd.Series, df_speakers: pd.DataFrame, audio_dir: Path
+) -> List[Dict]:
+    """Process a single conversation and extract all segments.
+
+    Args:
+        row_conversation: Row with conversation metadata
+        df_speakers: DataFrame with speaker information
+        audio_dir: Base directory for audio files
+
+    Returns:
+        List of segment data dictionaries
+    """
+    try:
+        speaker_a = get_speaker_info(df_speakers, row_conversation.id_speaker_a)
+        speaker_b = get_speaker_info(df_speakers, row_conversation.id_speaker_b)
+    except ValueError as e:
+        logger.warning(f"Skipping conversation {row_conversation.id_conversation}: {e}")
+        return []
+
+    try:
+        transcription = pysubs2.load(row_conversation.transcription_path)
+        audio = AudioSegment.from_file(row_conversation.audio_path)
+    except Exception as e:
+        logger.error(
+            f"Failed to load files for conversation "
+            f"{row_conversation.id_conversation}: {e}"
+        )
+        return []
+
+    # Create output directory
+    dir_conversation = (
+        audio_dir.parent
+        / "conversation_segments"
+        / Path(row_conversation.id_conversation)
+    )
+    dir_conversation.mkdir(parents=True, exist_ok=True)
+
+    segment_entries = []
+
+    for i, segment in enumerate(transcription):
+        # Validate segment
+        if not is_valid_segment(segment.text, segment.name):
+            continue
+
+        # Extract audio segment
+        try:
+            audio_clip = audio[segment.start : segment.end]
+            segment_path = dir_conversation / f"{i}.wav"
+            audio_clip.export(segment_path, format="wav")
+        except Exception as e:
+            logger.warning(
+                f"Failed to export segment {i} in conversation "
+                f"{row_conversation.id_conversation}: {e}"
+            )
+            continue
+
+        # Extract segment data
+        segment_data = extract_segment_data(
+            segment,
+            i,
+            row_conversation,
+            speaker_a,
+            speaker_b,
+            transcription,
+            segment_path,
+        )
+        segment_entries.append(segment_data)
+
+    return segment_entries
+
+
+def process_all_conversations(
+    df_conversations: pd.DataFrame, df_speakers: pd.DataFrame, audio_dir: Path
+) -> pd.DataFrame:
+    """Process all conversations and extract segments.
+
+    Args:
+        df_conversations: DataFrame with conversation metadata
+        df_speakers: DataFrame with speaker information
+        audio_dir: Base directory for audio files
+
+    Returns:
+        DataFrame with all processed segments
+    """
+    # debug limit
+    df_conversations = df_conversations[:10]
+
+    # Count total lines for progress bar
+    total_lines = 0
+    for row_conversation in df_conversations.itertuples():
+        try:
+            transcription = pysubs2.load(row_conversation.transcription_path)
+            total_lines += len(transcription)
+        except Exception as e:
+            logger.warning(
+                (
+                    f"Failed to load transcription for "
+                    f"{row_conversation.id_conversation}: {e}"
+                )
+            )
+
+    logger.info(f"There are {total_lines:,} transcribed lines")
+
+    all_segments = []
+
+    with tqdm(
+        total=total_lines, desc="Extracting audio segments", unit="segment"
+    ) as pbar:
+        for row_conversation in df_conversations.itertuples():
+            segments = process_single_conversation(
+                row_conversation, df_speakers, audio_dir
+            )
+            all_segments.extend(segments)
+
+            # Update progress bar by number of lines in this conversation
+            try:
+                transcription = pysubs2.load(row_conversation.transcription_path)
+                pbar.update(len(transcription))
+            except Exception:
+                pass
+
+    logger.info(
+        f"Got {len(all_segments):,} total transcribed segments which means "
+        f"{total_lines - len(all_segments):,} got dropped"
+    )
+
+    return pd.DataFrame(all_segments)
 
 
 def build_conversation_dataset(
@@ -359,274 +754,65 @@ def build_conversation_dataset(
     Returns:
         The CoRal conversation dataset.
     """
-    # Count expected number of conversations
-    with sqlite3.connect(metadata_database_path) as conn:
-        cur = conn.execute("SELECT count() FROM Conversations")
-        conversation_samples_count = cur.fetchone()[0]
-    logger.info(
-        f"There are {conversation_samples_count:,} samples in the SQLite database."
-    )
-
-    # Open the database connection and fetch the data
+    # Load metadata from database
     logger.info("Fetching the metadata from the SQLite database...")
     with sqlite3.connect(metadata_database_path) as conn:
-        speaker_rows = pd.read_sql(
-            """
-            SELECT
-                id_speaker,
-                age,
-                gender,
-                dialect,
-                country_birth,
-                education,
-                occupation
-            FROM
-                Speakers
-            WHERE
-                id_speaker IN (
-                    SELECT id_speaker_a FROM Conversations UNION
-                    SELECT id_speaker_b FROM Conversations UNION
-                    SELECT id_recorder FROM Conversations
-                )
-            """,
-            conn,
-        )
-        conversation_rows = pd.read_sql(
-            """
-            SELECT
-                id_conversation,
-                id_speaker_a,
-                id_speaker_b,
-                id_recorder,
-                location,
-                location_roomdim,
-                noise_level,
-                noise_type
-            FROM
-                Conversations
-            WHERE
-                id_speaker_a IN (SELECT id_speaker FROM Speakers) OR
-                id_speaker_b IN (SELECT id_speaker FROM Speakers) OR
-                id_recorder IN (SELECT id_speaker FROM Speakers)
-            """,
-            conn,
-        )
+        df_speakers = load_conv_speakers(conn)
+        df_conversations = load_conversations_from_db(conn)
+
     logger.info(
-        f"Got {len(conversation_rows)} conversations with {len(speaker_rows)} "
-        "distinct speakers"
+        f"There are {len(df_conversations):,} conversations in the database with "
+        f"{len(df_speakers)} distinct speakers"
     )
 
-    # Get all audio paths
+    # Collect and match audio files
     logger.info("Collecting audio file paths")
-    all_audio_paths_list = list_audio_files(audio_dir, extensions=["wav", "m4a"])
-    all_audio_paths = {path.stem: path for path in all_audio_paths_list}
-    logger.info(f"Got {len(all_audio_paths)} audio paths")
+    audio_paths_list = list_files(audio_dir, extensions=["wav", "m4a"])
+    audio_paths_dict = build_file_path_dict(audio_paths_list)
+    logger.info(f"Got {len(audio_paths_dict)} audio paths")
 
-    # Match the audio files to the metadata
     logger.info("Matching the audio files to the metadata...")
-    if len(conversation_rows["id_conversation"].values) != len(all_audio_paths):
-        matching_audio_paths = []
-        missing_audio_paths = []
-        for id in conversation_rows["id_conversation"].values:
-            path = all_audio_paths.get(id)
-            if path is not None:
-                matching_audio_paths.append(path)
-            else:
-                missing_audio_paths.append(id)
-        logger.info(f"Got {len(matching_audio_paths)} matched audio paths")
-        logger.info(f"Got {len(missing_audio_paths)} missing audio paths")
-        if additional_logging:
-            logger.info(f"The missing paths are {missing_audio_paths}")
-        if len(matching_audio_paths) != len(all_audio_paths):
-            logger.info(
-                f"Found {len(all_audio_paths)} audio paths but could only match "
-                f"{len(matching_audio_paths)} of them to rows which means there "
-                f"are {len(all_audio_paths) - len(matching_audio_paths)} too many "
-                "audio paths"
-            )
-            if additional_logging:
-                additional_paths = set(all_audio_paths.values()).difference(
-                    set(matching_audio_paths)
-                )
-                logger.info(f"The additional paths are rows are {additional_paths}")
+    matched_audio_paths, audio_stats = match_files_to_conversations(
+        df_conversations["id_conversation"],
+        audio_paths_dict,
+        "audio",
+        additional_logging,
+    )
 
-    matched_audio_paths = [
-        all_audio_paths.get(conversation_id)
-        for conversation_id in conversation_rows["id_conversation"].values
-    ]
-    conversation_rows["audio_path"] = matched_audio_paths
-    conversation_rows = conversation_rows.dropna(subset=["audio_path"])
-    logger.info(f"Got {len(conversation_rows)} total matched rows")
+    df_conversations["audio_path"] = matched_audio_paths
+    df_conversations = df_conversations.dropna(subset=["audio_path"])
+    logger.info(f"Got {len(df_conversations)} total matched rows")
 
-    # Get all transcription paths
+    # Collect and match transcription files
     logger.info("Collecting transcription file paths")
-    all_transcription_paths_list = list_audio_files(transcript_dir, extensions=["ass"])
-    all_transcription_paths = {path.stem: path for path in all_transcription_paths_list}
-    logger.info(f"Got {len(all_transcription_paths)} transcription paths")
+    transcript_paths_list = list_files(transcript_dir, extensions=["ass"])
+    transcript_paths_dict = build_file_path_dict(transcript_paths_list)
+    logger.info(f"Got {len(transcript_paths_dict)} transcription paths")
 
-    # Match the transcription files to the metadata
     logger.info("Matching the transcription files to the metadata...")
-    matched_transcription_paths = [
-        all_transcription_paths.get(conversation_id)
-        for conversation_id in conversation_rows["id_conversation"].values
-    ]
-    if len(conversation_rows["id_conversation"].values) != len(all_transcription_paths):
-        matching_transcription_paths = [
-            path for path in matched_transcription_paths if path is not None
-        ]
-        ids_with_missing_transcription_paths = [
-            id_
-            for id_, path in zip(
-                conversation_rows["id_conversation"], matched_transcription_paths
-            )
-            if path is None
-        ]
-        logger.info(
-            f"Got {len(matching_transcription_paths)} matched transcription paths"
-        )
-        logger.info(
-            f"Got {len(ids_with_missing_transcription_paths)} missing transcription "
-            "paths"
-        )
-        if additional_logging:
-            logger.info(f"The missing paths are {ids_with_missing_transcription_paths}")
-        if len(matching_transcription_paths) != len(all_transcription_paths):
-            logger.info(
-                f"Found {len(all_transcription_paths)} transcription paths but could "
-                f"only match {len(matching_transcription_paths)} of them to rows "
-                "which means there are "
-                f"{len(all_transcription_paths) - len(matching_transcription_paths)} "
-                "too many transcription paths"
-            )
-            if additional_logging:
-                additional_paths = set(all_transcription_paths.values()).difference(
-                    set(matching_transcription_paths)
-                )
-                logger.info(f"The additional paths are rows are {additional_paths}")
+    matched_transcript_paths, transcript_stats = match_files_to_conversations(
+        df_conversations["id_conversation"],
+        transcript_paths_dict,
+        "transcription",
+        additional_logging,
+    )
 
-    conversation_rows["transcription_path"] = matched_transcription_paths
-    conversation_rows = conversation_rows.dropna(subset=["transcription_path"])
-    logger.info(f"Got {len(conversation_rows)} total matched rows")
+    df_conversations["transcription_path"] = matched_transcript_paths
+    df_conversations = df_conversations.dropna(subset=["transcription_path"])
+    logger.info(f"Got {len(df_conversations)} total matched rows")
 
-    # Split each conversation
+    # Process all conversations and extract segments
     logger.info(
         "Extracting audio segments from each conversation based on transcriptions..."
     )
-    transcription_lines_count = 0
-    for conversation_row in conversation_rows.itertuples():
-        transcription = pysubs2.load(conversation_row.transcription_path)
-        transcription_lines_count += len(transcription)
-    logger.info(f"There are {transcription_lines_count:,} transcribed lines")
-
-    processed_conversation_rows = pd.DataFrame(
-        columns=list(conversation_rows.columns)
-        + list(speaker_rows.columns)
-        + ["id_segment", "text", "audio"]
-    )
-    processed_conversation_rows = processed_conversation_rows.drop(
-        columns=[
-            "id_speaker_a",
-            "id_speaker_b",
-            "id_recorder",
-            "audio_path",
-            "transcription_path",
-        ]
-    )
-    with IncrementalBar(
-        "Extracting audio segments",
-        max=transcription_lines_count,
-        suffix="%(index)d/%(max)d [%(eta_td)s / %(elapsed_td)s]",
-    ) as bar:
-        for conversation_row in conversation_rows.itertuples():
-            speaker_a = speaker_rows[
-                speaker_rows["id_speaker"] == str(conversation_row.id_speaker_a)
-            ].squeeze()
-            speaker_b = speaker_rows[
-                speaker_rows["id_speaker"] == str(conversation_row.id_speaker_b)
-            ].squeeze()
-
-            transcription = pysubs2.load(conversation_row.transcription_path)
-            audio = AudioSegment.from_file(conversation_row.audio_path)
-
-            dir_conversation = (
-                audio_dir.parent
-                / "conversation_segments"
-                / Path(conversation_row.id_conversation)
-            )
-            dir_conversation.mkdir(parents=True, exist_ok=True)
-
-            for i, segment in enumerate(transcription):
-                # Skip segments with unuseable transcript
-                text = segment.text.strip()
-                if (
-                    text == ""
-                    or re.search(r"\*\*\*(.*?)\*\*\*", text)
-                    or re.search(r"\[(.*?)\]", text)
-                ):
-                    bar.next()
-                    continue
-
-                speaker = segment.name.strip().upper()
-                if speaker == "" or (speaker != "A" and speaker != "B"):
-                    bar.next()
-                    continue
-
-                audio_clip = audio[segment.start : segment.end]
-                segment_path = dir_conversation / f"{i}.wav"
-
-                audio_clip.export(segment_path, format="wav")
-
-                speaker_entry = speaker_a if speaker == "A" else speaker_b
-                id_conversation = conversation_row.id_conversation + "_{:05d}".format(i)
-
-                # Check with previous segment
-                if i > 0 and segment.start < transcription[i - 1].end:
-                    overlap_prev = True
-                else:
-                    overlap_prev = False
-
-                # Check with next segment
-                if (
-                    i < len(transcription) - 1
-                    and segment.end > transcription[i + 1].start
-                ):
-                    overlap_next = True
-                else:
-                    overlap_next = False
-
-                entry = pd.DataFrame(
-                    [
-                        {
-                            "id_conversation": id_conversation,
-                            "location": conversation_row.location,
-                            "location_roomdim": conversation_row.location_roomdim,
-                            "noise_level": conversation_row.noise_level,
-                            "noise_type": conversation_row.noise_type,
-                            "id_speaker": speaker_entry["id_speaker"],
-                            "age": speaker_entry["age"],
-                            "gender": speaker_entry["gender"],
-                            "dialect": speaker_entry["dialect"],
-                            "country_birth": speaker_entry["country_birth"],
-                            "education": speaker_entry["education"],
-                            "occupation": speaker_entry["occupation"],
-                            "overlap": overlap_prev or overlap_next,
-                            "text": text,
-                            "audio": str(segment_path),
-                        }
-                    ]
-                )
-                processed_conversation_rows = pd.concat(
-                    [processed_conversation_rows, entry], ignore_index=True
-                )
-                bar.next()
-    logger.info(
-        f"Got {len(processed_conversation_rows):,} total transcribed segments which "
-        f"means {transcription_lines_count - len(processed_conversation_rows):,} got "
-        "dropped"
+    processed_segments = process_all_conversations(
+        df_conversations, df_speakers, audio_dir
     )
 
-    dataset = Dataset.from_pandas(processed_conversation_rows)
+    # Convert to HuggingFace Dataset
+    dataset = Dataset.from_pandas(processed_segments)
     dataset = dataset.cast_column("audio", Audio())
+
     return dataset
 
 
@@ -657,33 +843,36 @@ def split_dataset(
     """
     if len(dataset) == 0:
         return None
+    try:
+        with no_datasets_progress_bars():
+            train_dataset = dataset.filter(
+                function=partial(
+                    examples_belong_to_train,
+                    test_speakers=test_speakers,
+                    val_speakers=val_speakers,
+                ),
+                batched=True,
+            )
+        splits = dict(train=train_dataset)
 
-    with no_datasets_progress_bars():
-        train_dataset = dataset.filter(
-            function=partial(
-                examples_belong_to_train,
-                test_speakers=test_speakers,
-                val_speakers=val_speakers,
-            ),
-            batched=True,
-        )
-    splits = dict(train=train_dataset)
+        with no_datasets_progress_bars():
+            val_dataset = dataset.filter(
+                function=partial(examples_belong_to_val, val_speakers=val_speakers),
+                batched=True,
+            )
+        if len(val_dataset) > 0:
+            splits["val"] = val_dataset
 
-    with no_datasets_progress_bars():
-        val_dataset = dataset.filter(
-            function=partial(examples_belong_to_val, val_speakers=val_speakers),
-            batched=True,
-        )
-    if len(val_dataset) > 0:
-        splits["val"] = val_dataset
-
-    with no_datasets_progress_bars():
-        test_dataset = dataset.filter(
-            function=partial(examples_belong_to_test, test_speakers=test_speakers),
-            batched=True,
-        )
-    if len(test_dataset) > 0:
-        splits["test"] = test_dataset
+        with no_datasets_progress_bars():
+            test_dataset = dataset.filter(
+                function=partial(examples_belong_to_test, test_speakers=test_speakers),
+                batched=True,
+            )
+        if len(test_dataset) > 0:
+            splits["test"] = test_dataset
+    except ValueError as e:
+        logger.error("Error during dataset splitting: %s", e)
+        return None
 
     return DatasetDict(splits)
 

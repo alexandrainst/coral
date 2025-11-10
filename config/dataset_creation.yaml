@@ -1,5 +1,5 @@
 # Subset selection
-build_read_aloud: true
+build_read_aloud: false
 build_conversation: true
 
 # Download from NAS to local disk
@@ -13,7 +13,7 @@ dir_data_raw: /mnt/Coral_NAS/raw
 dir_data_processed: /mnt/Coral_NAS/processed
 
 # Metadata path
-metadata_database_path: ${dir_data_raw}/CoRal_public.db
+metadata_database_path: ${dir_data_raw}/new.db
 
 # Output dataset local saving
 save2disk: true
