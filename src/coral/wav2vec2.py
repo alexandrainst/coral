@@ -14,17 +14,15 @@ import torch
 from omegaconf import DictConfig
 from torch.backends.mps import is_available as mps_is_available
 from transformers import (
-    EvalPrediction,
-    SchedulerType,
-    Trainer,
-    TrainingArguments,
     Wav2Vec2CTCTokenizer,
     Wav2Vec2FeatureExtractor,
     Wav2Vec2ForCTC,
     Wav2Vec2Processor,
     Wav2Vec2ProcessorWithLM,
 )
-from transformers.trainer import OptimizerNames
+from transformers.trainer import Trainer
+from transformers.trainer_utils import EvalPrediction, SchedulerType
+from transformers.training_args import OptimizerNames, TrainingArguments
 
 from .compute_metrics import compute_wer_metrics
 from .data_collators import DataCollatorCTCWithPadding

@@ -10,7 +10,7 @@ import sys
 from .utils import block_terminal_output
 
 # Fetches the version of the package as defined in pyproject.toml
-__version__ = importlib.metadata.version(__package__)
+__version__ = importlib.metadata.version(__package__ or "")
 
 
 # Block terminal output, if we are not running tests

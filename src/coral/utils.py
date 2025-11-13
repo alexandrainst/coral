@@ -22,7 +22,7 @@ from datasets import (
 )
 from huggingface_hub import CommitInfo, upload_folder
 from tqdm.auto import tqdm
-from transformers import Trainer
+from transformers.trainer import Trainer
 
 logger = logging.getLogger(__package__)
 

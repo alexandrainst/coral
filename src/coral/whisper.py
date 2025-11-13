@@ -14,16 +14,14 @@ from torch.backends.mps import is_available as mps_is_available
 from transformers import (
     AutoConfig,
     AutoModelForSpeechSeq2Seq,
-    EvalPrediction,
-    SchedulerType,
-    Seq2SeqTrainer,
-    Seq2SeqTrainingArguments,
-    Trainer,
-    TrainingArguments,
     WhisperForConditionalGeneration,
     WhisperProcessor,
 )
-from transformers.trainer import OptimizerNames
+from transformers.trainer import Trainer
+from transformers.trainer_seq2seq import Seq2SeqTrainer
+from transformers.trainer_utils import EvalPrediction, SchedulerType
+from transformers.training_args import OptimizerNames, TrainingArguments
+from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 
 from .compute_metrics import compute_wer_metrics
 from .data_collators import DataCollatorSpeechSeq2SeqWithPadding

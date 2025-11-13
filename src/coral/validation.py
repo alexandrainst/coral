@@ -6,7 +6,10 @@ from typing import TypeVar
 
 import torch
 from datasets import Audio, Dataset, DatasetDict
-from transformers import AutomaticSpeechRecognitionPipeline, pipeline
+from transformers.pipelines import pipeline
+from transformers.pipelines.automatic_speech_recognition import (
+    AutomaticSpeechRecognitionPipeline,
+)
 
 from .compute_metrics import compute_metrics_of_dataset_using_pipeline
 from .data import filter_dataset, process_dataset

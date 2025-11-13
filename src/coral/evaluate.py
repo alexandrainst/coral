@@ -10,11 +10,10 @@ import torch
 from datasets import Dataset
 from dotenv import load_dotenv
 from omegaconf import DictConfig
-from transformers import (
+from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
+from transformers.pipelines import pipeline
+from transformers.pipelines.automatic_speech_recognition import (
     AutomaticSpeechRecognitionPipeline,
-    Wav2Vec2ForCTC,
-    Wav2Vec2Processor,
-    pipeline,
 )
 
 from .compute_metrics import compute_metrics_of_dataset_using_pipeline
