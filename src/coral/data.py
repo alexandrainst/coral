@@ -16,7 +16,6 @@ from datasets import (
     IterableDataset,
     IterableDatasetDict,
     NamedSplit,
-    concatenate_datasets,
     interleave_datasets,
     load_dataset,
 )
@@ -238,7 +237,9 @@ def load_data_for_finetuning(
     if is_main_process:
         logger.info("Loading CoRal validation dataset...")
 
-    def load_validation_dataset(dataset_config: DictConfig) -> Dataset:
+    def load_validation_dataset(
+        dataset_config: DictConfig,
+    ) -> Dataset | IterableDataset:
         """Load a validation dataset.
 
         Args:
@@ -273,27 +274,29 @@ def load_data_for_finetuning(
             column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
         )
 
-        val = process_dataset(
-            dataset=val,
-            clean_text=config.model.clean_text,
-            lower_case=config.model.lower_case,
-            characters_to_keep=config.characters_to_keep,
-            text_column="text",
-            audio_column="audio",
-            convert_numerals=False,
-            remove_input_dataset_columns=True,
-            processor=processor,
-            num_proc=config.dataset_num_workers,
-        )
-        assert isinstance(val, Dataset)
+        val = val.select_columns(column_names=["text", "audio"])
+
         return val
 
-    dataset["val"] = concatenate_datasets(
-        dsets=[
+    val = interleave_datasets(
+        [
             load_validation_dataset(dataset_config=dataset_config)
             for dataset_config in config.evaluation_datasets
         ]
     )
+    val = process_dataset(
+        dataset=val,
+        clean_text=config.model.clean_text,
+        lower_case=config.model.lower_case,
+        characters_to_keep=config.characters_to_keep,
+        text_column="text",
+        audio_column="audio",
+        convert_numerals=False,
+        remove_input_dataset_columns=True,
+        processor=processor,
+        num_proc=config.dataset_num_workers,
+    )
+    dataset["val"] = val
 
     return dataset
 

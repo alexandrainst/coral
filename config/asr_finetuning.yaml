@@ -12,13 +12,14 @@ defaults:
 
 seed: 4242
 
+# A list of validation datasets - we will use an equal amount of samples from each
 evaluation_datasets:
   - id: CoRal-project/coral-v2
     subset: read_aloud
     val_name: val
     text_column: text
     audio_column: audio
-  - id: CoRal-project/coral-v3
+  - id: CoRal-project/coral_v3
     subset: conversation
     val_name: val
     text_column: text
