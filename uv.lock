@@ -467,7 +467,7 @@ requires-dist = [
     { name = "pysubs2", specifier = ">=1.8.0" },
     { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "requests", specifier = ">=2.32.4" },
-    { name = "samplerate", marker = "extra == 'demo'", specifier = ">=0.2.1" },
+    { name = "samplerate", marker = "extra == 'demo'", specifier = ">=0.2.2" },
     { name = "soundfile", specifier = ">=0.13.1" },
     { name = "torch", specifier = ">=2.7.1" },
     { name = "torchaudio", specifier = ">=2.7.1" },
@@ -2784,17 +2784,17 @@ wheels = [
 
 [[package]]
 name = "samplerate"
-version = "0.2.1"
+version = "0.2.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/bf/9c/d8978b13b8af2f28fdc425e2893f7419d1d6429da1c6a850be83ad095d4f/samplerate-0.2.1.tar.gz", hash = "sha256:464d3574412024184fb7428ecbaa1b2e207bddf5fbc10a5d9ddc3fc1c7b7ab1e", size = 21494, upload-time = "2024-01-23T23:52:03.96Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/78/b9/6db4045509ea5d709ff6147971ca0625f898c0c32fc61a2f8f76c016d61b/samplerate-0.2.2.tar.gz", hash = "sha256:40964bfa28d33bc948389d958c2e742585f21891d8372ebba89260f491a15caa", size = 21626, upload-time = "2025-10-10T23:14:02.732Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/74/f7/f6c5d7fe3b85a33b29bbf6868c897600492c5258b4b2d4d49bc2a9fdb9cc/samplerate-0.2.1-cp311-cp311-macosx_12_0_universal2.whl", hash = "sha256:b0e1b5cb08edb19d232bd1ba67632590ed7a579b526ab4bf3983b4f2b2e9acb4", size = 2880717, upload-time = "2024-01-23T23:53:12.291Z" },
-    { url = "https://files.pythonhosted.org/packages/cd/a5/f9deb72c8ba4f7264eb38cb5756a37c87fd3a685a486b2ca97063207d68e/samplerate-0.2.1-cp311-cp311-win_amd64.whl", hash = "sha256:3ebd447f2040950edc1dac32cb4afed3a74ed37e8e5ffe4775470213f799801f", size = 1440933, upload-time = "2024-01-23T23:55:50.606Z" },
-    { url = "https://files.pythonhosted.org/packages/be/5e/03eee29d705c82137a869333258228746f66a4a065a5dcce98e6dc1d17ef/samplerate-0.2.1-cp312-cp312-macosx_12_0_universal2.whl", hash = "sha256:69cc7ad887c36294129315a04a7f43837c7ed9caf42db94e9687cf66c9709200", size = 2885578, upload-time = "2024-01-23T23:53:41.046Z" },
-    { url = "https://files.pythonhosted.org/packages/e9/d0/ac5500843d947a82d7552c098954219ca460199a14dc5ebf72b090a46b42/samplerate-0.2.1-cp312-cp312-win_amd64.whl", hash = "sha256:c7f5e81b24debfa25981e367e3f5d191cf72e32b5c92613139f5ba94e7f18c01", size = 1441712, upload-time = "2024-01-23T23:55:50.706Z" },
+    { url = "https://files.pythonhosted.org/packages/2d/e4/dd57ac31cf73b0acb6661f74cff8043bb25b5f37867b26e37c753d1b0cf7/samplerate-0.2.2-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:a41fe7a8c68101bf9900ba415cf2a0a58199bba9cac15e0a3b22b70006705b29", size = 2901869, upload-time = "2025-10-10T23:14:26.266Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/aa/b17359705cdb70d995e14e324195502b41ba4d84789fba321a27926f3c0d/samplerate-0.2.2-cp311-cp311-win_amd64.whl", hash = "sha256:86fb8eb9a6c75d4c17f8125e203d29bf2d87bf5ce0e671184ba5111f015c9264", size = 1459355, upload-time = "2025-10-10T23:19:55.296Z" },
+    { url = "https://files.pythonhosted.org/packages/af/cd/6ac82cf1e121bc1c3c46c4214d0cb1025a2bb6d48aa18a21becc4d9b953e/samplerate-0.2.2-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:3f30fea3e42b51e2441cf464e24c4744fa0b9a837b7beefb6a8eb6cc72af1e51", size = 2903112, upload-time = "2025-10-10T23:14:18.739Z" },
+    { url = "https://files.pythonhosted.org/packages/86/c1/e4079d3893d568bce8f7d9125dd2474f621b67937e953632077988aae6e9/samplerate-0.2.2-cp312-cp312-win_amd64.whl", hash = "sha256:1170c5e4f68d9c1bbec2fce1549108838a473058f69cca7bc377e053ee43457b", size = 1459874, upload-time = "2025-10-10T23:16:59.827Z" },
 ]
 
 [[package]]

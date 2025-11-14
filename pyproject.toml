@@ -42,8 +42,8 @@ kenlm = [
 ]
 demo = [
     "gradio>=5.31.0",
-    "samplerate>=0.2.1",
     "punctfix>=0.11.1",
+    "samplerate>=0.2.2",
 ]
 plotting = [
     "matplotlib>=3.9.2",
