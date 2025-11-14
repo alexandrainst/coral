@@ -77,7 +77,7 @@ roest-315m:  ## Train the Røst-315M model
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=wav2vec2-small \
-		datasets=[coral_read_aloud,common_voice_17] \
+		datasets=[coral_read_aloud] \
 		dataset_probabilities=[0.95,0.05] \
 		decoder_datasets=[wikipedia,common_voice,reddit] \
 		push_to_hub=true \
@@ -92,7 +92,7 @@ roest-809m:  ## Train the Røst-809M model
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=whisper-large-turbo \
-		datasets=[coral_read_aloud,common_voice_17] \
+		datasets=[coral_read_aloud] \
 		dataset_probabilities=[0.95,0.05] \
 		push_to_hub=true \
 		dataloader_num_workers=4 \
@@ -106,7 +106,7 @@ roest-1b:  ## Train the Røst-1B model
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=wav2vec2-medium \
-		datasets=[coral_read_aloud,common_voice_17] \
+		datasets=[coral_read_aloud] \
 		dataset_probabilities=[0.95,0.05] \
 		decoder_datasets=[wikipedia,common_voice,reddit] \
 		push_to_hub=true \
@@ -121,7 +121,7 @@ roest-1.5b:  ## Train the Røst-1.5B model
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=whisper-large \
-		datasets=[coral_read_aloud,coral_conversation,common_voice_17] \
+		datasets=[coral_read_aloud,coral_conversation] \
 		dataset_probabilities=[0.75,0.20,0.05] \
 		push_to_hub=true \
 		dataloader_num_workers=4 \
@@ -135,7 +135,7 @@ roest-2b:  ## Train the Røst-2B model
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=wav2vec2-large \
-		datasets=[coral_read_aloud,common_voice_17] \
+		datasets=[coral_read_aloud] \
 		dataset_probabilities=[0.95,0.05] \
 		decoder_datasets=[wikipedia,common_voice,reddit] \
 		push_to_hub=true \
