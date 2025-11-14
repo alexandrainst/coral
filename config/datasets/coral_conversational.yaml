@@ -1,6 +1,6 @@
 coral:
-  id: CoRal-project/coral
-  subset: read_aloud
+  id: CoRal-project/coral-v2
+  subset: conversational
   train_name: train
   text_column: text
   audio_column: audio
