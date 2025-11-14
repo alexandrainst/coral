@@ -12,12 +12,17 @@ defaults:
 
 seed: 4242
 
-evaluation_dataset:
-  id: CoRal-project/coral
-  subset: read_aloud
-  val_name: val
-  text_column: text
-  audio_column: audio
+evaluation_datasets:
+  - id: CoRal-project/coral-v2
+    subset: read_aloud
+    val_name: val
+    text_column: text
+    audio_column: audio
+  - id: CoRal-project/coral-v3
+    subset: conversation
+    val_name: val
+    text_column: text
+    audio_column: audio
 
 # Dataset parameters
 remove_numeric_words: true
