@@ -21,6 +21,7 @@ from transformers import (
     Wav2Vec2ProcessorWithLM,
 )
 from transformers.trainer import Trainer
+from transformers.trainer_pt_utils import AcceleratorConfig
 from transformers.trainer_utils import EvalPrediction, SchedulerType
 from transformers.training_args import OptimizerNames, TrainingArguments
 
@@ -212,6 +213,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
             use_cpu=hasattr(sys, "_called_from_test"),
             dataloader_num_workers=self.config.dataloader_num_workers,
             ddp_find_unused_parameters=False,
+            accelerator_config=AcceleratorConfig(dispatch_batches=False),
         )
         return args
 
