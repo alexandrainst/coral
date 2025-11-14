@@ -181,6 +181,7 @@ class WhisperModelSetup(ModelSetup):
             logging_steps=self.config.logging_steps,
             length_column_name="input_length",
             gradient_checkpointing=self.config.gradient_checkpointing,
+            gradient_checkpointing_kwargs=dict(use_reentrant=False),
             save_total_limit=self.config.save_total_limit,
             load_best_model_at_end=self.config.early_stopping,
             metric_for_best_model="wer",
