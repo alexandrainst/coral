@@ -73,7 +73,7 @@ check:  ## Lint, format, and type-check the code
 
 roest-315m:  ## Train the Røst-315M model
 	@OMP_NUM_THREADS=1 \
-		accelerate launch \
+		uv run accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=wav2vec2-small \
@@ -88,7 +88,7 @@ roest-315m:  ## Train the Røst-315M model
 
 roest-809m:  ## Train the Røst-809M model
 	@OMP_NUM_THREADS=1 \
-		accelerate launch \
+		uv run accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=whisper-large-turbo \
@@ -102,7 +102,7 @@ roest-809m:  ## Train the Røst-809M model
 
 roest-1b:  ## Train the Røst-1B model
 	@OMP_NUM_THREADS=1 \
-		accelerate launch \
+		uv run accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=wav2vec2-medium \
@@ -117,11 +117,11 @@ roest-1b:  ## Train the Røst-1B model
 
 roest-1.5b:  ## Train the Røst-1.5B model
 	@OMP_NUM_THREADS=1 \
-		accelerate launch \
+		uv run accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=whisper-large \
-		datasets=[coral_read_aloud,coral_conversational,common_voice_17] \
+		datasets=[coral_read_aloud,coral_conversation,common_voice_17] \
 		dataset_probabilities=[0.75,0.20,0.05] \
 		push_to_hub=true \
 		dataloader_num_workers=4 \
@@ -131,7 +131,7 @@ roest-1.5b:  ## Train the Røst-1.5B model
 
 roest-2b:  ## Train the Røst-2B model
 	@OMP_NUM_THREADS=1 \
-		accelerate launch \
+		uv run accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=wav2vec2-large \

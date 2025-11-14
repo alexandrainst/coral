@@ -6,9 +6,13 @@ from dataclasses import dataclass
 from typing import Type, TypeAlias
 
 from omegaconf import DictConfig
-from transformers import Wav2Vec2Processor, Wav2Vec2ProcessorWithLM, WhisperProcessor
+from transformers import (
+    PreTrainedModel,
+    Wav2Vec2Processor,
+    Wav2Vec2ProcessorWithLM,
+    WhisperProcessor,
+)
 from transformers.data.data_collator import DataCollatorMixin
-from transformers.models import PreTrainedModel
 from transformers.trainer import Trainer
 from transformers.trainer_utils import EvalPrediction
 from transformers.training_args import TrainingArguments
