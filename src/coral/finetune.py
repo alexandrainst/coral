@@ -6,11 +6,9 @@ import os
 from omegaconf import DictConfig
 from transformers.trainer_callback import EarlyStoppingCallback, TrainerCallback
 
-from coral.experiment_tracking.extracking_setup import ExTrackingSetup
-
 from .data import load_data_for_finetuning
 from .data_models import ModelSetup
-from .experiment_tracking.extracking_factory import load_extracking_setup
+from .experiment_tracking import ExTrackingSetup, load_extracking_setup
 from .model_setup import load_model_setup
 from .ngram import train_and_store_ngram_model
 from .utils import block_terminal_output, disable_tqdm, push_model_to_hub
