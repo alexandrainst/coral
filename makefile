@@ -31,7 +31,6 @@ install: ## Install dependencies
 	@$(MAKE) --quiet install-uv
 	@$(MAKE) --quiet install-dependencies
 	@$(MAKE) --quiet setup-environment-variables
-	@$(MAKE) --quiet setup-git
 	@$(MAKE) --quiet install-pre-commit
 	@echo "Installed the 'CoRal' project! You can now activate your virtual environment with 'source .venv/bin/activate'."
 	@echo "Note that this is a 'uv' project. Use 'uv add <package>' to install new dependencies and 'uv remove <package>' to remove them."
@@ -62,12 +61,6 @@ setup-environment-variables:
 
 setup-environment-variables-non-interactive:
 	@uv run python src/scripts/fix_dot_env_file.py --non-interactive
-
-setup-git:
-	@git config --global init.defaultBranch main
-	@git init
-	@git config --local user.name "${GIT_NAME}"
-	@git config --local user.email "${GIT_EMAIL}"
 
 test:  ## Run tests
 	@uv run pytest && uv run readme-cov
