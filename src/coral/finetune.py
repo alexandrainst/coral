@@ -6,6 +6,8 @@ import os
 from omegaconf import DictConfig
 from transformers.trainer_callback import EarlyStoppingCallback, TrainerCallback
 
+from coral.experiment_tracking.extracking_setup import ExTrackingSetup
+
 from .data import load_data_for_finetuning
 from .data_models import ModelSetup
 from .experiment_tracking.extracking_factory import load_extracking_setup
@@ -32,6 +34,7 @@ def finetune(config: DictConfig) -> None:
     model = model_setup.load_model()
     dataset = load_data_for_finetuning(config=config, processor=processor)
 
+    extracking_setup: ExTrackingSetup | None = None
     if bool(config.experiment_tracking) and is_main_process:
         extracking_setup = load_extracking_setup(config=config)
         extracking_setup.run_initialization()
@@ -46,7 +49,7 @@ def finetune(config: DictConfig) -> None:
         compute_metrics=model_setup.load_compute_metrics(),
         train_dataset=dataset["train"],
         eval_dataset=dataset["val"] if "val" in dataset else None,
-        tokenizer=getattr(processor, "tokenizer"),
+        processing_class=getattr(processor, "tokenizer"),
         callbacks=load_early_stopping_callback(config) if "val" in dataset else None,
     )
 
@@ -54,7 +57,11 @@ def finetune(config: DictConfig) -> None:
     with disable_tqdm():
         trainer.train(resume_from_checkpoint=config.resume_from_checkpoint)
 
-    if bool(config.experiment_tracking) and is_main_process:
+    if (
+        extracking_setup is not None
+        and bool(config.experiment_tracking)
+        and is_main_process
+    ):
         extracking_setup.run_finalization()
 
     model.save_pretrained(save_directory=config.model_dir)
