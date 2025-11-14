@@ -84,7 +84,7 @@ roest-315m:  ## Train the Røst-315M model
 		dataloader_num_workers=4 \
 		model_id=roest-wav2vec2-315m \
 		private=true \
-		per_device_batch_size=128
+		per_device_batch_size=64
 
 roest-809m:  ## Train the Røst-809M model
 	@OMP_NUM_THREADS=1 \
@@ -98,7 +98,7 @@ roest-809m:  ## Train the Røst-809M model
 		dataloader_num_workers=4 \
 		model_id=roest-whisper-809m \
 		private=true \
-		per_device_batch_size=128
+		per_device_batch_size=64
 
 roest-1b:  ## Train the Røst-1B model
 	@OMP_NUM_THREADS=1 \
@@ -113,7 +113,7 @@ roest-1b:  ## Train the Røst-1B model
 		dataloader_num_workers=4 \
 		model_id=roest-wav2vec2-1b \
 		private=true \
-		per_device_batch_size=128
+		per_device_batch_size=64
 
 roest-1.5b:  ## Train the Røst-1.5B model
 	@OMP_NUM_THREADS=1 \
@@ -127,7 +127,7 @@ roest-1.5b:  ## Train the Røst-1.5B model
 		dataloader_num_workers=4 \
 		model_id=roest-whisper-1.5b \
 		private=true \
-		per_device_batch_size=128
+		per_device_batch_size=64
 
 roest-2b:  ## Train the Røst-2B model
 	@OMP_NUM_THREADS=1 \
@@ -142,4 +142,4 @@ roest-2b:  ## Train the Røst-2B model
 		dataloader_num_workers=4 \
 		model_id=roest-wav2vec2-2b \
 		private=true \
-		per_device_batch_size=128
+		per_device_batch_size=64
