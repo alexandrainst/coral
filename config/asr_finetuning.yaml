@@ -12,8 +12,6 @@ defaults:
 
 seed: 4242
 
-experiment_tracking: null
-
 evaluation_dataset:
   id: CoRal-project/coral
   subset: read_aloud
