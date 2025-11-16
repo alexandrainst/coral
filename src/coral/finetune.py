@@ -33,7 +33,7 @@ def finetune(config: DictConfig) -> None:
     dataset = load_data_for_finetuning(config=config, processor=processor)
 
     extracking_setup: ExTrackingSetup | None = None
-    if bool(config.experiment_tracking) and is_main_process:
+    if config.enable_experiment_tracking and is_main_process:
         extracking_setup = load_extracking_setup(config=config)
         extracking_setup.run_initialization()
 
@@ -55,11 +55,7 @@ def finetune(config: DictConfig) -> None:
     with disable_tqdm():
         trainer.train(resume_from_checkpoint=config.resume_from_checkpoint)
 
-    if (
-        extracking_setup is not None
-        and bool(config.experiment_tracking)
-        and is_main_process
-    ):
+    if extracking_setup is not None and is_main_process:
         extracking_setup.run_finalization()
 
     model.save_pretrained(save_directory=config.model_dir)

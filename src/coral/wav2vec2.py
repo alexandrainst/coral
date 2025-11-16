@@ -206,7 +206,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
             adam_beta1=self.config.adam_first_momentum,
             adam_beta2=self.config.adam_second_momentum,
             report_to=[self.config.experiment_tracking.type]
-            if self.config.experiment_tracking
+            if self.config.enable_experiment_tracking
             else [],
             ignore_data_skip=self.config.ignore_data_skip,
             save_safetensors=True,
@@ -250,6 +250,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
 
         data_collator = DataCollatorCTCWithPadding(
             processor=processor,
+            sample_rate=self.config.model.sampling_rate,
             max_seconds_per_example=self.config.max_seconds_per_example,
             padding=self.config.padding,
         )
