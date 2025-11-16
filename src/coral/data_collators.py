@@ -1,13 +1,18 @@
 """Data collators for the models."""
 
+import logging
 from dataclasses import dataclass
+from pathlib import Path
 
 import torch
+import torch_audiomentations as ta
 from transformers.data.data_collator import DataCollatorMixin
 from transformers.feature_extraction_utils import BatchFeature
 from transformers.tokenization_utils_base import BatchEncoding
 
 from .data_models import Processor
+
+logger = logging.getLogger(__package__)
 
 
 @dataclass
@@ -17,6 +22,8 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
     Args:
         processor:
             The processor used for proccessing the data.
+        sample_rate:
+            The sample rate that the audio is in.
         max_seconds_per_example:
             The maximum number of seconds per example.
         padding:
@@ -36,9 +43,25 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
     """
 
     processor: Processor
+    sample_rate: int
     max_seconds_per_example: float
     padding: bool | str
     return_tensors: str = "pt"
+    augmenter = ta.Compose(
+        [
+            ta.OneOf(
+                [
+                    ta.BandPassFilter(),
+                    ta.BandStopFilter(),
+                    ta.HighPassFilter(),
+                    ta.LowPassFilter(),
+                ]
+            ),
+            ta.AddColoredNoise(),
+            ta.Gain(),
+            ta.AddBackgroundNoise(background_paths=Path("background-noises")),
+        ]
+    )
 
     def torch_call(self, features: list[dict]) -> BatchFeature:
         """Collate the features.
@@ -59,11 +82,18 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
             raise ValueError(
                 "Features must contain either 'input_values' or 'audio' key."
             )
+
+        # Get the batch
         batch: BatchFeature = self.processor.pad(  # type: ignore[union-attr]
             audio_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
-            max_length=16_000 * self.max_seconds_per_example,
+            max_length=self.sample_rate * self.max_seconds_per_example,
+        )
+
+        # Augment the audio
+        batch["input_features"] = self.augmenter(
+            batch["input_features"], sample_rate=self.sample_rate
         )
 
         label_features = [dict(input_ids=feature["labels"]) for feature in features]
@@ -89,6 +119,8 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
     Args:
         processor:
             The processor used for proccessing the data.
+        sample_rate:
+            The sample rate that the audio is in.
         max_seconds_per_example:
             The maximum number of seconds per example.
         padding:
@@ -108,9 +140,25 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
     """
 
     processor: Processor
+    sample_rate: int
     max_seconds_per_example: float
     padding: bool | str = True
     return_tensors: str = "pt"
+    augmenter = ta.Compose(
+        [
+            ta.OneOf(
+                [
+                    ta.BandPassFilter(),
+                    ta.BandStopFilter(),
+                    ta.HighPassFilter(),
+                    ta.LowPassFilter(),
+                ]
+            ),
+            ta.AddColoredNoise(),
+            ta.Gain(),
+            ta.AddBackgroundNoise(background_paths=Path("background-noises")),
+        ]
+    )
 
     def torch_call(self, features: list[dict]) -> BatchFeature:
         """Collate the features.
@@ -133,11 +181,18 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
             raise ValueError(
                 "Features must contain either 'input_features' or 'audio' key."
             )
+
+        # Get the batch
         batch = self.processor.feature_extractor.pad(  # type: ignore[union-attr]
             audio_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
-            max_length=16_000 * self.max_seconds_per_example,
+            max_length=self.sample_rate * self.max_seconds_per_example,
+        )
+
+        # Augment the audio
+        batch["input_features"] = self.augmenter(
+            batch["input_features"], sample_rate=self.sample_rate
         )
 
         # Get the tokenized label sequences
