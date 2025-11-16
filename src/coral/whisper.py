@@ -19,7 +19,6 @@ from transformers import (
 )
 from transformers.trainer import Trainer
 from transformers.trainer_pt_utils import AcceleratorConfig
-from transformers.trainer_seq2seq import Seq2SeqTrainer
 from transformers.trainer_utils import EvalPrediction, SchedulerType
 from transformers.training_args import OptimizerNames, TrainingArguments
 from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
@@ -27,6 +26,7 @@ from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 from .compute_metrics import compute_wer_metrics
 from .data_collators import DataCollatorSpeechSeq2SeqWithPadding
 from .data_models import ModelSetup, PreTrainedModelData, Processor
+from .trainer_utils import Seq2SeqTrainerWithMultipleDataCollators
 from .utils import transformers_output_ignored
 
 logger = logging.getLogger(__package__)
@@ -108,18 +108,29 @@ class WhisperModelSetup(ModelSetup):
 
         return model
 
-    def load_data_collator(self) -> DataCollatorSpeechSeq2SeqWithPadding:
-        """Return the data collator for the model."""
+    def load_data_collator(
+        self, training: bool = True
+    ) -> DataCollatorSpeechSeq2SeqWithPadding:
+        """Return the data collator for the model.
+
+        Args:
+            training:
+                Whether the model is currently training.
+
+        Returns:
+            The data collator.
+        """
         return DataCollatorSpeechSeq2SeqWithPadding(
             processor=self.processor,
             sample_rate=self.config.model.sampling_rate,
             max_seconds_per_example=self.config.max_seconds_per_example,
             padding=self.config.padding,
+            training=training,
         )
 
     def load_trainer_class(self) -> Type[Trainer]:
         """Return the trainer class used to train the model."""
-        return Seq2SeqTrainer
+        return Seq2SeqTrainerWithMultipleDataCollators
 
     def load_compute_metrics(self) -> Callable[[EvalPrediction], dict]:
         """Return the function used to compute metrics during training."""

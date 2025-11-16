@@ -49,6 +49,7 @@ def finetune(config: DictConfig) -> None:
         eval_dataset=dataset["val"] if "val" in dataset else None,
         processing_class=getattr(processor, "tokenizer"),
         callbacks=load_early_stopping_callback(config) if "val" in dataset else None,
+        get_data_collator_fn=model_setup.load_data_collator,
     )
 
     block_terminal_output()

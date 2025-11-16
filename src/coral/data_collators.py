@@ -47,6 +47,7 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
     max_seconds_per_example: float
     padding: bool | str
     return_tensors: str = "pt"
+    training: bool = False
     augmenter = ta.Compose(
         [
             ta.OneOf(
@@ -144,6 +145,7 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
     max_seconds_per_example: float
     padding: bool | str = True
     return_tensors: str = "pt"
+    training: bool = False
     augmenter = ta.Compose(
         [
             ta.OneOf(
