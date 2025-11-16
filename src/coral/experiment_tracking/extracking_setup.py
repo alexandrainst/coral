@@ -8,7 +8,6 @@ from omegaconf import DictConfig
 class ExTrackingSetup(ABC):
     """Base class for an experiment tracking setup."""
 
-    @abstractmethod
     def __init__(self, config: DictConfig) -> None:
         """Initialise the experiment tracking setup.
 
@@ -16,6 +15,7 @@ class ExTrackingSetup(ABC):
             config:
                 The configuration object.
         """
+        self.config = config
 
     @abstractmethod
     def run_initialization(self) -> None:
