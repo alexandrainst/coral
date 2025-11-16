@@ -7,8 +7,8 @@ pretrained_model_id: openai/whisper-large-v3
 freeze_feature_encoder: false
 
 # Data hyperparameters
-lower_case: true
-clean_text: true
+lower_case: false
+clean_text: false
 
 # Model hyperparameters
 sampling_rate: 16_000
