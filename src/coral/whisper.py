@@ -237,6 +237,7 @@ class WhisperModelSetup(ModelSetup):
 
         data_collator = DataCollatorSpeechSeq2SeqWithPadding(
             processor=processor,
+            sample_rate=self.config.model.sampling_rate,
             max_seconds_per_example=self.config.max_seconds_per_example,
             padding=self.config.padding,
         )
