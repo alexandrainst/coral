@@ -50,18 +50,20 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
     training: bool = False
     augmenter = ta.Compose(
         [
+            ta.Gain(p=1.0),
+            ta.AddBackgroundNoise(background_paths=Path("background-noises"), p=0.7),
+            ta.AddColoredNoise(p=0.2),
             ta.OneOf(
                 [
-                    ta.BandPassFilter(),
-                    ta.BandStopFilter(),
-                    ta.HighPassFilter(),
-                    ta.LowPassFilter(),
-                ]
+                    ta.BandPassFilter(p=1.0),
+                    ta.BandStopFilter(p=1.0),
+                    ta.HighPassFilter(p=1.0),
+                    ta.LowPassFilter(p=1.0),
+                ],
+                p=0.2,
             ),
-            ta.AddColoredNoise(),
-            ta.Gain(),
-            ta.AddBackgroundNoise(background_paths=Path("background-noises")),
-        ]
+        ],
+        p=1.0,
     )
 
     def torch_call(self, features: list[dict]) -> BatchFeature:
@@ -148,18 +150,20 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
     training: bool = False
     augmenter = ta.Compose(
         [
+            ta.Gain(p=1.0),
+            ta.AddBackgroundNoise(background_paths=Path("background-noises"), p=0.7),
+            ta.AddColoredNoise(p=0.2),
             ta.OneOf(
                 [
-                    ta.BandPassFilter(),
-                    ta.BandStopFilter(),
-                    ta.HighPassFilter(),
-                    ta.LowPassFilter(),
-                ]
+                    ta.BandPassFilter(p=1.0),
+                    ta.BandStopFilter(p=1.0),
+                    ta.HighPassFilter(p=1.0),
+                    ta.LowPassFilter(p=1.0),
+                ],
+                p=0.2,
             ),
-            ta.AddColoredNoise(),
-            ta.Gain(),
-            ta.AddBackgroundNoise(background_paths=Path("background-noises")),
-        ]
+        ],
+        p=1.0,
     )
 
     def torch_call(self, features: list[dict]) -> BatchFeature:
