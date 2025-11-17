@@ -39,7 +39,6 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
             * False or 'do_not_pad':
                 No padding (i.e., can output a batch with sequences of different
                 lengths).
-            Defaults to True.
     """
 
     processor: Processor
@@ -139,13 +138,12 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
             * False or 'do_not_pad':
                 No padding (i.e., can output a batch with sequences of different
                 lengths).
-            Defaults to True.
     """
 
     processor: Processor
     sample_rate: int
     max_seconds_per_example: float
-    padding: bool | str = True
+    padding: bool | str
     return_tensors: str = "pt"
     training: bool = False
     augmenter = ta.Compose(
