@@ -49,9 +49,9 @@ def main(config: DictConfig) -> None:
             rmtree(path=model_dir)
 
     if config.store_results:
-        double_dash_pattern = re.compile(r"\/|\:\:|\.")
-        model_id = double_dash_pattern.sub(repl="--", string=config.model_id)
-        dataset = double_dash_pattern.sub(repl="--", string=config.dataset)
+        unwanted_symbols_pattern = re.compile(r"\/|\:\:|\.")
+        model_id = unwanted_symbols_pattern.sub(repl="-", string=config.model_id)
+        dataset = unwanted_symbols_pattern.sub(repl="-", string=config.dataset)
         if config.detailed:
             filename = Path(f"{model_id}.{dataset}.csv")
         else:
