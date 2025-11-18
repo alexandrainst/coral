@@ -49,9 +49,11 @@ def main(config: DictConfig) -> None:
 
     if config.store_results:
         model_id_without_slashes = config.model_id.replace("/", "--")
-        if "coral" in config.dataset and config.detailed:
-            filename = Path(f"{model_id_without_slashes}-coral-scores.csv")
-            score_df.to_csv(filename, index=False)
+        dataset_without_slashes = config.dataset.replace("/", "--").replace("::", "--")
+        if config.detailed:
+            filename = Path(
+                f"{model_id_without_slashes}-{dataset_without_slashes}-scores.csv"
+            )
         else:
             filename = Path("evaluation-results.csv")
             if filename.exists():
@@ -59,7 +61,7 @@ def main(config: DictConfig) -> None:
                     objs=[pd.read_csv(filename, index_col=False), score_df],
                     ignore_index=True,
                 )
-            score_df.to_csv(filename, index=False)
+        score_df.to_csv(filename, index=False)
 
 
 if __name__ == "__main__":
