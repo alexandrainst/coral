@@ -16,7 +16,7 @@ import pandas as pd
 plt.style.use("ggplot")
 
 
-METRIC_NAMES = dict(cer="Character Error Rate", wer="Word Error Rate")
+METRIC_NAMES = dict(cer="Character error rate", wer="Word error rate")
 
 
 @click.command()
@@ -45,12 +45,16 @@ def main(evaluation_file: tuple[Path], metric: str) -> None:
         metric:
             The metric to plot. Either "cer" or "wer".
     """
-    files = [Path(file) for file in evaluation_file]
+    assert len({file.stem.split(".")[1] for file in evaluation_file}) == 1, (
+        "All evaluation files must be evaluations on the same dataset."
+    )
+    dataset_name = evaluation_file[0].stem.split(".")[1].split("--")[-1]
+    metric_name = METRIC_NAMES[metric.lower()]
     dfs = {
         file.stem.split(".")[0]
         .replace("oe", "ø")
         .replace("ae", "æ"): load_evaluation_df(file=file)
-        for file in files
+        for file in evaluation_file
     }
     df = pd.DataFrame.from_records(
         [df[metric].to_dict() for df in dfs.values()],
@@ -58,7 +62,7 @@ def main(evaluation_file: tuple[Path], metric: str) -> None:
     ).T
     df.plot(
         kind="bar",
-        title=f"{METRIC_NAMES[metric.lower()]} by Group (Lower is Better)",
+        title=f"{metric_name} by group on {dataset_name} (lower is better)",
         ylabel=METRIC_NAMES[metric.lower()],
         legend=True,
         figsize=(12, 6),
