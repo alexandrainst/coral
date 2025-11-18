@@ -133,3 +133,8 @@ todo.md
 
 # Background noises
 background-noises/
+
+# Node
+node_modules/
+package.json
+package-lock.json
