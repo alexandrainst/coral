@@ -17,6 +17,11 @@ include .env
 export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=1
 export GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1
 
+# Force the installation to use position-independent code, which helps with the
+# installation of the `samplerate` package, as it relies on an underlying C library.
+export CFLAGS := -fPIC $(CFLAGS)
+export CXXFLAGS := -fPIC $(CXXFLAGS)
+
 # Set the PATH env var used by cargo and uv
 export PATH := ${HOME}/.local/bin:${HOME}/.cargo/bin:$(PATH)
 
