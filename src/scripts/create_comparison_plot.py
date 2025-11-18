@@ -24,9 +24,9 @@ METRIC_NAMES = dict(cer="Character Error Rate", wer="Word Error Rate")
     "--evaluation-file",
     "-f",
     multiple=True,
-    type=click.Path(exists=True),
-    help="The path to the CSV evaluation file (ending in '-coral-scores', generated "
-    "with the `evaluate_model` script.",
+    type=click.Path(exists=True, path_type=Path),
+    help="The path to the CSV evaluation file (generated with the `evaluate_model` "
+    "script.",
     required=True,
 )
 @click.option(
@@ -35,7 +35,7 @@ METRIC_NAMES = dict(cer="Character Error Rate", wer="Word Error Rate")
     type=click.Choice(["cer", "wer"]),
     help="The metric to plot.",
 )
-def main(evaluation_file: tuple[str], metric: str) -> None:
+def main(evaluation_file: tuple[Path], metric: str) -> None:
     """Creates a plot comparing the performance of different models on a dataset.
 
     Args:
@@ -47,7 +47,9 @@ def main(evaluation_file: tuple[str], metric: str) -> None:
     """
     files = [Path(file) for file in evaluation_file]
     dfs = {
-        file.stem[:-13].split("--")[1].replace("oe", "ø"): load_evaluation_df(file=file)
+        file.stem.split(".")[0]
+        .replace("oe", "ø")
+        .replace("ae", "æ"): load_evaluation_df(file=file)
         for file in files
     }
     df = pd.DataFrame.from_records(

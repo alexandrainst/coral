@@ -51,9 +51,7 @@ def main(config: DictConfig) -> None:
         model_id_without_slashes = config.model_id.replace("/", "--")
         dataset_without_slashes = config.dataset.replace("/", "--").replace("::", "--")
         if config.detailed:
-            filename = Path(
-                f"{model_id_without_slashes}-{dataset_without_slashes}-scores.csv"
-            )
+            filename = Path(f"{model_id_without_slashes}.{dataset_without_slashes}.csv")
         else:
             filename = Path("evaluation-results.csv")
             if filename.exists():
