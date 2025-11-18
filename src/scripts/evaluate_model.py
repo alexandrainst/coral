@@ -5,6 +5,7 @@ Usage:
 """
 
 import logging
+import re
 from pathlib import Path
 from shutil import rmtree
 
@@ -48,10 +49,11 @@ def main(config: DictConfig) -> None:
             rmtree(path=model_dir)
 
     if config.store_results:
-        model_id_without_slashes = config.model_id.replace("/", "--")
-        dataset_without_slashes = config.dataset.replace("/", "--").replace("::", "--")
+        double_dash_pattern = re.compile(r"\/|\:\:|\.")
+        model_id = double_dash_pattern.sub(repl="--", string=config.model_id)
+        dataset = double_dash_pattern.sub(repl="--", string=config.dataset)
         if config.detailed:
-            filename = Path(f"{model_id_without_slashes}.{dataset_without_slashes}.csv")
+            filename = Path(f"{model_id}.{dataset}.csv")
         else:
             filename = Path("evaluation-results.csv")
             if filename.exists():
