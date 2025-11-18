@@ -49,9 +49,17 @@ def main(config: DictConfig) -> None:
             rmtree(path=model_dir)
 
     if config.store_results:
-        unwanted_symbols_pattern = re.compile(r"\/|\:\:|\.")
-        model_id = unwanted_symbols_pattern.sub(repl="-", string=config.model_id)
-        dataset = unwanted_symbols_pattern.sub(repl="-", string=config.dataset)
+        single_dash_pattern = re.compile(r"\.|\:\:")
+        double_dash_pattern = re.compile(r"\/")
+
+        model_id = config.model_id
+        model_id = double_dash_pattern.sub(repl="--", string=model_id)
+        model_id = single_dash_pattern.sub(repl="-", string=model_id)
+
+        dataset = config.dataset
+        dataset = double_dash_pattern.sub(repl="--", string=dataset)
+        dataset = single_dash_pattern.sub(repl="-", string=dataset)
+
         if config.detailed:
             filename = Path(f"{model_id}.{dataset}.csv")
         else:
