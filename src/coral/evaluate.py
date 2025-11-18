@@ -57,8 +57,8 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
         batch_size=config.batch_size,
     )
 
-    logger.info("Bootstrapping the scores...")
     if not config.detailed or "coral" not in config.dataset:
+        logger.info("Bootstrapping the scores...")
         bootstrap_scores = defaultdict(list)
         bootstrap_std_errs = defaultdict(list)
         for metric in config.metrics:
