@@ -95,9 +95,15 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
 
         # Augment the audio
         if self.training:
-            batch["input_features"] = self.augmenter(
-                batch["input_features"], sample_rate=self.sample_rate
-            )
+            input_column = "input_values"
+            inputs: torch.Tensor = batch[input_column]
+            is_2d = inputs.dim() == 2
+            if is_2d:
+                inputs = inputs.unsqueeze(1)  # Add channel dimension
+            augmented_inputs = self.augmenter(inputs, sample_rate=self.sample_rate)
+            if is_2d:
+                augmented_inputs = augmented_inputs.squeeze(1)  # Remove channel dim
+            batch[input_column] = augmented_inputs
 
         label_features = [dict(input_ids=feature["labels"]) for feature in features]
         labels_batch: BatchEncoding = self.processor.pad(  # type: ignore[union-attr]
@@ -197,9 +203,15 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
 
         # Augment the audio
         if self.training:
-            batch["input_features"] = self.augmenter(
-                batch["input_features"], sample_rate=self.sample_rate
-            )
+            input_column = "input_features"
+            inputs: torch.Tensor = batch[input_column]
+            is_2d = inputs.dim() == 2
+            if is_2d:
+                inputs = inputs.unsqueeze(1)  # Add channel dimension
+            augmented_inputs = self.augmenter(inputs, sample_rate=self.sample_rate)
+            if is_2d:
+                augmented_inputs = augmented_inputs.squeeze(1)  # Remove channel dim
+            batch[input_column] = augmented_inputs
 
         # Get the tokenized label sequences
         label_features = [{"input_ids": feature["labels"]} for feature in features]
