@@ -94,9 +94,10 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
         )
 
         # Augment the audio
-        batch["input_features"] = self.augmenter(
-            batch["input_features"], sample_rate=self.sample_rate
-        )
+        if self.training:
+            batch["input_features"] = self.augmenter(
+                batch["input_features"], sample_rate=self.sample_rate
+            )
 
         label_features = [dict(input_ids=feature["labels"]) for feature in features]
         labels_batch: BatchEncoding = self.processor.pad(  # type: ignore[union-attr]
