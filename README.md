@@ -8,7 +8,7 @@ ______________________________________________________________________
 [![Documentation](https://img.shields.io/badge/docs-passing-green)](https://alexandrainst.github.io/coral/coral.html)
 [![License](https://img.shields.io/github/license/CoRal-project/coral)](https://github.com/CoRal-project/coral/blob/main/LICENSE)
 [![LastCommit](https://img.shields.io/github/last-commit/CoRal-project/coral)](https://github.com/CoRal-project/coral/commits/main)
-[![Code Coverage](https://img.shields.io/badge/Coverage-54%25-orange.svg)](https://github.com/CoRal-project/coral/tree/main/tests)
+[![Code Coverage](https://img.shields.io/badge/Coverage-57%25-orange.svg)](https://github.com/CoRal-project/coral/tree/main/tests)
 
 
 Author and maintainer:

@@ -237,31 +237,53 @@ def load_data_for_finetuning(
     if is_main_process:
         logger.info("Loading CoRal validation dataset...")
 
-    val = load_dataset(
-        path=config.evaluation_dataset.id,
-        name=config.evaluation_dataset.subset,
-        split=config.evaluation_dataset.val_name,
-        token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-        streaming=True,
-        cache_dir=config.cache_dir,
-    )
-    assert isinstance(val, IterableDataset)
-    if not config.streaming:
-        val = convert_iterable_dataset_to_dataset(
-            iterable_dataset=val,
-            split_name="val",
-            dataset_id=config.evaluation_dataset.id.replace("/", "--") + "-validation",
+    def load_validation_dataset(
+        dataset_config: DictConfig,
+    ) -> Dataset | IterableDataset:
+        """Load a validation dataset.
+
+        Args:
+            dataset_config:
+                The config for the dataset to load.
+
+        Returns:
+            The loaded dataset.
+        """
+        val = load_dataset(
+            path=dataset_config.id,
+            name=dataset_config.subset,
+            split=dataset_config.val_name,
+            token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+            streaming=True,
             cache_dir=config.cache_dir,
         )
-    if config.evaluation_dataset.text_column != "text":
-        val = val.rename_column(config.evaluation_dataset.text_column, "text")
-    if config.evaluation_dataset.audio_column != "audio":
-        val = val.rename_column(config.evaluation_dataset.audio_column, "audio")
+        assert isinstance(val, IterableDataset)
+        if not config.streaming:
+            val = convert_iterable_dataset_to_dataset(
+                iterable_dataset=val,
+                split_name="val",
+                dataset_id=dataset_config.id.replace("/", "--") + "-validation",
+                cache_dir=config.cache_dir,
+            )
+        if dataset_config.text_column != "text":
+            val = val.rename_column(dataset_config.text_column, "text")
+        if dataset_config.audio_column != "audio":
+            val = val.rename_column(dataset_config.audio_column, "audio")
 
-    val = val.cast_column(
-        column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
+        val = val.cast_column(
+            column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
+        )
+
+        val = val.select_columns(column_names=["text", "audio"])
+
+        return val
+
+    val = interleave_datasets(
+        [
+            load_validation_dataset(dataset_config=dataset_config)
+            for dataset_config in config.evaluation_datasets
+        ]
     )
-
     val = process_dataset(
         dataset=val,
         clean_text=config.model.clean_text,

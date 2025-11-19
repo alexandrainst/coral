@@ -12,14 +12,18 @@ defaults:
 
 seed: 4242
 
-experiment_tracking: null
-
-evaluation_dataset:
-  id: CoRal-project/coral
-  subset: read_aloud
-  val_name: val
-  text_column: text
-  audio_column: audio
+# A list of validation datasets - we will use an equal amount of samples from each
+evaluation_datasets:
+  - id: CoRal-project/coral-v2
+    subset: read_aloud
+    val_name: val
+    text_column: text
+    audio_column: audio
+  - id: CoRal-project/coral_v3
+    subset: conversation
+    val_name: val
+    text_column: text
+    audio_column: audio
 
 # Dataset parameters
 remove_numeric_words: true
@@ -54,6 +58,7 @@ bf16_allowed: true
 resume_from_checkpoint: false
 ignore_data_skip: false
 save_total_limit: 0  # Will automatically be set to >=1 if `early_stopping` is enabled
+enable_experiment_tracking: true
 
 # Optimisation parameters
 adam_first_momentum: 0.9

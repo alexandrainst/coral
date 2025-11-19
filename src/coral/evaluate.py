@@ -10,11 +10,10 @@ import torch
 from datasets import Dataset
 from dotenv import load_dotenv
 from omegaconf import DictConfig
-from transformers import (
+from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
+from transformers.pipelines import pipeline
+from transformers.pipelines.automatic_speech_recognition import (
     AutomaticSpeechRecognitionPipeline,
-    Wav2Vec2ForCTC,
-    Wav2Vec2Processor,
-    pipeline,
 )
 
 from .compute_metrics import compute_metrics_of_dataset_using_pipeline
@@ -58,8 +57,8 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
         batch_size=config.batch_size,
     )
 
-    logger.info("Bootstrapping the scores...")
     if not config.detailed or "coral" not in config.dataset:
+        logger.info("Bootstrapping the scores...")
         bootstrap_scores = defaultdict(list)
         bootstrap_std_errs = defaultdict(list)
         for metric in config.metrics:

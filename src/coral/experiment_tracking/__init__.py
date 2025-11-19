@@ -1,4 +1,4 @@
-"""The CoRal project.
+"""Utilities related to experiment tracking."""
 
-Experiment tracking.
-"""
+from .extracking_factory import load_extracking_setup
+from .extracking_setup import ExTrackingSetup

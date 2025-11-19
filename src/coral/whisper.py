@@ -14,20 +14,19 @@ from torch.backends.mps import is_available as mps_is_available
 from transformers import (
     AutoConfig,
     AutoModelForSpeechSeq2Seq,
-    EvalPrediction,
-    SchedulerType,
-    Seq2SeqTrainer,
-    Seq2SeqTrainingArguments,
-    Trainer,
-    TrainingArguments,
     WhisperForConditionalGeneration,
     WhisperProcessor,
 )
-from transformers.trainer import OptimizerNames
+from transformers.trainer import Trainer
+from transformers.trainer_pt_utils import AcceleratorConfig
+from transformers.trainer_utils import EvalPrediction, SchedulerType
+from transformers.training_args import OptimizerNames, TrainingArguments
+from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 
 from .compute_metrics import compute_wer_metrics
 from .data_collators import DataCollatorSpeechSeq2SeqWithPadding
 from .data_models import ModelSetup, PreTrainedModelData, Processor
+from .trainer_utils import Seq2SeqTrainerWithMultipleDataCollators
 from .utils import transformers_output_ignored
 
 logger = logging.getLogger(__package__)
@@ -109,17 +108,29 @@ class WhisperModelSetup(ModelSetup):
 
         return model
 
-    def load_data_collator(self) -> DataCollatorSpeechSeq2SeqWithPadding:
-        """Return the data collator for the model."""
+    def load_data_collator(
+        self, training: bool = True
+    ) -> DataCollatorSpeechSeq2SeqWithPadding:
+        """Return the data collator for the model.
+
+        Args:
+            training:
+                Whether the model is currently training.
+
+        Returns:
+            The data collator.
+        """
         return DataCollatorSpeechSeq2SeqWithPadding(
             processor=self.processor,
+            sample_rate=self.config.model.sampling_rate,
             max_seconds_per_example=self.config.max_seconds_per_example,
             padding=self.config.padding,
+            training=training,
         )
 
     def load_trainer_class(self) -> Type[Trainer]:
         """Return the trainer class used to train the model."""
-        return Seq2SeqTrainer
+        return Seq2SeqTrainerWithMultipleDataCollators
 
     def load_compute_metrics(self) -> Callable[[EvalPrediction], dict]:
         """Return the function used to compute metrics during training."""
@@ -182,6 +193,7 @@ class WhisperModelSetup(ModelSetup):
             logging_steps=self.config.logging_steps,
             length_column_name="input_length",
             gradient_checkpointing=self.config.gradient_checkpointing,
+            gradient_checkpointing_kwargs=dict(use_reentrant=False),
             save_total_limit=self.config.save_total_limit,
             load_best_model_at_end=self.config.early_stopping,
             metric_for_best_model="wer",
@@ -192,7 +204,7 @@ class WhisperModelSetup(ModelSetup):
             adam_beta1=self.config.adam_first_momentum,
             adam_beta2=self.config.adam_second_momentum,
             report_to=[self.config.experiment_tracking.type]
-            if self.config.experiment_tracking
+            if self.config.enable_experiment_tracking
             else [],
             ignore_data_skip=self.config.ignore_data_skip,
             save_safetensors=True,
@@ -201,6 +213,7 @@ class WhisperModelSetup(ModelSetup):
             use_cpu=hasattr(sys, "_called_from_test"),
             dataloader_num_workers=self.config.dataloader_num_workers,
             ddp_find_unused_parameters=False,
+            accelerator_config=AcceleratorConfig(dispatch_batches=False),
         )
         return args
 
@@ -224,6 +237,7 @@ class WhisperModelSetup(ModelSetup):
 
         data_collator = DataCollatorSpeechSeq2SeqWithPadding(
             processor=processor,
+            sample_rate=self.config.model.sampling_rate,
             max_seconds_per_example=self.config.max_seconds_per_example,
             padding=self.config.padding,
         )

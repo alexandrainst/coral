@@ -8,7 +8,7 @@ from transformers.trainer_callback import EarlyStoppingCallback, TrainerCallback
 
 from .data import load_data_for_finetuning
 from .data_models import ModelSetup
-from .experiment_tracking.extracking_factory import load_extracking_setup
+from .experiment_tracking import ExTrackingSetup, load_extracking_setup
 from .model_setup import load_model_setup
 from .ngram import train_and_store_ngram_model
 from .utils import block_terminal_output, disable_tqdm, push_model_to_hub
@@ -32,7 +32,8 @@ def finetune(config: DictConfig) -> None:
     model = model_setup.load_model()
     dataset = load_data_for_finetuning(config=config, processor=processor)
 
-    if bool(config.experiment_tracking) and is_main_process:
+    extracking_setup: ExTrackingSetup | None = None
+    if config.enable_experiment_tracking and is_main_process:
         extracking_setup = load_extracking_setup(config=config)
         extracking_setup.run_initialization()
 
@@ -46,15 +47,16 @@ def finetune(config: DictConfig) -> None:
         compute_metrics=model_setup.load_compute_metrics(),
         train_dataset=dataset["train"],
         eval_dataset=dataset["val"] if "val" in dataset else None,
-        tokenizer=getattr(processor, "tokenizer"),
+        processing_class=getattr(processor, "tokenizer"),
         callbacks=load_early_stopping_callback(config) if "val" in dataset else None,
+        get_data_collator_fn=model_setup.load_data_collator,
     )
 
     block_terminal_output()
     with disable_tqdm():
         trainer.train(resume_from_checkpoint=config.resume_from_checkpoint)
 
-    if bool(config.experiment_tracking) and is_main_process:
+    if extracking_setup is not None and is_main_process:
         extracking_setup.run_finalization()
 
     model.save_pretrained(save_directory=config.model_dir)

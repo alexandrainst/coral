@@ -1,5 +1,5 @@
 # Evaluation dataset parameters
-dataset: "CoRal-project/coral::read_aloud"
+dataset: "CoRal-project/coral_v3::conversation"
 eval_split_name: test
 text_column: text
 audio_column: audio

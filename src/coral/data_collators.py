@@ -1,13 +1,18 @@
 """Data collators for the models."""
 
+import logging
 from dataclasses import dataclass
+from pathlib import Path
 
 import torch
+import torch_audiomentations as ta
 from transformers.data.data_collator import DataCollatorMixin
 from transformers.feature_extraction_utils import BatchFeature
 from transformers.tokenization_utils_base import BatchEncoding
 
 from .data_models import Processor
+
+logger = logging.getLogger(__package__)
 
 
 @dataclass
@@ -17,6 +22,8 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
     Args:
         processor:
             The processor used for proccessing the data.
+        sample_rate:
+            The sample rate that the audio is in.
         max_seconds_per_example:
             The maximum number of seconds per example.
         padding:
@@ -32,13 +39,31 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
             * False or 'do_not_pad':
                 No padding (i.e., can output a batch with sequences of different
                 lengths).
-            Defaults to True.
     """
 
     processor: Processor
+    sample_rate: int
     max_seconds_per_example: float
     padding: bool | str
     return_tensors: str = "pt"
+    training: bool = False
+    augmenter = ta.Compose(
+        [
+            ta.Gain(p=1.0),
+            ta.AddBackgroundNoise(background_paths=Path("background-noises"), p=0.7),
+            ta.AddColoredNoise(p=0.2),
+            ta.OneOf(
+                [
+                    ta.BandPassFilter(p=1.0),
+                    ta.BandStopFilter(p=1.0),
+                    ta.HighPassFilter(p=1.0),
+                    ta.LowPassFilter(p=1.0),
+                ],
+                p=0.2,
+            ),
+        ],
+        p=1.0,
+    )
 
     def torch_call(self, features: list[dict]) -> BatchFeature:
         """Collate the features.
@@ -59,12 +84,26 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
             raise ValueError(
                 "Features must contain either 'input_values' or 'audio' key."
             )
+
+        # Get the batch
         batch: BatchFeature = self.processor.pad(  # type: ignore[union-attr]
             audio_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
-            max_length=16_000 * self.max_seconds_per_example,
+            max_length=self.sample_rate * self.max_seconds_per_example,
         )
+
+        # Augment the audio
+        if self.training:
+            input_column = "input_values"
+            inputs: torch.Tensor = batch[input_column]
+            is_2d = inputs.dim() == 2
+            if is_2d:
+                inputs = inputs.unsqueeze(1)  # Add channel dimension
+            augmented_inputs = self.augmenter(inputs, sample_rate=self.sample_rate)
+            if is_2d:
+                augmented_inputs = augmented_inputs.squeeze(1)  # Remove channel dim
+            batch[input_column] = augmented_inputs
 
         label_features = [dict(input_ids=feature["labels"]) for feature in features]
         labels_batch: BatchEncoding = self.processor.pad(  # type: ignore[union-attr]
@@ -89,6 +128,8 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
     Args:
         processor:
             The processor used for proccessing the data.
+        sample_rate:
+            The sample rate that the audio is in.
         max_seconds_per_example:
             The maximum number of seconds per example.
         padding:
@@ -104,13 +145,31 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
             * False or 'do_not_pad':
                 No padding (i.e., can output a batch with sequences of different
                 lengths).
-            Defaults to True.
     """
 
     processor: Processor
+    sample_rate: int
     max_seconds_per_example: float
-    padding: bool | str = True
+    padding: bool | str
     return_tensors: str = "pt"
+    training: bool = False
+    augmenter = ta.Compose(
+        [
+            ta.Gain(p=1.0),
+            ta.AddBackgroundNoise(background_paths=Path("background-noises"), p=0.7),
+            ta.AddColoredNoise(p=0.2),
+            ta.OneOf(
+                [
+                    ta.BandPassFilter(p=1.0),
+                    ta.BandStopFilter(p=1.0),
+                    ta.HighPassFilter(p=1.0),
+                    ta.LowPassFilter(p=1.0),
+                ],
+                p=0.2,
+            ),
+        ],
+        p=1.0,
+    )
 
     def torch_call(self, features: list[dict]) -> BatchFeature:
         """Collate the features.
@@ -133,12 +192,26 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
             raise ValueError(
                 "Features must contain either 'input_features' or 'audio' key."
             )
+
+        # Get the batch
         batch = self.processor.feature_extractor.pad(  # type: ignore[union-attr]
             audio_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
-            max_length=16_000 * self.max_seconds_per_example,
+            max_length=self.sample_rate * self.max_seconds_per_example,
         )
+
+        # Augment the audio
+        if self.training:
+            input_column = "input_features"
+            inputs: torch.Tensor = batch[input_column]
+            is_2d = inputs.dim() == 2
+            if is_2d:
+                inputs = inputs.unsqueeze(1)  # Add channel dimension
+            augmented_inputs = self.augmenter(inputs, sample_rate=self.sample_rate)
+            if is_2d:
+                augmented_inputs = augmented_inputs.squeeze(1)  # Remove channel dim
+            batch[input_column] = augmented_inputs
 
         # Get the tokenized label sequences
         label_features = [{"input_ids": feature["labels"]} for feature in features]

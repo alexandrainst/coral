@@ -14,21 +14,21 @@ import torch
 from omegaconf import DictConfig
 from torch.backends.mps import is_available as mps_is_available
 from transformers import (
-    EvalPrediction,
-    SchedulerType,
-    Trainer,
-    TrainingArguments,
     Wav2Vec2CTCTokenizer,
     Wav2Vec2FeatureExtractor,
     Wav2Vec2ForCTC,
     Wav2Vec2Processor,
     Wav2Vec2ProcessorWithLM,
 )
-from transformers.trainer import OptimizerNames
+from transformers.trainer import Trainer
+from transformers.trainer_pt_utils import AcceleratorConfig
+from transformers.trainer_utils import EvalPrediction, SchedulerType
+from transformers.training_args import OptimizerNames, TrainingArguments
 
 from .compute_metrics import compute_wer_metrics
 from .data_collators import DataCollatorCTCWithPadding
 from .data_models import ModelSetup, PreTrainedModelData, Processor
+from .trainer_utils import TrainerWithMultipleDataCollators
 from .utils import transformers_output_ignored
 
 logger = logging.getLogger(__package__)
@@ -124,17 +124,27 @@ class Wav2Vec2ModelSetup(ModelSetup):
 
         return model
 
-    def load_data_collator(self) -> DataCollatorCTCWithPadding:
-        """Return the data collator for the model."""
+    def load_data_collator(self, training: bool = True) -> DataCollatorCTCWithPadding:
+        """Return the data collator for the model.
+
+        Args:
+            training:
+                Whether the model is currently training.
+
+        Returns:
+            The data collator.
+        """
         return DataCollatorCTCWithPadding(
             processor=self.processor,
+            sample_rate=self.config.model.sampling_rate,
             max_seconds_per_example=self.config.max_seconds_per_example,
             padding=self.config.padding,
+            training=training,
         )
 
     def load_trainer_class(self) -> Type[Trainer]:
         """Return the trainer class for the model."""
-        return Trainer
+        return TrainerWithMultipleDataCollators
 
     def load_compute_metrics(self) -> Callable[[EvalPrediction], dict]:
         """Return the compute metrics function for the model."""
@@ -197,6 +207,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
             logging_steps=self.config.logging_steps,
             length_column_name="input_length",
             gradient_checkpointing=self.config.gradient_checkpointing,
+            gradient_checkpointing_kwargs=dict(use_reentrant=False),
             save_total_limit=self.config.save_total_limit,
             load_best_model_at_end=self.config.early_stopping,
             metric_for_best_model="wer",
@@ -207,13 +218,14 @@ class Wav2Vec2ModelSetup(ModelSetup):
             adam_beta1=self.config.adam_first_momentum,
             adam_beta2=self.config.adam_second_momentum,
             report_to=[self.config.experiment_tracking.type]
-            if self.config.experiment_tracking
+            if self.config.enable_experiment_tracking
             else [],
             ignore_data_skip=self.config.ignore_data_skip,
             save_safetensors=True,
             use_cpu=hasattr(sys, "_called_from_test"),
             dataloader_num_workers=self.config.dataloader_num_workers,
             ddp_find_unused_parameters=False,
+            accelerator_config=AcceleratorConfig(dispatch_batches=False),
         )
         return args
 
@@ -250,6 +262,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
 
         data_collator = DataCollatorCTCWithPadding(
             processor=processor,
+            sample_rate=self.config.model.sampling_rate,
             max_seconds_per_example=self.config.max_seconds_per_example,
             padding=self.config.padding,
         )

@@ -17,6 +17,11 @@ include .env
 export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=1
 export GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1
 
+# Force the installation to use position-independent code, which helps with the
+# installation of the `samplerate` package, as it relies on an underlying C library.
+export CFLAGS := -fPIC $(CFLAGS)
+export CXXFLAGS := -fPIC $(CXXFLAGS)
+
 # Set the PATH env var used by cargo and uv
 export PATH := ${HOME}/.local/bin:${HOME}/.cargo/bin:$(PATH)
 
@@ -31,7 +36,6 @@ install: ## Install dependencies
 	@$(MAKE) --quiet install-uv
 	@$(MAKE) --quiet install-dependencies
 	@$(MAKE) --quiet setup-environment-variables
-	@$(MAKE) --quiet setup-git
 	@$(MAKE) --quiet install-pre-commit
 	@echo "Installed the 'CoRal' project! You can now activate your virtual environment with 'source .venv/bin/activate'."
 	@echo "Note that this is a 'uv' project. Use 'uv add <package>' to install new dependencies and 'uv remove <package>' to remove them."
@@ -63,103 +67,84 @@ setup-environment-variables:
 setup-environment-variables-non-interactive:
 	@uv run python src/scripts/fix_dot_env_file.py --non-interactive
 
-setup-git:
-	@git config --global init.defaultBranch main
-	@git init
-	@git config --local user.name "${GIT_NAME}"
-	@git config --local user.email "${GIT_EMAIL}"
-
 test:  ## Run tests
 	@uv run pytest && uv run readme-cov
 
 tree:  ## Print directory tree
 	@tree -a --gitignore -I .git .
 
-lint:  ## Lint the project
-	uv run ruff check . --fix --unsafe-fixes
-
-format:  ## Format the project
-	uv run ruff format .
-
-type-check:  ## Type-check the project
-	@uv run mypy . \
-		--install-types \
-		--non-interactive \
-		--ignore-missing-imports \
-		--show-error-codes \
-		--check-untyped-defs
-
-check: lint format type-check  ## Lint, format, and type-check the code
+check:  ## Lint, format, and type-check the code
+	@uv run pre-commit run --all-files
 
 roest-315m:  ## Train the Røst-315M model
 	@OMP_NUM_THREADS=1 \
-		accelerate launch \
+		uv run accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=wav2vec2-small \
-		datasets=[coral,common_voice_17] \
-		dataset_probabilities=[0.95,0.05] \
+		datasets=[coral_read_aloud,coral_conversation] \
+		dataset_probabilities=[0.5,0.5] \
 		decoder_datasets=[wikipedia,common_voice,reddit] \
 		push_to_hub=true \
 		dataloader_num_workers=4 \
-		model_id=roest-315m \
+		model_id=roest-wav2vec2-315m \
 		private=true \
 		per_device_batch_size=64
 
 roest-809m:  ## Train the Røst-809M model
 	@OMP_NUM_THREADS=1 \
-		accelerate launch \
+		uv run accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=whisper-large-turbo \
-		datasets=[coral,common_voice_17] \
-		dataset_probabilities=[0.95,0.05] \
+		datasets=[coral_read_aloud,coral_conversation] \
+		dataset_probabilities=[0.5,0.5] \
 		push_to_hub=true \
 		dataloader_num_workers=4 \
-		model_id=roest-809m \
+		model_id=roest-whisper-809m \
 		private=true \
 		per_device_batch_size=64
 
 roest-1b:  ## Train the Røst-1B model
 	@OMP_NUM_THREADS=1 \
-		accelerate launch \
+		uv run accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=wav2vec2-medium \
-		datasets=[coral,common_voice_17] \
-		dataset_probabilities=[0.95,0.05] \
+		datasets=[coral_read_aloud,coral_conversation] \
+		dataset_probabilities=[0.5,0.5] \
 		decoder_datasets=[wikipedia,common_voice,reddit] \
 		push_to_hub=true \
 		dataloader_num_workers=4 \
-		model_id=roest-1b \
+		model_id=roest-wav2vec2-1b \
 		private=true \
 		per_device_batch_size=64
 
 roest-1.5b:  ## Train the Røst-1.5B model
 	@OMP_NUM_THREADS=1 \
-		accelerate launch \
+		uv run accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=whisper-large \
-		datasets=[coral,common_voice_17] \
-		dataset_probabilities=[0.95,0.05] \
+		datasets=[coral_read_aloud,coral_conversation] \
+		dataset_probabilities=[0.5,0.5] \
 		push_to_hub=true \
 		dataloader_num_workers=4 \
-		model_id=roest-1.5b \
+		model_id=roest-whisper-1.5b \
 		private=true \
 		per_device_batch_size=64
 
 roest-2b:  ## Train the Røst-2B model
 	@OMP_NUM_THREADS=1 \
-		accelerate launch \
+		uv run accelerate launch \
 		--use-deepspeed \
 		src/scripts/finetune_asr_model.py \
 		model=wav2vec2-large \
-		datasets=[coral,common_voice_17] \
-		dataset_probabilities=[0.95,0.05] \
+		datasets=[coral_read_aloud,coral_conversation] \
+		dataset_probabilities=[0.5,0.5] \
 		decoder_datasets=[wikipedia,common_voice,reddit] \
 		push_to_hub=true \
 		dataloader_num_workers=4 \
-		model_id=roest-2b \
+		model_id=roest-wav2vec2-2b \
 		private=true \
 		per_device_batch_size=64

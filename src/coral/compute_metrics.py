@@ -11,13 +11,13 @@ from datasets import Dataset
 from evaluate.loading import load as load_metric
 from numpy.typing import NDArray
 from tqdm.auto import tqdm
-from transformers import (
+from transformers import Wav2Vec2ProcessorWithLM
+from transformers.pipelines.automatic_speech_recognition import (
     AutomaticSpeechRecognitionPipeline,
-    EvalPrediction,
-    PreTrainedTokenizerBase,
-    Wav2Vec2ProcessorWithLM,
 )
 from transformers.pipelines.pt_utils import KeyDataset
+from transformers.tokenization_utils_base import PreTrainedTokenizerBase
+from transformers.trainer_utils import EvalPrediction
 
 from .data import DEFAULT_CONVERSION_DICT, process_example
 from .data_models import Processor

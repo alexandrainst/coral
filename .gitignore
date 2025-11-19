@@ -130,3 +130,12 @@ todo.md
 
 # Coral cache
 .coral-cache/
+
+# Background noises
+background-noises/*
+!background-noises/1-100032-A-0.wav
+
+# Node
+node_modules/
+package.json
+package-lock.json
