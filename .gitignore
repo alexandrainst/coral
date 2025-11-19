@@ -132,7 +132,8 @@ todo.md
 .coral-cache/
 
 # Background noises
-background-noises/
+background-noises/*
+!background-noises/1-100032-A-0.wav
 
 # Node
 node_modules/
