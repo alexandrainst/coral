@@ -1,4 +1,4 @@
-coral:
+coral_conversation:
   id: CoRal-project/coral_v3
   subset: conversation
   train_name: train
