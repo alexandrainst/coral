@@ -211,7 +211,7 @@ def get_score_df(
         The score DataFrame.
     """
     unique_category_values = [
-        df[f"{category}"].unique().tolist() + [None] for category in categories
+        df[category].unique().tolist() + [None] for category in categories
     ]
 
     records = list()
