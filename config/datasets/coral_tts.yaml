@@ -1,0 +1,7 @@
+coral_tts:
+  id: alexandrainst/coral-tts-with-lex
+  subset: null
+  train_name: train
+  text_column: text
+  audio_column: audio
+  filter_dataset: true
