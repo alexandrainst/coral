@@ -212,8 +212,14 @@ def load_data_for_finetuning(
                 f"Dataset probabilities must sum to 1, but sum to {sum(probabilities)}"
             )
 
+        assert len(all_datasets) == len(probabilities), (
+            f"There are {len(all_datasets):,} datasets ({all_datasets}), but "
+            f"{len(probabilities):,} probabilities ({probabilities}), but these "
+            "should be equal!"
+        )
+
         train = interleave_datasets(
-            datasets=[ds for ds in all_datasets],
+            datasets=all_datasets,
             probabilities=probabilities,
             seed=config.seed,
             split=NamedSplit("train"),
