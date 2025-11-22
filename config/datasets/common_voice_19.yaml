@@ -1,5 +1,5 @@
-common_voice_17:
-  id: mozilla-foundation/common_voice_17_0
+common_voice_19:
+  id: fsicoli/common_voice_19_0
   subset: da
   train_name: train
   text_column: sentence
