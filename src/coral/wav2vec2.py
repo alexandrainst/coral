@@ -296,7 +296,7 @@ def dump_vocabulary(config: DictConfig) -> None:
             The Hydra configuration object.
     """
     # Build the set of all unique characters in the dataset
-    unique_characters: set[str] = set(config.characters_to_keep + "|")
+    unique_characters: set[str] = set(config.model.characters_to_keep + "|")
     sorted_unique_characters: list[str] = sorted(unique_characters)
 
     # Build vocabulary

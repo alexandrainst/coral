@@ -7,6 +7,7 @@ freeze_feature_encoder: false
 
 # Data hyperparameters
 lower_case: true
+characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
 
 # Model hyperparameters
 sampling_rate: 16_000

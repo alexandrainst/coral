@@ -235,10 +235,8 @@ def load_data_for_finetuning(
 
     train = process_dataset(
         dataset=train,
-        clean_text=True,
-        remove_filler_words=True,
         lower_case=config.model.lower_case,
-        characters_to_keep=config.characters_to_keep,
+        characters_to_keep=config.model.characters_to_keep,
         text_column="text",
         audio_column="audio",
         convert_numerals=False,
@@ -295,10 +293,8 @@ def load_data_for_finetuning(
     vals = [
         process_dataset(
             dataset=val,
-            clean_text=True,
-            remove_filler_words=True,
             lower_case=config.model.lower_case,
-            characters_to_keep=config.characters_to_keep,
+            characters_to_keep=config.model.characters_to_keep,
             text_column="text",
             audio_column="audio",
             convert_numerals=False,
@@ -376,10 +372,8 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     )
     dataset = process_dataset(
         dataset=dataset,
-        clean_text=True,
-        remove_filler_words=True,
         lower_case=config.lower_case,
-        characters_to_keep=config.characters_to_keep,
+        characters_to_keep=config.model.characters_to_keep,
         text_column=config.text_column,
         audio_column=config.audio_column,
         remove_input_dataset_columns=False,
@@ -488,8 +482,6 @@ def filter_example(
 
 def process_dataset(
     dataset: Data,
-    clean_text: bool,
-    remove_filler_words: bool,
     lower_case: bool,
     characters_to_keep: Iterable[str] | None,
     text_column: str,
@@ -506,15 +498,11 @@ def process_dataset(
     Args:
         dataset:
             The dataset to be cleaned.
-        clean_text:
-            Whether to clean the text.
-        remove_filler_words:
-            Whether to remove filler words (e.g., "ehh") from the text.
         lower_case:
-            Whether to make the text lower case. Only relevant if `clean_text` is True.
+            Whether to make the text lower case.
         characters_to_keep:
             All the characters that should be kept in the transcriptions. Can be None if
-            all characters should be kept. Only relevant if `clean_text` is True.
+            all characters should be kept.
         text_column:
             The name of the column containing the text.
         remove_input_dataset_columns:
@@ -545,8 +533,6 @@ def process_dataset(
         conversion_dict=DEFAULT_CONVERSION_DICT,
         text_column=text_column,
         audio_column=audio_column,
-        clean_text=clean_text,
-        remove_filler_words=remove_filler_words,
         lower_case=lower_case,
         convert_numerals=convert_numerals,
         processor=processor,
@@ -570,8 +556,6 @@ def process_example(
     conversion_dict: dict[str, str],
     text_column: str,
     audio_column: str | None,
-    clean_text: bool,
-    remove_filler_words: bool,
     lower_case: bool,
     convert_numerals: bool,
     processor: Callable | None,
@@ -591,10 +575,6 @@ def process_example(
         audio_column:
             The name of the column containing the audio. Can be `None` if the dataset
             does not have an audio column.
-        clean_text:
-            Whether to clean the text.
-        remove_filler_words:
-            Whether to remove filler words (e.g., "ehh") from the text.
         lower_case:
             Whether to make the text lower case.
         convert_numerals:
@@ -618,30 +598,30 @@ def process_example(
     if lower_case:
         doc = doc.lower()
 
-    if remove_filler_words:
-        doc = FILLER_WORDS_PATTERN.sub(repl="", string=doc)
+    # Remove filler words such as "ehh"
+    doc = FILLER_WORDS_PATTERN.sub(repl="", string=doc)
 
     # Normalise the transcription, which uniformises the characters. For instance, the
     # "long dash" (－) is converted to the normal dash (-).
-    if clean_text:
-        doc = normalize("NFKC", doc)
+    doc = normalize("NFKC", doc)
 
-        for key, value in conversion_dict.items():
-            doc = doc.replace(key, value)
+    # Convert known symbols
+    for key, value in conversion_dict.items():
+        doc = doc.replace(key, value)
 
-        # Remove all non-standard characters
-        if characters_to_keep is not None:
-            characters_to_keep = "".join(char for char in characters_to_keep)
-            non_standard_characters_regex = re.compile(
-                f"[^{re.escape(characters_to_keep + ' |')}]", flags=re.IGNORECASE
-            )
-            doc = re.sub(non_standard_characters_regex, " ", doc.strip())
+    # Remove all non-standard characters
+    if characters_to_keep is not None:
+        characters_to_keep = "".join(char for char in characters_to_keep)
+        non_standard_characters_regex = re.compile(
+            f"[^{re.escape(characters_to_keep + ' |')}]", flags=re.IGNORECASE
+        )
+        doc = re.sub(non_standard_characters_regex, " ", doc.strip())
 
-        # Replace superfluous spaces
-        doc = re.sub(r" +", " ", doc)
+    # Replace superfluous spaces
+    doc = re.sub(r" +", " ", doc)
 
-        # Strip each newline
-        doc = "\n".join([line.strip() for line in doc.split("\n")]).strip("\n")
+    # Strip each newline
+    doc = "\n".join([line.strip() for line in doc.split("\n")]).strip("\n")
 
     # Re-assign the cleaned transcription
     example[text_column] = doc

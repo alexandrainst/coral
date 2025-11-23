@@ -222,8 +222,7 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
 
         dataset = process_dataset(
             dataset=dataset,
-            clean_text=config.model.clean_text,
-            characters_to_keep=config.characters_to_keep,
+            characters_to_keep=config.model.characters_to_keep,
             text_column="text",
             remove_input_dataset_columns=False,
             audio_column=None,
@@ -266,7 +265,6 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
             sampling_rate=16_000,
             min_seconds_per_example=0.0,
             max_seconds_per_example=1e6,
-            clean_text=config.model.clean_text,
             lower_case=config.model.lower_case,
             characters_to_keep="abcdefghijklmnopqrstuvwxyzæøå0123456789éü",
         )

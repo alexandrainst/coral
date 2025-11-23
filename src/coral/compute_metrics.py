@@ -183,7 +183,6 @@ def compute_metrics_of_dataset_using_pipeline(
                 conversion_dict=DEFAULT_CONVERSION_DICT,
                 text_column="text",
                 audio_column=None,
-                clean_text=True,
                 lower_case=True,
                 convert_numerals=True,
                 processor=None,
