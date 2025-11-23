@@ -5,7 +5,6 @@ freeze_feature_encoder: false
 
 # Data hyperparameters
 lower_case: false
-clean_text: false
 
 # Model hyperparameters
 sampling_rate: 16_000

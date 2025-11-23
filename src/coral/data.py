@@ -235,7 +235,7 @@ def load_data_for_finetuning(
 
     train = process_dataset(
         dataset=train,
-        clean_text=config.model.clean_text,
+        clean_text=True,
         remove_filler_words=True,
         lower_case=config.model.lower_case,
         characters_to_keep=config.characters_to_keep,
@@ -295,7 +295,7 @@ def load_data_for_finetuning(
     vals = [
         process_dataset(
             dataset=val,
-            clean_text=config.model.clean_text,
+            clean_text=True,
             remove_filler_words=True,
             lower_case=config.model.lower_case,
             characters_to_keep=config.characters_to_keep,
@@ -376,7 +376,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     )
     dataset = process_dataset(
         dataset=dataset,
-        clean_text=config.clean_text,
+        clean_text=True,
         remove_filler_words=True,
         lower_case=config.lower_case,
         characters_to_keep=config.characters_to_keep,
@@ -632,14 +632,8 @@ def process_example(
         # Remove all non-standard characters
         if characters_to_keep is not None:
             characters_to_keep = "".join(char for char in characters_to_keep)
-            if lower_case:
-                characters_to_keep = characters_to_keep.lower()
-            else:
-                characters_to_keep = (
-                    characters_to_keep.upper() + characters_to_keep.lower()
-                )
             non_standard_characters_regex = re.compile(
-                f"[^{re.escape(characters_to_keep + ' |')}]"
+                f"[^{re.escape(characters_to_keep + ' |')}]", flags=re.IGNORECASE
             )
             doc = re.sub(non_standard_characters_regex, " ", doc.strip())
 
