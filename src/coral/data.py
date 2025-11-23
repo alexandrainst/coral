@@ -16,6 +16,7 @@ from datasets import (
     IterableDataset,
     IterableDatasetDict,
     NamedSplit,
+    concatenate_datasets,
     interleave_datasets,
     load_dataset,
 )
@@ -289,7 +290,7 @@ def load_data_for_finetuning(
 
         return val
 
-    val = interleave_datasets(
+    val = concatenate_datasets(
         [
             load_validation_dataset(dataset_config=dataset_config)
             for dataset_config in config.evaluation_datasets
