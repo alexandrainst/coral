@@ -4,7 +4,7 @@ import logging
 import os
 
 from omegaconf import DictConfig
-from transformers.trainer_callback import EarlyStoppingCallback, TrainerCallback
+from transformers.trainer_callback import EarlyStoppingCallback
 
 from .data import load_data_for_finetuning
 from .data_models import ModelSetup
@@ -37,13 +37,10 @@ def finetune(config: DictConfig) -> None:
         extracking_setup = load_extracking_setup(config=config)
         extracking_setup.run_initialization()
 
-    if "val" not in dataset and is_main_process:
-        logger.info("No validation set found. Disabling early stopping.")
-
     vals = {
         split_name: split
         for split_name, split in dataset.items()
-        if split_name.startswith("val-")
+        if split_name.startswith("val")
     }
     match len(vals):
         case 0:
@@ -53,6 +50,9 @@ def finetune(config: DictConfig) -> None:
         case _:
             eval_dataset = vals
 
+    if eval_dataset is None and is_main_process:
+        logger.info("No validation set found. Disabling early stopping.")
+
     trainer = model_setup.load_trainer_class()(
         model=model,
         data_collator=model_setup.load_data_collator(),
@@ -61,7 +61,13 @@ def finetune(config: DictConfig) -> None:
         train_dataset=dataset["train"],
         eval_dataset=eval_dataset,
         processing_class=getattr(processor, "tokenizer"),
-        callbacks=load_early_stopping_callback(config) if "val" in dataset else None,
+        callbacks=[
+            EarlyStoppingCallback(
+                early_stopping_patience=config.early_stopping_patience
+            )
+        ]
+        if eval_dataset is not None and config.early_stopping
+        else None,
         get_data_collator_fn=model_setup.load_data_collator,
     )
 
@@ -84,22 +90,3 @@ def finetune(config: DictConfig) -> None:
             finetuned_from=config.model.pretrained_model_id,
             create_pr=config.create_pr,
         )
-
-
-def load_early_stopping_callback(config: DictConfig) -> list[TrainerCallback]:
-    """Load the early stopping callback for the trainer.
-
-    Args:
-        config:
-            The Hydra configuration object.
-
-    Returns:
-        The callbacks.
-    """
-    callbacks: list[TrainerCallback] = list()
-    if config.early_stopping:
-        early_stopping_callback = EarlyStoppingCallback(
-            early_stopping_patience=config.early_stopping_patience
-        )
-        callbacks = [early_stopping_callback]
-    return callbacks
