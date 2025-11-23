@@ -249,9 +249,7 @@ def load_data_for_finetuning(
     if is_main_process:
         logger.info("Loading CoRal validation dataset...")
 
-    def load_validation_dataset(
-        dataset_config: DictConfig,
-    ) -> Dataset | IterableDataset:
+    def load_validation_dataset(dataset_config: DictConfig) -> Dataset:
         """Load a validation dataset.
 
         Args:
@@ -272,25 +270,19 @@ def load_data_for_finetuning(
                 trust_remote_code=True,
             )
         assert isinstance(val, IterableDataset)
-        if not config.streaming:
-            val = convert_iterable_dataset_to_dataset(
-                iterable_dataset=val,
-                split_name="val",
-                dataset_id=dataset_config.id.replace("/", "--") + "-validation",
-                cache_dir=config.cache_dir,
-            )
+        val = convert_iterable_dataset_to_dataset(
+            iterable_dataset=val,
+            split_name="val",
+            dataset_id=dataset_config.id.replace("/", "--") + "-validation",
+            cache_dir=config.cache_dir,
+        )
         if dataset_config.text_column != "text":
             val = val.rename_column(dataset_config.text_column, "text")
         if dataset_config.audio_column != "audio":
             val = val.rename_column(dataset_config.audio_column, "audio")
-
-        val = val.cast_column(
+        return val.cast_column(
             column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
-        )
-
-        val = val.select_columns(column_names=["text", "audio"])
-
-        return val
+        ).select_columns(column_names=["text", "audio"])
 
     vals = [
         load_validation_dataset(dataset_config=dataset_config)
