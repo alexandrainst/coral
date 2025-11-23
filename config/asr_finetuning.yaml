@@ -12,7 +12,9 @@ defaults:
 
 seed: 4242
 
-# A list of validation datasets - we will use an equal amount of samples from each
+# Validation config during training
+evaluation_lower_case: true
+evaluation_characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
 evaluation_datasets:
   - id: CoRal-project/coral-v2
     subset: read_aloud

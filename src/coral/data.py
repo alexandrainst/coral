@@ -293,8 +293,8 @@ def load_data_for_finetuning(
     vals = [
         process_dataset(
             dataset=val,
-            lower_case=config.model.lower_case,
-            characters_to_keep=config.model.characters_to_keep,
+            lower_case=config.evaluation_lower_case,
+            characters_to_keep=config.evaluation_characters_to_keep,
             text_column="text",
             audio_column="audio",
             convert_numerals=False,
@@ -373,7 +373,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     dataset = process_dataset(
         dataset=dataset,
         lower_case=config.lower_case,
-        characters_to_keep=config.model.characters_to_keep,
+        characters_to_keep=config.characters_to_keep,
         text_column=config.text_column,
         audio_column=config.audio_column,
         remove_input_dataset_columns=False,
