@@ -44,6 +44,7 @@ def block_terminal_output() -> None:
     logging.getLogger("transformers.models.whisper").setLevel(logging.ERROR)
     logging.getLogger("transformers.generation.utils").setLevel(logging.ERROR)
     logging.getLogger("huggingface_hub.utils").setLevel(logging.ERROR)
+    os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
 
 
 class transformers_output_ignored:
