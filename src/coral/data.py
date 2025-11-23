@@ -27,6 +27,7 @@ from .utils import (
     convert_iterable_dataset_to_dataset,
     convert_numeral_to_words,
     interpret_dataset_name,
+    no_datasets_progress_bars,
 )
 
 logger = logging.getLogger(__package__)
@@ -146,15 +147,16 @@ def load_data_for_finetuning(
         # used during CI - normally it is expected that the user is logged in to the
         # Hugging Face Hub using the `huggingface-cli login` command.
         else:
-            ds = load_dataset(
-                path=dataset_config.id,
-                name=dataset_config.subset,
-                split=dataset_config.train_name,
-                token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-                streaming=config.streaming,
-                cache_dir=config.cache_dir,
-                trust_remote_code=True,
-            )
+            with no_datasets_progress_bars():
+                ds = load_dataset(
+                    path=dataset_config.id,
+                    name=dataset_config.subset,
+                    split=dataset_config.train_name,
+                    token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+                    streaming=config.streaming,
+                    cache_dir=config.cache_dir,
+                    trust_remote_code=True,
+                )
 
         assert isinstance(ds, Dataset | IterableDataset), (
             f"Unsupported dataset type: {type(ds)}"
@@ -259,15 +261,16 @@ def load_data_for_finetuning(
         Returns:
             The loaded dataset.
         """
-        val = load_dataset(
-            path=dataset_config.id,
-            name=dataset_config.subset,
-            split=dataset_config.val_name,
-            token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-            streaming=True,
-            cache_dir=config.cache_dir,
-            trust_remote_code=True,
-        )
+        with no_datasets_progress_bars():
+            val = load_dataset(
+                path=dataset_config.id,
+                name=dataset_config.subset,
+                split=dataset_config.val_name,
+                token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+                streaming=True,
+                cache_dir=config.cache_dir,
+                trust_remote_code=True,
+            )
         assert isinstance(val, IterableDataset)
         if not config.streaming:
             val = convert_iterable_dataset_to_dataset(
