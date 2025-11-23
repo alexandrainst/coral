@@ -40,13 +40,26 @@ def finetune(config: DictConfig) -> None:
     if "val" not in dataset and is_main_process:
         logger.info("No validation set found. Disabling early stopping.")
 
+    vals = {
+        split_name: split
+        for split_name, split in dataset.items()
+        if split_name.startswith("val-")
+    }
+    match len(vals):
+        case 0:
+            eval_dataset = None
+        case 1:
+            eval_dataset = list(vals.values())[0]
+        case _:
+            eval_dataset = vals
+
     trainer = model_setup.load_trainer_class()(
         model=model,
         data_collator=model_setup.load_data_collator(),
         args=model_setup.load_training_arguments(),
         compute_metrics=model_setup.load_compute_metrics(),
         train_dataset=dataset["train"],
-        eval_dataset=dataset["val"] if "val" in dataset else None,
+        eval_dataset=eval_dataset,
         processing_class=getattr(processor, "tokenizer"),
         callbacks=load_early_stopping_callback(config) if "val" in dataset else None,
         get_data_collator_fn=model_setup.load_data_collator,
