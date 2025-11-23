@@ -153,6 +153,7 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
     padding: bool | str
     return_tensors: str = "pt"
     training: bool = False
+    normaliser = ta.PeakNormalization(mode="per_batch", p=1.0)
     augmenter = ta.Compose(
         [
             ta.Gain(p=1.0),
@@ -201,17 +202,18 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
             max_length=self.sample_rate * self.max_seconds_per_example,
         )
 
-        # Augment the audio
+        # Normalise and augment the audio
+        input_column = "input_features"
+        inputs: torch.Tensor = batch[input_column]
+        is_2d = inputs.dim() == 2
+        if is_2d:
+            inputs = inputs.unsqueeze(1)  # Add channel dimension
+        inputs = self.normaliser(inputs, sample_rate=self.sample_rate)
         if self.training:
-            input_column = "input_features"
-            inputs: torch.Tensor = batch[input_column]
-            is_2d = inputs.dim() == 2
-            if is_2d:
-                inputs = inputs.unsqueeze(1)  # Add channel dimension
-            augmented_inputs = self.augmenter(inputs, sample_rate=self.sample_rate)
-            if is_2d:
-                augmented_inputs = augmented_inputs.squeeze(1)  # Remove channel dim
-            batch[input_column] = augmented_inputs
+            inputs = self.augmenter(inputs, sample_rate=self.sample_rate)
+        if is_2d:
+            inputs = inputs.squeeze(1)  # Remove channel dim again
+        batch[input_column] = inputs
 
         # Get the tokenized label sequences
         label_features = [{"input_ids": feature["labels"]} for feature in features]
