@@ -190,6 +190,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
             (
                 "val_"
                 + self.config.evaluation_datasets[0].id.split("/")[-1]
+                + "_"
                 + self.config.evaluation_datasets[0].subset
                 + "_cer"
             )
