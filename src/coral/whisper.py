@@ -172,6 +172,14 @@ class WhisperModelSetup(ModelSetup):
         if self.config.early_stopping:
             self.config.save_total_limit = max(self.config.save_total_limit, 1)
 
+        metric_name = (
+            "val_"
+            + self.config.evaluation_datasets[0]
+            .id.split("/")[-1]
+            .lower()
+            .replace("-", "_")
+            + "_cer"
+        )
         args = Seq2SeqTrainingArguments(
             output_dir=self.config.model_dir,
             hub_model_id=f"{self.config.hub_organisation}/{self.config.model_id}",
@@ -196,7 +204,7 @@ class WhisperModelSetup(ModelSetup):
             gradient_checkpointing_kwargs=dict(use_reentrant=False),
             save_total_limit=self.config.save_total_limit,
             load_best_model_at_end=self.config.early_stopping,
-            metric_for_best_model="wer",
+            metric_for_best_model=metric_name,
             greater_is_better=False,
             seed=self.config.seed,
             remove_unused_columns=False,

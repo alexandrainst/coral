@@ -312,7 +312,7 @@ def load_data_for_finetuning(
         for val in vals
     ]
     for dataset_config, split in zip(config.evaluation_datasets, vals):
-        split_name = f"val-{dataset_config.id.split('/')[-1].lower()}"
+        split_name = f"val_{dataset_config.id.split('/')[-1].lower().replace('-', '_')}"
         if dataset_config.subset is not None:
             split_name += f"-{dataset_config.subset}"
         dataset[split_name] = split
