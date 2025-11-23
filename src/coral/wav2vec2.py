@@ -187,12 +187,14 @@ class Wav2Vec2ModelSetup(ModelSetup):
             self.config.save_total_limit = max(self.config.save_total_limit, 1)
 
         metric_name = (
-            "val_"
-            + self.config.evaluation_datasets[0]
-            .id.split("/")[-1]
+            (
+                "val_"
+                + self.config.evaluation_datasets[0].id.split("/")[-1]
+                + self.config.evaluation_datasets[0].subset
+                + "_cer"
+            )
             .lower()
             .replace("-", "_")
-            + "_cer"
         )
         args = TrainingArguments(
             output_dir=self.config.model_dir,
