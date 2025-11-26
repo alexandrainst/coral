@@ -629,10 +629,14 @@ def process_example(
     if processor is None:
         return example
 
-    # Prepare audio
+    # Process audio
     audio = example[audio_column]
     sampling_rate = audio["sampling_rate"]
-    processed = processor(audio["array"], sampling_rate=sampling_rate)
+    processed = processor(
+        audio["array"], sampling_rate=sampling_rate, do_normalize=True
+    )
+
+    # Store the audio
     if "input_values" in processed:
         example["input_values"] = processed.input_values[0]
         example["num_seconds"] = len(example["input_values"]) / sampling_rate

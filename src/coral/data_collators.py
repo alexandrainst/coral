@@ -153,7 +153,6 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
     padding: bool | str
     return_tensors: str = "pt"
     training: bool = False
-    normaliser = ta.PeakNormalization(mode="per_batch", p=1.0)
     augmenter = ta.Compose(
         [
             ta.Gain(p=1.0),
@@ -208,7 +207,6 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
         is_2d = inputs.dim() == 2
         if is_2d:
             inputs = inputs.unsqueeze(1)  # Add channel dimension
-        inputs = self.normaliser(inputs, sample_rate=self.sample_rate)
         if self.training:
             inputs = self.augmenter(inputs, sample_rate=self.sample_rate)
         if is_2d:
