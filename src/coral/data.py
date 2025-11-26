@@ -176,6 +176,7 @@ def load_data_for_finetuning(
             ds = filter_dataset(
                 dataset=ds,
                 audio_column="audio",
+                text_column="text",
                 min_seconds_per_example=config.min_seconds_per_example,
                 max_seconds_per_example=config.max_seconds_per_example,
                 is_main_process=is_main_process,
@@ -365,6 +366,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     dataset = filter_dataset(
         dataset=dataset,
         audio_column=config.audio_column,
+        text_column=config.text_column,
         min_seconds_per_example=config.min_seconds_per_example,
         max_seconds_per_example=config.max_seconds_per_example,
         is_main_process=is_main_process,
@@ -391,6 +393,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
 def filter_dataset(
     dataset: Data,
     audio_column: str,
+    text_column: str,
     min_seconds_per_example: int | float,
     max_seconds_per_example: int,
     is_main_process: bool,
@@ -405,6 +408,8 @@ def filter_dataset(
             The dataset to filter.
         audio_column:
             The name of the column containing the audio.
+        text_column:
+            The name of the column containing the transcriptions.
         min_seconds_per_example:
             The minimum number of seconds that an example can have.
         max_seconds_per_example:
@@ -422,6 +427,7 @@ def filter_dataset(
 
     filter_fn = partial(
         filter_example,
+        text_column=text_column,
         audio_column=audio_column,
         min_seconds_per_example=min_seconds_per_example,
         max_seconds_per_example=max_seconds_per_example,
@@ -450,6 +456,7 @@ def filter_dataset(
 def filter_example(
     sample: dict[str, Any],
     audio_column: str,
+    text_column: str,
     min_seconds_per_example: int | float,
     max_seconds_per_example: int,
 ) -> bool:
@@ -460,6 +467,8 @@ def filter_example(
             The sample to filter.
         audio_column:
             The name of the column containing the audio.
+        text_column:
+            The name of the column containing the transcriptions.
         min_seconds_per_example:
             The minimum number of seconds that an example can have.
         max_seconds_per_example:
@@ -473,6 +482,10 @@ def filter_example(
     if audio["array"].shape[0] <= audio["sampling_rate"] * min_seconds_per_example:
         return False
     if audio["array"].shape[0] >= audio["sampling_rate"] * max_seconds_per_example:
+        return False
+
+    # Filtering based on text
+    if len(sample[text_column].strip()) > 0:
         return False
 
     # Filtering based on validation

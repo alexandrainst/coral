@@ -161,9 +161,6 @@ def compute_metrics_of_dataset_using_pipeline(
     """
     characters_to_keep = "".join(characters_to_keep)
 
-    # Remove empty samples from the dataset
-    dataset = dataset.filter(lambda example: len(example[text_column].strip()) > 0)
-
     labels: list[str] = [lbl.strip().lower() for lbl in dataset[text_column]]
     predictions: list[str] = list()
     metrics = {metric_name: load_metric(metric_name) for metric_name in metric_names}
