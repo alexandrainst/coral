@@ -161,6 +161,9 @@ def compute_metrics_of_dataset_using_pipeline(
     """
     characters_to_keep = "".join(characters_to_keep)
 
+    # Remove empty samples from the dataset
+    dataset = dataset.filter(lambda example: len(example[text_column].strip()) > 0)
+
     labels: list[str] = [lbl.strip().lower() for lbl in dataset[text_column]]
     predictions: list[str] = list()
     metrics = {metric_name: load_metric(metric_name) for metric_name in metric_names}
@@ -192,6 +195,8 @@ def compute_metrics_of_dataset_using_pipeline(
                 metric_name: metric.compute(
                     predictions=[prediction], references=[labels[idx]]
                 )
+                if prediction.strip()
+                else 1.0
                 for metric_name, metric in metrics.items()
             }
             assert all(isinstance(score, float) for score in scores.values()), (
