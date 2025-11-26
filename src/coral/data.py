@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 from unicodedata import normalize
 
+import torch
+import torch_audiomentations as ta
 from datasets import (
     Audio,
     Dataset,
@@ -626,25 +628,38 @@ def process_example(
     # Re-assign the cleaned transcription
     example[text_column] = doc
 
-    if processor is None:
+    # If we do not have any audio, then we return the example, as the remainder of the
+    # function concerns audio processing
+    if audio_column is None:
         return example
 
-    # Process audio
+    # Extract audio from example
     audio = example[audio_column]
+    audio_array = audio["array"]
     sampling_rate = audio["sampling_rate"]
-    processed = processor(
-        audio["array"], sampling_rate=sampling_rate, do_normalize=True
+
+    # Normalise audio
+    normaliser = ta.PeakNormalization(p=1.0)
+    audio_array = normaliser(
+        torch.tensor(audio_array).unsqueeze(0).unsqueeze(0), sample_rate=sampling_rate
+    )[0, 0]
+
+    # If we don't have a processor then we just re-assign the normalised audio and
+    # return the processed example
+    if processor is None:
+        example[audio_column]["array"] = audio_array
+        return example
+
+    # Process the audio
+    processed = processor(audio_array, sampling_rate=sampling_rate)
+    audio_feature_name = (
+        "input_values" if "input_values" in example else "input_features"
     )
+    audio_array = processed[audio_feature_name][0]
+    example[audio_feature_name] = audio_array
+    example["num_seconds"] = len(example[audio_feature_name]) / sampling_rate
 
-    # Store the audio
-    if "input_values" in processed:
-        example["input_values"] = processed.input_values[0]
-        example["num_seconds"] = len(example["input_values"]) / sampling_rate
-    if "input_features" in processed:
-        example["input_features"] = processed.input_features[0]
-        example["num_seconds"] = len(example["input_features"]) / sampling_rate
-
-    # Prepare transcriptions
+    # Process the labels
     example["labels"] = processor(text=example[text_column], truncation=True).input_ids
     example["input_length"] = len(example["labels"])
 
