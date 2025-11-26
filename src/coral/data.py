@@ -434,7 +434,10 @@ def filter_dataset(
     )
     if isinstance(dataset, Dataset | DatasetDict):
         filtered = dataset.filter(
-            function=filter_fn, num_proc=num_proc, desc="Filtering dataset"
+            function=filter_fn,
+            num_proc=num_proc,
+            desc="Filtering dataset",
+            keep_in_memory=True,
         )
     else:
         filtered = dataset.filter(function=filter_fn)
@@ -447,7 +450,7 @@ def filter_dataset(
             dataset[split_name].info.features = filtered[split_name].info.features
 
     if isinstance(dataset, Sized) and is_main_process:
-        num_samples_removed = num_samples_before - len(dataset)
+        num_samples_removed = num_samples_before - len(filtered)
         logger.info(f"Removed {num_samples_removed:,} samples from the dataset")
 
     return filtered
@@ -485,7 +488,7 @@ def filter_example(
         return False
 
     # Filtering based on text
-    if len(sample[text_column].strip()) > 0:
+    if len(sample[text_column].strip()) == 0:
         return False
 
     # Filtering based on validation
