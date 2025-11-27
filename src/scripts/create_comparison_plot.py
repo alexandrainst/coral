@@ -24,9 +24,10 @@ METRIC_NAMES = dict(cer="Character error rate", wer="Word error rate")
     "--evaluation-file",
     "-f",
     multiple=True,
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(path_type=Path),
     help="The path to the CSV evaluation file (generated with the `evaluate_model` "
-    "script.",
+    "script). Can be specified multiple times to compare multiple models. Can also "
+    "specify a glob pattern to compare all matching files.",
     required=True,
 )
 @click.option(
@@ -35,7 +36,7 @@ METRIC_NAMES = dict(cer="Character error rate", wer="Word error rate")
     type=click.Choice(["cer", "wer"]),
     help="The metric to plot.",
 )
-def main(evaluation_file: tuple[Path], metric: str) -> None:
+def main(evaluation_file: tuple[Path, ...], metric: str) -> None:
     """Creates a plot comparing the performance of different models on a dataset.
 
     Args:
@@ -45,6 +46,18 @@ def main(evaluation_file: tuple[Path], metric: str) -> None:
         metric:
             The metric to plot. Either "cer" or "wer".
     """
+    # Glob evaluation files if needed
+    glob_files = [file for file in evaluation_file if "*" in str(file)]
+    if glob_files:
+        evaluation_file = tuple(
+            [
+                file
+                for glob_file in glob_files
+                for file in glob_file.parent.glob(glob_file.name)
+            ]
+            + [file for file in evaluation_file if file not in glob_files]
+        )
+
     assert len({file.stem.split(".")[1] for file in evaluation_file}) == 1, (
         "All evaluation files must be evaluations on the same dataset."
     )
@@ -59,8 +72,8 @@ def main(evaluation_file: tuple[Path], metric: str) -> None:
     df = pd.DataFrame.from_records(
         [df[metric].to_dict() for df in dfs.values()],
         index=[name for name in dfs.keys()],
-    ).T
-    df.plot(
+    ).sort_values(by="overall", ascending=False)
+    df.T.plot(
         kind="bar",
         title=f"{metric_name} by group on {dataset_name} (lower is better)",
         ylabel=METRIC_NAMES[metric.lower()],
