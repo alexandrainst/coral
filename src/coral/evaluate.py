@@ -109,8 +109,8 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     df = convert_evaluation_dataset_to_df(
         dataset=dataset, sub_dialect_to_dialect_mapping=config.sub_dialect_to_dialect
     )
-    for metric_name in config.metrics:
-        df[metric_name] = all_scores[metric_name]
+    df["cer"] = all_scores["cer"]
+    df["wer"] = all_scores["wer"]
     score_df = get_score_df(df=df, categories=["age_group", "gender", "dialect"])
     return score_df
 
