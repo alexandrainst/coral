@@ -23,7 +23,7 @@ from transformers.trainer_utils import EvalPrediction, SchedulerType
 from transformers.training_args import OptimizerNames, TrainingArguments
 from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 
-from .compute_metrics import compute_wer_metrics
+from .compute_metrics import compute_error_rate_metrics
 from .data_collators import DataCollatorSpeechSeq2SeqWithPadding
 from .data_models import ModelSetup, PreTrainedModelData, Processor
 from .trainer_utils import Seq2SeqTrainerWithMultipleDataCollators
@@ -134,7 +134,7 @@ class WhisperModelSetup(ModelSetup):
 
     def load_compute_metrics(self) -> Callable[[EvalPrediction], dict]:
         """Return the function used to compute metrics during training."""
-        return partial(compute_wer_metrics, processor=self.processor)
+        return partial(compute_error_rate_metrics, processor=self.processor)
 
     def load_training_arguments(self) -> TrainingArguments:
         """Return the training arguments for the model."""
@@ -252,7 +252,7 @@ class WhisperModelSetup(ModelSetup):
             max_seconds_per_example=self.config.max_seconds_per_example,
             padding=self.config.padding,
         )
-        compute_metrics = partial(compute_wer_metrics, processor=processor)
+        compute_metrics = partial(compute_error_rate_metrics, processor=processor)
         return PreTrainedModelData(
             processor=processor,
             model=model,

@@ -25,7 +25,7 @@ from transformers.trainer_pt_utils import AcceleratorConfig
 from transformers.trainer_utils import EvalPrediction, SchedulerType
 from transformers.training_args import OptimizerNames, TrainingArguments
 
-from .compute_metrics import compute_wer_metrics
+from .compute_metrics import compute_error_rate_metrics
 from .data_collators import DataCollatorCTCWithPadding
 from .data_models import ModelSetup, PreTrainedModelData, Processor
 from .trainer_utils import TrainerWithMultipleDataCollators
@@ -148,7 +148,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
 
     def load_compute_metrics(self) -> Callable[[EvalPrediction], dict]:
         """Return the compute metrics function for the model."""
-        return partial(compute_wer_metrics, processor=self.processor)
+        return partial(compute_error_rate_metrics, processor=self.processor)
 
     def load_training_arguments(self) -> TrainingArguments:
         """Return the training arguments for the model."""
@@ -282,7 +282,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
             processor=processor,
             model=model,
             data_collator=data_collator,
-            compute_metrics=partial(compute_wer_metrics, processor=processor),
+            compute_metrics=partial(compute_error_rate_metrics, processor=processor),
         )
 
 

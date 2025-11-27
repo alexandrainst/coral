@@ -24,10 +24,10 @@ from .utils import transformers_output_ignored
 logger = logging.getLogger(__package__)
 
 
-def compute_wer_metrics(
+def compute_error_rate_metrics(
     pred: EvalPrediction, processor: Processor, log_examples: bool = True
 ) -> dict[str, float]:
-    """Compute the word error rate of predictions.
+    """Compute the error rates of predictions.
 
     Args:
         pred:
