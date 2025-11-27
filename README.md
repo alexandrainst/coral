@@ -97,24 +97,8 @@ Here are some of the more important available keys:
   to `text`.
 - `audio_column`: The name of the column in the dataset that contains the audio. Defaults
   to `audio`.
-- `detailed`: Only relevant if evaluating on the (default) CoRal test dataset. This will
-  give a detailed evaluation across the different demographics in the dataset. If set to
-  False it will only give the overall scores. Defaults to True.
 
 See all the evaluation options in the `config/evaluation.yaml` file.
-
-You can produce a comparison plot of different models evaluated on the CoRal test
-dataset with `detailed=True` by running the following script:
-
-```bash
-python src/scripts/create_comparison_plot.py \
-  -f EVALUATION_FILE [-f EVALUATION_FILE ...] [--metric METRIC]
-```
-
-Here the `EVALUATION_FILE` arguments are the paths to the evaluation files produced by
-`evaluate_model.py` (they end in `-coral-scores.csv`). The `METRIC` argument is the
-metric to compare on, which can be one of `wer` and `cer`, for the word error rate and
-character error rate, respectively. The default is `cer`.
 
 
 ## Troubleshooting

@@ -10,7 +10,6 @@ from pathlib import Path
 from shutil import rmtree
 
 import hydra
-import pandas as pd
 from dotenv import load_dotenv
 from omegaconf import DictConfig
 
@@ -60,15 +59,7 @@ def main(config: DictConfig) -> None:
         dataset = double_dash_pattern.sub(repl="--", string=dataset)
         dataset = single_dash_pattern.sub(repl="-", string=dataset)
 
-        if config.detailed:
-            filename = Path(f"{model_id}.{dataset}.csv")
-        else:
-            filename = Path("evaluation-results.csv")
-            if filename.exists():
-                score_df = pd.concat(
-                    objs=[pd.read_csv(filename, index_col=False), score_df],
-                    ignore_index=True,
-                )
+        filename = Path(f"{model_id}.{dataset}.csv")
         score_df.to_csv(filename, index=False)
 
 
