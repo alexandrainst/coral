@@ -655,8 +655,7 @@ def process_example(
     sampling_rate = audio["sampling_rate"]
 
     # Normalise audio
-    normaliser = ta.PeakNormalization(p=1.0)
-    audio_array = normaliser(
+    audio_array = ta.PeakNormalization(p=1.0)(
         torch.tensor(audio_array).unsqueeze(0).unsqueeze(0), sample_rate=sampling_rate
     )[0, 0]
 
