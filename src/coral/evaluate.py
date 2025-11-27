@@ -2,9 +2,7 @@
 
 import itertools as it
 import logging
-from collections import defaultdict
 
-import numpy as np
 import pandas as pd
 import torch
 from datasets import Dataset
@@ -50,58 +48,59 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     _, _, all_scores = compute_metrics_of_dataset_using_pipeline(
         dataset=dataset,
         transcriber=transcriber,
-        metric_names=config.metrics,
         characters_to_keep=config.characters_to_keep,
         text_column=config.text_column,
         audio_column=config.audio_column,
         batch_size=config.batch_size,
     )
 
-    if not config.detailed or "coral" not in config.dataset:
-        logger.info("Bootstrapping the scores...")
-        bootstrap_scores = defaultdict(list)
-        bootstrap_std_errs = defaultdict(list)
-        for metric in config.metrics:
-            for bidx in range(config.bootstrap_samples):
-                rng = np.random.default_rng(seed=bidx)
-                bootstrap_sample = rng.choice(
-                    all_scores[metric], size=len(all_scores[metric]), replace=True
-                )
-                mean_score = np.mean(bootstrap_sample)
-                std_error = np.std(bootstrap_sample) / np.sqrt(len(bootstrap_sample))
-                bootstrap_scores[metric].append(mean_score)
-                bootstrap_std_errs[metric].append(std_error)
-        mean_scores = {
-            metric: np.mean(bootstrap_scores[metric]) for metric in config.metrics
-        }
-        std_errs = {
-            metric: np.mean(bootstrap_std_errs[metric]) for metric in config.metrics
-        }
-        score_string = "\n- ".join(
-            [
-                f"{metric.upper()}={mean_score:.1%} ± {1.96 * std_err:.1%}"
-                for metric, mean_score, std_err in zip(
-                    config.metrics, mean_scores.values(), std_errs.values()
-                )
-            ]
-        )
-        logger.info(
-            f"Bootstrap scores of {config.model_id} on {config.dataset}:\n"
-            f"- {score_string}"
-        )
-        df = pd.DataFrame(
-            {
-                "model": [config.model_id],
-                "dataset": [config.dataset],
-                **{
-                    f"{metric}_mean": [mean_scores[metric]] for metric in config.metrics
-                },
-                **{
-                    f"{metric}_std_err": [std_errs[metric]] for metric in config.metrics
-                },
-            }
-        )
-        return df
+    # if not config.detailed or "coral" not in config.dataset:
+    #     logger.info("Bootstrapping the scores...")
+    #     bootstrap_scores = defaultdict(list)
+    #     bootstrap_std_errs = defaultdict(list)
+    #     for metric in config.metrics:
+    #         for bidx in range(config.bootstrap_samples):
+    #             rng = np.random.default_rng(seed=bidx)
+    #             bootstrap_sample = rng.choice(
+    #                 all_scores[metric], size=len(all_scores[metric]), replace=True
+    #             )
+    #             mean_score = np.mean(bootstrap_sample)
+    #             std_error = np.std(bootstrap_sample) / np.sqrt(len(bootstrap_sample))
+    #             bootstrap_scores[metric].append(mean_score)
+    #             bootstrap_std_errs[metric].append(std_error)
+    #     mean_scores = {
+    #         metric: np.mean(bootstrap_scores[metric]) for metric in config.metrics
+    #     }
+    #     std_errs = {
+    #         metric: np.mean(bootstrap_std_errs[metric]) for metric in config.metrics
+    #     }
+    #     score_string = "\n- ".join(
+    #         [
+    #             f"{metric.upper()}={mean_score:.1%} ± {1.96 * std_err:.1%}"
+    #             for metric, mean_score, std_err in zip(
+    #                 config.metrics, mean_scores.values(), std_errs.values()
+    #             )
+    #         ]
+    #     )
+    #     logger.info(
+    #         f"Bootstrap scores of {config.model_id} on {config.dataset}:\n"
+    #         f"- {score_string}"
+    #     )
+    #     df = pd.DataFrame(
+    #         {
+    #             "model": [config.model_id],
+    #             "dataset": [config.dataset],
+    #             **{
+    #                 f"{metric}_mean": [mean_scores[metric]]
+    #                 for metric in config.metrics
+    #             },
+    #             **{
+    #                 f"{metric}_std_err": [std_errs[metric]]
+    #                 for metric in config.metrics
+    #             },
+    #         }
+    #     )
+    #     return df
 
     logger.info(
         "Converting the dataset to a dataframe computing the scores for each "
