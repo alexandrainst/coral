@@ -43,9 +43,6 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     logger.info("Loading the dataset...")
     dataset = load_dataset_for_evaluation(config=config)
 
-    # TEMP
-    dataset = dataset.shuffle(seed=42).select(range(100))
-
     logger.info(f"Loading the {config.model_id!r} ASR model...")
     transcriber = load_asr_pipeline(model_id=config.model_id, no_lm=config.no_lm)
 
