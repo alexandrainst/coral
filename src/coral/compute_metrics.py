@@ -2,13 +2,10 @@
 
 import logging
 import os
-from collections import defaultdict
 from collections.abc import Iterable
-from typing import DefaultDict
 
 import numpy as np
 from datasets import Dataset
-from evaluate.loading import load as load_metric
 from numpy.typing import NDArray
 from tqdm.auto import tqdm
 from transformers import Wav2Vec2ProcessorWithLM
@@ -21,6 +18,7 @@ from transformers.trainer_utils import EvalPrediction
 
 from .data import DEFAULT_CONVERSION_DICT, process_example
 from .data_models import Processor
+from .metrics import cer, wer
 from .utils import transformers_output_ignored
 
 logger = logging.getLogger(__package__)
@@ -43,8 +41,6 @@ def compute_wer_metrics(
         dict:
             dictionary with 'wer' as the key and the word error rate as the value.
     """
-    wer_metric = load_metric("wer")
-    cer_metric = load_metric("cer")
     tokenizer: PreTrainedTokenizerBase = getattr(processor, "tokenizer")
     pad_token = tokenizer.pad_token_id
 
@@ -94,43 +90,24 @@ def compute_wer_metrics(
     is_main_process = os.getenv("RANK", "0") == "0"
     if is_main_process and log_examples:
         random_idx = np.random.randint(0, len(predictions_str))
-        logger.info(f"Sample document: {labels_str[random_idx]}")
-        logger.info(f"Predicted: {predictions_str[random_idx]}")
+        logger.info(f"Random sample document: {labels_str[random_idx]}")
+        logger.info(f"Associated prediction: {predictions_str[random_idx]}")
 
-    metrics: dict[str, float] = dict()
-
-    # Compute the word error rate
-    wer_computed = wer_metric.compute(
-        predictions=predictions_str, references=labels_str
+    metrics: dict[str, float] = dict(
+        cer=cer(predictions=predictions_str, labels=labels_str),
+        wer=wer(predictions=predictions_str, labels=labels_str),
     )
-    assert wer_computed is not None
-    if not isinstance(wer_computed, dict):
-        metrics = metrics | dict(wer=wer_computed)
-    else:
-        metrics = metrics | wer_computed
-
-    # Compute the character error rate
-    cer_computed = cer_metric.compute(
-        predictions=predictions_str, references=labels_str
-    )
-    assert cer_computed is not None
-    if not isinstance(cer_computed, dict):
-        metrics = metrics | dict(cer=cer_computed)
-    else:
-        metrics = metrics | cer_computed
-
     return metrics
 
 
 def compute_metrics_of_dataset_using_pipeline(
     dataset: Dataset,
     transcriber: AutomaticSpeechRecognitionPipeline,
-    metric_names: list[str],
     characters_to_keep: Iterable[str],
     text_column: str,
     audio_column: str,
     batch_size: int,
-) -> tuple[list[str], list[str], dict[str, list[float]]]:
+) -> tuple[list[str], list[str], dict[str, float]]:
     """Compute the metrics for the dataset using a pipeline.
 
     Args:
@@ -138,9 +115,6 @@ def compute_metrics_of_dataset_using_pipeline(
             The dataset to validate.
         transcriber:
             The transcriber used for transcribing the audio.
-        metric_names:
-            The names of the metrics to compute. Needs to be compatible with the name of
-            the metric in the `evaluate` library.
         characters_to_keep:
             The characters to keep in the transcriptions.
         text_column:
@@ -151,31 +125,27 @@ def compute_metrics_of_dataset_using_pipeline(
             The batch size to use for transcribing the audio.
 
     Returns:
-        A triple (predictions, labels, all_scores) where:
+        A triple (predictions, labels, scores) where:
             predictions:
                 The transcriptions predicted by the model.
             labels:
                 The ASR-processed ground-truth labels for each sample.
-            all_scores:
+            scores:
                 A dictionary containing the computed scores for each metric.
     """
     characters_to_keep = "".join(characters_to_keep)
 
     labels: list[str] = [lbl.strip().lower() for lbl in dataset[text_column]]
     predictions: list[str] = list()
-    metrics = {metric_name: load_metric(metric_name) for metric_name in metric_names}
-    all_scores: DefaultDict = defaultdict(list)
 
     with (
         tqdm(total=len(dataset), desc="Transcribing") as pbar,
         transformers_output_ignored(),
     ):
-        for idx, out in enumerate(
-            transcriber(
-                KeyDataset(dataset=dataset, key=audio_column),  # type: ignore[arg-type]
-                batch_size=batch_size,
-                generate_kwargs=dict(language="danish", task="transcribe"),
-            )
+        for out in transcriber(
+            KeyDataset(dataset=dataset, key=audio_column),  # type: ignore[arg-type]
+            batch_size=batch_size,
+            generate_kwargs=dict(language="danish", task="transcribe"),
         ):
             prediction = process_example(
                 example=dict(text=out["text"]),
@@ -187,54 +157,11 @@ def compute_metrics_of_dataset_using_pipeline(
                 convert_numerals=True,
                 processor=None,
             )["text"]
-
-            # Logging if predictions and/or labels are empty
-            empty_prediction = len(prediction.strip()) == 0
-            empty_label = len(labels[idx]) == 0
-            if empty_prediction and empty_label:
-                logger.info("Empty prediction and label! We assign 0% error rate.")
-            elif empty_label:
-                logger.info(
-                    "There was an empty label, but the model predicted "
-                    f"{prediction.strip()!r}. We assign 100% error rate."
-                )
-            elif empty_prediction:
-                logger.info(
-                    "The model predicted nothing, but the label was "
-                    f"{labels[idx].strip()!r}. We assign 100% error rate."
-                )
-
-            scores = {
-                metric_name: metric.compute(
-                    predictions=[prediction], references=[labels[idx]]
-                )
-                if prediction.strip() and labels[idx].strip()
-                else 1.0
-                for metric_name, metric in metrics.items()
-            }
-            assert all(isinstance(score, float) for score in scores.values()), (
-                f"Expected the scores to be floats, but found {scores}"
-            )
-
-            # TEMP
-            logger.info(
-                f"\nPrediction:\t{prediction}\nLabel:\t\t{labels[idx]}\n"
-                + "\n".join(
-                    f"{metric_name}:\t\t{value:.2f}"
-                    for metric_name, value in scores.items()
-                )
-                + "\n"
-            )
-
-            for metric, score in scores.items():
-                all_scores[metric].append(score)
             predictions.append(prediction)
             pbar.update()
-            pbar.set_postfix(
-                {
-                    metric_name: round(np.median(values).item(), 2)
-                    for metric_name, values in all_scores.items()
-                }
-            )
 
-    return predictions, labels, all_scores
+    scores = dict(
+        cer=cer(predictions=predictions, labels=labels),
+        wer=wer(predictions=predictions, labels=labels),
+    )
+    return predictions, labels, scores
