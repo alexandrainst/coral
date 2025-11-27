@@ -138,6 +138,8 @@ def compute_metrics_of_dataset_using_pipeline(
     labels: list[str] = [lbl.strip().lower() for lbl in dataset[text_column]]
     predictions: list[str] = list()
 
+    dataset = dataset.shuffle(seed=42).select(range(100))
+
     with (
         tqdm(total=len(dataset), desc="Transcribing") as pbar,
         transformers_output_ignored(),
