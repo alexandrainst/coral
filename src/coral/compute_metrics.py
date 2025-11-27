@@ -188,11 +188,27 @@ def compute_metrics_of_dataset_using_pipeline(
                 processor=None,
             )["text"]
 
+            # Logging if predictions and/or labels are empty
+            empty_prediction = len(prediction.strip()) == 0
+            empty_label = len(labels[idx]) == 0
+            if empty_prediction and empty_label:
+                logger.info("Empty prediction and label! We assign 0% error rate.")
+            elif empty_label:
+                logger.info(
+                    "There was an empty label, but the model predicted "
+                    f"{prediction.strip()!r}. We assign 100% error rate."
+                )
+            elif empty_prediction:
+                logger.info(
+                    "The model predicted nothing, but the label was "
+                    f"{labels[idx].strip()!r}. We assign 100% error rate."
+                )
+
             scores = {
                 metric_name: metric.compute(
                     predictions=[prediction], references=[labels[idx]]
                 )
-                if prediction.strip()
+                if prediction.strip() and labels[idx].strip()
                 else 1.0
                 for metric_name, metric in metrics.items()
             }
@@ -200,9 +216,25 @@ def compute_metrics_of_dataset_using_pipeline(
                 f"Expected the scores to be floats, but found {scores}"
             )
 
+            # TEMP
+            logger.info(
+                f"\nPrediction:\t{prediction}\nLabel:\t\t{labels[idx]}\n"
+                + "\n".join(
+                    f"{metric_name}:\t\t{value:.2f}"
+                    for metric_name, value in scores.items()
+                )
+                + "\n"
+            )
+
             for metric, score in scores.items():
                 all_scores[metric].append(score)
             predictions.append(prediction)
             pbar.update()
+            pbar.set_postfix(
+                {
+                    metric_name: round(np.median(values).item(), 2)
+                    for metric_name, values in all_scores.items()
+                }
+            )
 
     return predictions, labels, all_scores
