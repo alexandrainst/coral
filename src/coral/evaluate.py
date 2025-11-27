@@ -204,7 +204,7 @@ def get_score_df(df: pd.DataFrame, categories: list[str]) -> pd.DataFrame:
         if combination_str == "":
             combination_str = "entire dataset"
         score_str = ", ".join(
-            f"{key.upper()} = {value:.4f}" for key, value in score_dict.items()
+            f"{key.upper()} = {value:.1%}" for key, value in score_dict.items()
         )
         logger.info(f"Scores for {combination_str}: {score_str}")
 
