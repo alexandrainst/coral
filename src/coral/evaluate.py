@@ -111,11 +111,7 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
     )
     for metric_name in config.metrics:
         df[metric_name] = all_scores[metric_name]
-    score_df = get_score_df(
-        df=df,
-        categories=["age_group", "gender", "dialect"],
-        metric_names=config.metrics,
-    )
+    score_df = get_score_df(df=df, categories=["age_group", "gender", "dialect"])
     return score_df
 
 
@@ -192,9 +188,7 @@ def load_asr_pipeline(model_id: str, no_lm: bool) -> AutomaticSpeechRecognitionP
     return transcriber
 
 
-def get_score_df(
-    df: pd.DataFrame, categories: list[str], metric_names: list[str]
-) -> pd.DataFrame:
+def get_score_df(df: pd.DataFrame, categories: list[str]) -> pd.DataFrame:
     """Get the score DataFrame for the evaluation dataset.
 
     Args:
@@ -203,8 +197,6 @@ def get_score_df(
             for each metric.
         categories:
             The categories to evaluate.
-        metric_names:
-            The names of the metrics to use for evaluation.
 
     Returns:
         The score DataFrame.
@@ -231,9 +223,7 @@ def get_score_df(
 
         # Add the combination to the records
         named_combination = dict(zip(categories, combination))
-        score_dict = {
-            metric_name: df_filtered[metric_name].mean() for metric_name in metric_names
-        }
+        score_dict = dict(cer=df_filtered.cer.mean(), wer=df_filtered.wer.mean())
         records.append(named_combination | score_dict)
 
         # Log the scores
@@ -244,9 +234,8 @@ def get_score_df(
         )
         if combination_str == "":
             combination_str = "entire dataset"
-        score_str = ", ".join(
-            f"{metric_name.upper()}={df_filtered[metric_name].mean():.1%}"
-            for metric_name in metric_names
+        score_str = (
+            f"CER = {df_filtered.cer.mean():.1%}, WER = {df_filtered.wer.mean():.1%}"
         )
         logger.info(f"Scores for {combination_str}: {score_str}")
 

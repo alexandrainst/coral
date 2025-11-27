@@ -133,13 +133,11 @@ def compute_metrics_of_dataset_using_pipeline(
             scores:
                 A dictionary containing the computed scores for each metric.
     """
-    characters_to_keep = "".join(characters_to_keep)
+    # TEMP
+    dataset = dataset.shuffle(seed=42).select(range(100))
 
     labels: list[str] = [lbl.strip().lower() for lbl in dataset[text_column]]
     predictions: list[str] = list()
-
-    dataset = dataset.shuffle(seed=42).select(range(100))
-
     with (
         tqdm(total=len(dataset), desc="Transcribing") as pbar,
         transformers_output_ignored(),
@@ -151,7 +149,7 @@ def compute_metrics_of_dataset_using_pipeline(
         ):
             prediction = process_example(
                 example=dict(text=out["text"]),
-                characters_to_keep=characters_to_keep,
+                characters_to_keep="".join(characters_to_keep),
                 conversion_dict=DEFAULT_CONVERSION_DICT,
                 text_column="text",
                 audio_column=None,
