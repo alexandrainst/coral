@@ -3,6 +3,7 @@
 import logging
 import os
 
+import torch
 from omegaconf import DictConfig
 from transformers.trainer_callback import EarlyStoppingCallback
 
@@ -58,6 +59,7 @@ def finetune(config: DictConfig) -> None:
         data_collator=model_setup.load_data_collator(),
         args=model_setup.load_training_arguments(),
         compute_metrics=model_setup.load_compute_metrics(),
+        compute_loss_func=torch.nn.CrossEntropyLoss(reduction="sum"),
         train_dataset=dataset["train"],
         eval_dataset=eval_dataset,
         processing_class=getattr(processor, "tokenizer"),
