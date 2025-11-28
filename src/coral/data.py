@@ -80,7 +80,9 @@ DEFAULT_CONVERSION_DICT = {
 }
 
 
-FILLER_WORDS_PATTERN = re.compile(pattern=r"\b(eh+m*|øh+m*)\b", flags=re.IGNORECASE)
+FILLER_WORDS_PATTERN = re.compile(
+    pattern=r"\b(eh+m*|øh+m*|h+m+|m+h+)\b", flags=re.IGNORECASE
+)
 
 
 def load_data_for_finetuning(
