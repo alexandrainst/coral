@@ -10,17 +10,21 @@ repos:
       - id: trailing-whitespace
       - id: debug-statements
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.7
+    rev: v0.14.6
     hooks:
       - id: ruff
         args:
           - --fix
+          - --unsafe-fixes
           - --exit-non-zero-on-fix
+          - --no-cache
         types_or:
           - python
           - pyi
           - jupyter
       - id: ruff-format
+        args:
+          - --no-cache
         types_or:
           - python
           - pyi
@@ -29,13 +33,15 @@ repos:
     rev: 0.8.2
     hooks:
     -   id: nbstripout
--   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.0
+-   repo: https://github.com/facebook/pyrefly-pre-commit
+    rev: 0.0.1
     hooks:
-    -   id: mypy
+    -   id: pyrefly-typecheck-system
+        name: Pyrefly (type checking)
+        pass_filenames: true
+-   repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.19.1
+    hooks:
+    -   id: markdownlint-cli2
         args:
-          - --install-types
-          - --non-interactive
-          - --ignore-missing-imports
-          - --show-error-codes
-          - --check-untyped-defs
+          - --fix

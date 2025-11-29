@@ -64,7 +64,6 @@ dev = [
     "readme-coverage-badger>=0.1.2",
     "click>=8.1.7",
     "ruff>=0.7.1",
-    "mypy>=1.15.0",
     "nbstripout>=0.7.1",
     "coverage>=5.5",
     "lxml>=5.1.0",
@@ -80,7 +79,6 @@ target-version = "py311"
 line-length = 88
 exclude = [
     ".git",
-    ".mypy_cache",
     ".pytest_cache",
     ".ruff_cache",
     ".venv",
