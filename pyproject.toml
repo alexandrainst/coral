@@ -158,6 +158,9 @@ testpaths = [
     "src/coral",
 ]
 
+[tool.pyrefly]
+site-package-path = [".venv/lib/python3.11/site-packages"]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
