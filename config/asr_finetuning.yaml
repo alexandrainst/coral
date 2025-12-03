@@ -29,8 +29,8 @@ evaluation_datasets:
 
 # Dataset parameters
 remove_numeric_words: true
-min_seconds_per_example: 0.5
-max_seconds_per_example: 10
+min_seconds_per_example: 1.0
+max_seconds_per_example: 10.0
 dataset_num_workers: 4
 dataloader_num_workers: 4
 streaming: true
