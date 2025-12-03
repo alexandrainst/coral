@@ -55,7 +55,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
         while True:
             try:
                 dump_vocabulary(self.config)
-                tokenizer: Wav2Vec2CTCTokenizer = Wav2Vec2CTCTokenizer.from_pretrained(
+                tokenizer = Wav2Vec2CTCTokenizer.from_pretrained(
                     self.config.model_dir,
                     pad_token="<pad>",
                     unk_token="<unk>",
@@ -64,6 +64,8 @@ class Wav2Vec2ModelSetup(ModelSetup):
                     word_delimiter_token="|",
                     replace_word_delimiter_char=" ",
                 )
+                if not tokenizer:
+                    raise ValueError("Tokenizer could not be loaded.")
                 break
             except json.decoder.JSONDecodeError:
                 log_message = "JSONDecodeError while loading tokenizer"
@@ -110,10 +112,10 @@ class Wav2Vec2ModelSetup(ModelSetup):
                 mask_feature_length=self.config.model.mask_feature_length,
                 layerdrop=self.config.model.layerdrop,
                 ctc_loss_reduction=self.config.model.ctc_loss_reduction,
-                pad_token_id=self.processor.tokenizer.pad_token_id,  # type: ignore[union-attr]
-                bos_token_id=self.processor.tokenizer.bos_token_id,  # type: ignore[union-attr]
-                eos_token_id=self.processor.tokenizer.eos_token_id,  # type: ignore[union-attr]
-                vocab_size=len(self.processor.tokenizer.get_vocab()),  # type: ignore[union-attr]
+                pad_token_id=self.processor.tokenizer.pad_token_id,  # type: ignore[missing-attribute]
+                bos_token_id=self.processor.tokenizer.bos_token_id,  # type: ignore[missing-attribute]
+                eos_token_id=self.processor.tokenizer.eos_token_id,  # type: ignore[missing-attribute]
+                vocab_size=len(self.processor.tokenizer.get_vocab()),  # type: ignore[missing-attribute]
                 ctc_zero_infinity=True,
             )
         assert isinstance(model, Wav2Vec2ForCTC)
@@ -236,7 +238,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
             use_cpu=hasattr(sys, "_called_from_test"),
             dataloader_num_workers=self.config.dataloader_num_workers,
             ddp_find_unused_parameters=False,
-            accelerator_config=AcceleratorConfig(dispatch_batches=False),
+            accelerator_config=AcceleratorConfig(dispatch_batches=False),  #  type: ignore[bad-argument-type]
         )
         return args
 

@@ -59,7 +59,7 @@ class transformers_output_ignored:
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: type[BaseException] | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Exit the context manager."""
         hf_logging.set_verbosity_info()
