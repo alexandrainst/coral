@@ -116,7 +116,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
                 bos_token_id=self.processor.tokenizer.bos_token_id,  # type: ignore[missing-attribute]
                 eos_token_id=self.processor.tokenizer.eos_token_id,  # type: ignore[missing-attribute]
                 vocab_size=len(self.processor.tokenizer.get_vocab()),  # type: ignore[missing-attribute]
-                # ctc_zero_infinity=True,  # TODO: Check if this is needed
+                ctc_zero_infinity=True,
             )
         assert isinstance(model, Wav2Vec2ForCTC)
 
