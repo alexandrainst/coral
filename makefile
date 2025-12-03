@@ -84,6 +84,8 @@ roest-315m:  ## Train the Røst-315M model
 	@OMP_NUM_THREADS=1 \
 		uv run accelerate launch \
 		--use-deepspeed \
+		--zero-stage 2 \
+		--gradient-clipping 1.0 \
 		src/scripts/finetune_asr_model.py \
 		model=wav2vec2-small \
 		datasets=[coral_read_aloud,coral_conversation,ftspeech,nota,coral_tts,youtube] \
