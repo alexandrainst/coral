@@ -197,7 +197,7 @@ def load_data_for_finetuning(
             column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
         )
 
-        all_datasets.append(ds)
+        all_datasets.append(ds)  #  type: ignore[bad-argument-type]
 
     assert len(all_datasets) > 0, "No datasets were loaded"
 
@@ -229,7 +229,7 @@ def load_data_for_finetuning(
         )
 
         train = interleave_datasets(
-            datasets=all_datasets,
+            datasets=all_datasets,  #  type: ignore[bad-argument-type]
             probabilities=probabilities,
             seed=config.seed,
             split=NamedSplit("train"),
@@ -341,6 +341,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
             "dataset..."
         )
 
+    eval_dataset_path = None
     if config.cache_dir:
         eval_dataset_path = (
             Path(config.cache_dir) / "test-sets" / dataset_id.replace("/", "--")
@@ -386,7 +387,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         convert_numerals=True,
     )
 
-    if config.cache_dir:
+    if eval_dataset_path is not None:
         dataset.save_to_disk(dataset_path=eval_dataset_path)
 
     return dataset
@@ -445,17 +446,22 @@ def filter_dataset(
         filtered = dataset.filter(function=filter_fn)
 
     # Add info back in the filtered dataset, as it gets removed after calling `filter`
-    if isinstance(dataset, Dataset | IterableDataset):
+    if isinstance(dataset, Dataset | IterableDataset) and isinstance(
+        filtered, Dataset | IterableDataset
+    ):
         filtered.info.features = dataset.info.features
     else:
+        assert isinstance(dataset, DatasetDict | IterableDatasetDict) and isinstance(
+            filtered, DatasetDict | IterableDatasetDict
+        )
         for split_name in dataset.keys():
             dataset[split_name].info.features = filtered[split_name].info.features
 
-    if isinstance(dataset, Sized) and is_main_process:
+    if isinstance(dataset, Sized) and isinstance(filtered, Sized) and is_main_process:
         num_samples_removed = num_samples_before - len(filtered)
         logger.info(f"Removed {num_samples_removed:,} samples from the dataset")
 
-    return filtered
+    return filtered  #  type: ignore[bad-return]
 
 
 def filter_example(
@@ -546,6 +552,8 @@ def process_dataset(
         column_names = dataset.column_names
     elif isinstance(dataset, DatasetDict) or isinstance(dataset, IterableDatasetDict):
         column_names = dataset["train"].column_names
+    else:
+        raise ValueError(f"Unsupported dataset type: {type(dataset)}")
 
     map_fn = partial(
         process_example,
@@ -567,7 +575,7 @@ def process_dataset(
     else:
         mapped = dataset.map(function=map_fn, remove_columns=column_names)
 
-    return mapped
+    return mapped  #  type: ignore[bad-return]
 
 
 def process_example(
