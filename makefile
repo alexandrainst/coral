@@ -91,7 +91,7 @@ roest-315m:  ## Train the Røst-315M model
 		decoder_datasets=[wikipedia,common_voice,reddit] \
 		push_to_hub=true \
 		dataloader_num_workers=4 \
-		model_id=roest-wav2vec2-315m \
+		model_id=roest-wav2vec2-315m-all-datasets \
 		private=true \
 		per_device_batch_size=64
 
