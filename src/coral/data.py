@@ -250,6 +250,8 @@ def load_data_for_finetuning(
         num_proc=config.dataset_num_workers,
     )
 
+    train = train.filter(function=lambda example: example["input_length"] > 0)
+
     data_dict = dict(train=train)
     dataset = IterableDatasetDict(data_dict)
 
