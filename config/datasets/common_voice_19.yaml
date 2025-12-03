@@ -4,4 +4,4 @@ common_voice_19:
   train_name: train
   text_column: sentence
   audio_column: audio
-  filter_dataset: false
+  filter_dataset: true
