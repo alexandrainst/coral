@@ -73,6 +73,7 @@ eval_steps: 500
 save_steps: 500
 early_stopping: false
 early_stopping_patience: 50
+max_grad_norm: 1.0
 
 # NOTE: This is automatically set to false in a multi-gpu setting
 gradient_checkpointing: true

@@ -225,6 +225,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
             save_strategy="no" if self.config.save_total_limit == 0 else "steps",
             logging_steps=self.config.logging_steps,
             length_column_name="input_length",
+            max_grad_norm=self.config.max_grad_norm,
             gradient_checkpointing=self.config.gradient_checkpointing,
             gradient_checkpointing_kwargs=dict(use_reentrant=False),
             save_total_limit=self.config.save_total_limit,
