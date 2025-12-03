@@ -680,6 +680,7 @@ def process_example(
     audio_feature_name = (
         "input_values" if "input_values" in example else "input_features"
     )
+    logger.info(f"{example.keys() = }")  # TEMP
     audio_array = processed[audio_feature_name][0]
     example[audio_feature_name] = audio_array
     example["num_seconds"] = len(example[audio_feature_name]) / sampling_rate
