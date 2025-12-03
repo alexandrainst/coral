@@ -144,6 +144,12 @@ class WhisperModelSetup(ModelSetup):
         gradient_accumulation_steps = (
             per_device_total_batch_size // self.config.per_device_batch_size
         )
+        logger.info(
+            f"Using a gradient accumulation of {gradient_accumulation_steps} "
+            f"to achieve a total batch size of {self.config.total_batch_size} "
+            f"with {num_devices} devices and a per device batch size of "
+            f"{self.config.per_device_batch_size}."
+        )
 
         if gradient_accumulation_steps == 0:
             if self.is_main_process:
@@ -224,7 +230,7 @@ class WhisperModelSetup(ModelSetup):
             use_cpu=hasattr(sys, "_called_from_test"),
             dataloader_num_workers=self.config.dataloader_num_workers,
             ddp_find_unused_parameters=False,
-            accelerator_config=AcceleratorConfig(dispatch_batches=False),
+            accelerator_config=AcceleratorConfig(dispatch_batches=False),  #  type: ignore[bad-argument-type]
         )
         return args
 

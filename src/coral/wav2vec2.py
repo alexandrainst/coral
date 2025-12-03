@@ -116,7 +116,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
                 bos_token_id=self.processor.tokenizer.bos_token_id,  # type: ignore[missing-attribute]
                 eos_token_id=self.processor.tokenizer.eos_token_id,  # type: ignore[missing-attribute]
                 vocab_size=len(self.processor.tokenizer.get_vocab()),  # type: ignore[missing-attribute]
-                ctc_zero_infinity=True,
+                # ctc_zero_infinity=True,  # TODO: Check if this is needed
             )
         assert isinstance(model, Wav2Vec2ForCTC)
 
@@ -159,6 +159,12 @@ class Wav2Vec2ModelSetup(ModelSetup):
         per_device_total_batch_size = self.config.total_batch_size // num_devices
         gradient_accumulation_steps = (
             per_device_total_batch_size // self.config.per_device_batch_size
+        )
+        logger.info(
+            f"Using a gradient accumulation of {gradient_accumulation_steps} "
+            f"to achieve a total batch size of {self.config.total_batch_size} "
+            f"with {num_devices} devices and a per device batch size of "
+            f"{self.config.per_device_batch_size}."
         )
 
         if gradient_accumulation_steps == 0:
