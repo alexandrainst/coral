@@ -95,35 +95,6 @@ roest-315m:  ## Train the Røst-315M model
 		private=true \
 		per_device_batch_size=64
 
-roest-809m:  ## Train the Røst-809M model
-	@OMP_NUM_THREADS=1 \
-		uv run accelerate launch \
-		--use-deepspeed \
-		src/scripts/finetune_asr_model.py \
-		model=whisper-large-turbo \
-		datasets=[coral_read_aloud,coral_conversation] \
-		dataset_probabilities=[0.5,0.5] \
-		push_to_hub=true \
-		dataloader_num_workers=4 \
-		model_id=roest-whisper-809m \
-		private=true \
-		per_device_batch_size=64
-
-roest-1b:  ## Train the Røst-1B model
-	@OMP_NUM_THREADS=1 \
-		uv run accelerate launch \
-		--use-deepspeed \
-		src/scripts/finetune_asr_model.py \
-		model=wav2vec2-medium \
-		datasets=[coral_read_aloud,coral_conversation] \
-		dataset_probabilities=[0.5,0.5] \
-		decoder_datasets=[wikipedia,common_voice,reddit] \
-		push_to_hub=true \
-		dataloader_num_workers=4 \
-		model_id=roest-wav2vec2-1b \
-		private=true \
-		per_device_batch_size=64
-
 roest-1.5b:  ## Train the Røst-1.5B model
 	@OMP_NUM_THREADS=1 \
 		uv run accelerate launch \
@@ -137,20 +108,5 @@ roest-1.5b:  ## Train the Røst-1.5B model
 		push_to_hub=true \
 		dataloader_num_workers=4 \
 		model_id=roest-whisper-1.5b \
-		private=true \
-		per_device_batch_size=64
-
-roest-2b:  ## Train the Røst-2B model
-	@OMP_NUM_THREADS=1 \
-		uv run accelerate launch \
-		--use-deepspeed \
-		src/scripts/finetune_asr_model.py \
-		model=wav2vec2-large \
-		datasets=[coral_read_aloud,coral_conversation] \
-		dataset_probabilities=[0.5,0.5] \
-		decoder_datasets=[wikipedia,common_voice,reddit] \
-		push_to_hub=true \
-		dataloader_num_workers=4 \
-		model_id=roest-wav2vec2-2b \
 		private=true \
 		per_device_batch_size=64
