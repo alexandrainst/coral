@@ -101,6 +101,8 @@ roest-1.5b:  ## Train the Røst-1.5B model
 	@OMP_NUM_THREADS=1 \
 		uv run accelerate launch \
 		--use-deepspeed \
+		--zero-stage 2 \
+		--gradient-clipping 1.0 \
 		src/scripts/finetune_asr_model.py \
 		model=whisper-large \
 		datasets=[coral_read_aloud,coral_conversation] \
