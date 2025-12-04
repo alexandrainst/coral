@@ -90,7 +90,7 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
             audio_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
-            max_length=self.sample_rate * self.max_seconds_per_example,
+            max_length=int(self.sample_rate * self.max_seconds_per_example),
         )
 
         # Augment the audio
@@ -198,7 +198,7 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
             audio_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
-            max_length=self.sample_rate * self.max_seconds_per_example,
+            max_length=int(self.sample_rate * self.max_seconds_per_example),
         )
 
         # Normalise and augment the audio
