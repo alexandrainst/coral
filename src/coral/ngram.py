@@ -1,5 +1,6 @@
 """Training n-gram language model for Wav2Vec2 models."""
 
+import hashlib
 import io
 import logging
 import os
@@ -188,8 +189,10 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
         Path.home() / ".cache" if config.cache_dir is None else Path(config.cache_dir)
     )
 
-    dataset_hash = hash(
-        tuple([dataset_name for dataset_name in config.decoder_datasets])
+    dataset_hash = hashlib.md5(
+        ",".join([dataset_name for dataset_name in config.decoder_datasets]).encode(
+            "utf-8"
+        )
     )
     sentence_path = cache_dir / f"ngram-sentences-{dataset_hash}.txt"
     breakpoint()
