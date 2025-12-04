@@ -195,7 +195,9 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
         )
     ).hexdigest()
     sentence_path = cache_dir / f"ngram-sentences-{dataset_hash}.txt"
+    breakpoint()
     if sentence_path.exists():
+        logger.info(f"Loading existing sentence corpus from {sentence_path}...")
         return sentence_path
 
     all_datasets: list[Dataset] = list()
