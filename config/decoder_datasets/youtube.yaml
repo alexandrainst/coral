@@ -1,6 +1,0 @@
-youtube:
-  id: overflowwwww/yt-danish-public-v2
-  subset: null
-  train_name: train
-  text_column: text
-  audio_column: audio
