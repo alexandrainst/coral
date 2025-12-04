@@ -69,6 +69,7 @@ dev = [
     "lxml>=5.1.0",
     "pip>=24.3.1",
     "setuptools>=75.6.0",
+    "pyrefly>=0.44.1",
 ]
 
 [tool.uv.sources]
