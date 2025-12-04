@@ -54,6 +54,8 @@ def main(config: DictConfig) -> None:
         model_id = config.model_id
         model_id = double_dash_pattern.sub(repl="--", string=model_id)
         model_id = single_dash_pattern.sub(repl="-", string=model_id)
+        if config.no_lm:
+            model_id += "-no-lm"
 
         dataset = config.dataset
         dataset = double_dash_pattern.sub(repl="--", string=dataset)
