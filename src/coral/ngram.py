@@ -192,6 +192,7 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
         tuple([dataset_name for dataset_name in config.decoder_datasets])
     )
     sentence_path = cache_dir / f"ngram-sentences-{dataset_hash}.txt"
+    breakpoint()
     if sentence_path.exists():
         return sentence_path
 
