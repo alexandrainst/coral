@@ -37,6 +37,7 @@ streaming: true
 cache_dir: null
 
 # Can be `longest`, `max_length` or `do_not_pad`
+# NOTE: This is automatically set to `max_length` in a multi-gpu setting
 padding: longest
 
 # This is a list of the sampling probability of each dataset, where null means that
