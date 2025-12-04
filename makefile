@@ -88,12 +88,12 @@ roest-315m:  ## Train the Røst-315M model
 		--gradient-clipping 1.0 \
 		src/scripts/finetune_asr_model.py \
 		model=wav2vec2-small \
-		datasets=[coral_read_aloud,coral_conversation,ftspeech,nota,coral_tts,youtube] \
-		dataset_probabilities=[0.30,0.30,0.10,0.05,0.05,0.20] \
+		datasets=[coral_read_aloud,coral_conversation] \
+		dataset_probabilities=[0.5,0.5] \
 		decoder_datasets=[wikipedia,reddit] \
 		push_to_hub=true \
 		dataloader_num_workers=4 \
-		model_id=roest-wav2vec2-315m-all-datasets \
+		model_id=roest-wav2vec2-315m \
 		private=true \
 		per_device_batch_size=64
 
