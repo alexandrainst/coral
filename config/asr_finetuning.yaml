@@ -1,10 +1,10 @@
 defaults:
   - model: whisper-xxsmall
   - datasets:
-    - coral
+    - coral_read_aloud
+    - coral_conversation
   - decoder_datasets:
     - wikipedia
-    - common_voice
     - reddit
   - experiment_tracking: wandb
   - override hydra/job_logging: custom
