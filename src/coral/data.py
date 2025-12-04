@@ -250,8 +250,6 @@ def load_data_for_finetuning(
         num_proc=config.dataset_num_workers,
     )
 
-    train = train.filter(function=lambda example: example["num_seconds"] > 0)
-
     data_dict = dict(train=train)
     dataset = IterableDatasetDict(data_dict)
 
@@ -296,6 +294,18 @@ def load_data_for_finetuning(
     vals = [
         load_validation_dataset(dataset_config=dataset_config)
         for dataset_config in config.evaluation_datasets
+    ]
+    vals = [
+        filter_dataset(
+            dataset=val,
+            audio_column="audio",
+            text_column="text",
+            min_seconds_per_example=config.min_seconds_per_example,
+            max_seconds_per_example=config.max_seconds_per_example,
+            is_main_process=is_main_process,
+            num_proc=config.dataset_num_workers,
+        )
+        for val in vals
     ]
     vals = [
         process_dataset(
