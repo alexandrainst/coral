@@ -206,6 +206,7 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
             token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
             cache_dir=str(cache_dir),
             streaming=True,
+            trust_remote_code=True,
         )
         assert isinstance(dataset, IterableDataset)
 
