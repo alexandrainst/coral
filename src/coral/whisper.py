@@ -18,7 +18,6 @@ from transformers import (
     WhisperProcessor,
 )
 from transformers.trainer import Trainer
-from transformers.trainer_pt_utils import AcceleratorConfig
 from transformers.trainer_utils import EvalPrediction, SchedulerType
 from transformers.training_args import OptimizerNames, TrainingArguments
 from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
@@ -230,7 +229,6 @@ class WhisperModelSetup(ModelSetup):
             use_cpu=hasattr(sys, "_called_from_test"),
             dataloader_num_workers=self.config.dataloader_num_workers,
             ddp_find_unused_parameters=False,
-            accelerator_config=AcceleratorConfig(dispatch_batches=False),  #  type: ignore[bad-argument-type]
         )
         return args
 
