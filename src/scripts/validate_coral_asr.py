@@ -52,6 +52,7 @@ def main(config: DictConfig) -> None:
 
     dataset = filter_dataset(
         dataset=dataset,
+        text_column=config.text_column,
         audio_column=config.audio_column,
         min_seconds_per_example=config.min_seconds_per_example,
         max_seconds_per_example=config.max_seconds_per_example,
