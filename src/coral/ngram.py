@@ -334,7 +334,7 @@ def store_ngram_model(ngram_model_path: Path, config: DictConfig) -> None:
     sorted_vocab_list = sorted(vocab_dict.items(), key=lambda item: item[1])
     sorted_vocab_dict = {k.lower(): v for k, v in sorted_vocab_list}
 
-    # Build the processor with LM included and save it
+    # Build the processor with LM included
     decoder = build_ctcdecoder(
         labels=list(sorted_vocab_dict.keys()), kenlm_model_path=str(ngram_model_path)
     )
@@ -343,6 +343,10 @@ def store_ngram_model(ngram_model_path: Path, config: DictConfig) -> None:
         tokenizer=processor.tokenizer,  #  type: ignore[missing-attribute]
         decoder=decoder,
     )
+
+    # Store the processor with LM, where any existing ngram model is removed
+    if Path(config.model_dir / "language_model").exists():
+        shutil.rmtree(Path(config.model_dir / "language_model"))
     processor_with_lm.save_pretrained(config.model_dir)
 
     # Remove the ngram model again, as the `save_pretrained` method also saves the ngram
