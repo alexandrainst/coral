@@ -87,11 +87,7 @@ roest-315m:  ## Train the Røst-315M model
 		--zero-stage 2 \
 		src/scripts/finetune_asr_model.py \
 		model=wav2vec2-small \
-		datasets=[coral_read_aloud,coral_conversation] \
-		dataset_probabilities=[0.5,0.5] \
-		decoder_datasets=[wikipedia,reddit] \
 		push_to_hub=true \
-		dataloader_num_workers=4 \
 		model_id=roest-wav2vec2-315m \
 		private=true \
 		per_device_batch_size=64
@@ -103,12 +99,7 @@ roest-1.5b:  ## Train the Røst-1.5B model
 		--zero-stage 2 \
 		src/scripts/finetune_asr_model.py \
 		model=whisper-large \
-		datasets=[coral_read_aloud,coral_conversation] \
-		dataset_probabilities=[0.5,0.5] \
-		model.learning_rate=5e-6 \
-		max_steps=10000 \
 		push_to_hub=true \
-		dataloader_num_workers=4 \
 		model_id=roest-whisper-1.5b \
 		private=true \
 		per_device_batch_size=64
