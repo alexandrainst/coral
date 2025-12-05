@@ -88,9 +88,10 @@ roest-315m:  ## Train the Røst-315M model
 		src/scripts/finetune_asr_model.py \
 		model=wav2vec2-small \
 		push_to_hub=true \
-		model_id=roest-wav2vec2-315m \
+		model_id=roest-wav2vec2-315m-mean-loss \
 		private=true \
-		per_device_batch_size=64
+		per_device_batch_size=64 \
+		model.ctc_loss_reduction=mean
 
 roest-1.5b:  ## Train the Røst-1.5B model
 	@OMP_NUM_THREADS=1 \
