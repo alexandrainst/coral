@@ -345,7 +345,7 @@ def store_ngram_model(ngram_model_path: Path, config: DictConfig) -> None:
     )
 
     # Store the processor with LM, where any existing ngram model is removed
-    if Path(config.model_dir / "language_model").exists():
+    if Path(config.model_dir, "language_model").exists():
         shutil.rmtree(Path(config.model_dir) / "language_model")
     processor_with_lm.save_pretrained(config.model_dir)
 
