@@ -245,7 +245,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
             dataloader_num_workers=self.config.dataloader_num_workers,
             dataloader_drop_last=True,
             ddp_find_unused_parameters=False,
-            # accelerator_config=AcceleratorConfig(dispatch_batches=False),
+            # accelerator_config=AcceleratorConfig(split_batches=True),
         )
         return args
 
