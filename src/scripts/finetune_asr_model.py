@@ -12,6 +12,7 @@ Usage:
         [key=value] [key=value] ...
 """
 
+import datetime as dt
 import logging
 import os
 
@@ -45,6 +46,14 @@ def main(config: DictConfig) -> None:
     # hyperparameters
     is_main_process = os.getenv("RANK", "0") == "0"
     if os.getenv("WORLD_SIZE") is not None:
+        logger.info(
+            f"Setting PyTorch distributed timeout to {config.distributed_timeout_mins} "
+            "minutes"
+        )
+        torch.distributed.init_process_group(
+            backend="nccl",
+            timeout=dt.timedelta(minutes=config.distributed_timeout_mins),
+        )
         if "layerdrop" in config.model and config.model.layerdrop != 0.0:
             if is_main_process:
                 logger.info(
