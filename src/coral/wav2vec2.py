@@ -244,6 +244,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
             save_safetensors=True,
             use_cpu=hasattr(sys, "_called_from_test"),
             dataloader_num_workers=self.config.dataloader_num_workers,
+            dataloader_drop_last=True,
             ddp_find_unused_parameters=False,
             accelerator_config=AcceleratorConfig(dispatch_batches=False),  #  type: ignore[bad-argument-type]
         )
