@@ -110,6 +110,9 @@ def train_ngram_model(kenlm_build_dir: Path, config: DictConfig) -> Path:
 
     num_ngrams = config.model.decoder_num_ngrams
     correct_ngram_path = Path(config.model_dir) / f"{num_ngrams}gram.arpa"
+    if correct_ngram_path.exists():
+        correct_ngram_path.unlink()
+
     raw_ngram_path = Path(config.model_dir) / f"raw_{num_ngrams}gram.arpa"
     raw_ngram_path.parent.mkdir(parents=True, exist_ok=True)
 
