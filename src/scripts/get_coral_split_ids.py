@@ -148,7 +148,7 @@ def main(config: DictConfig) -> None:
             test_candidates, key=lambda x: candidate_ranks[x]
         )[: config.val_attempts]
 
-        if test_dataset in best_test_candidates:
+        if test_dataset in best_test_candidates and test_dataset is not None:
             idx = best_test_candidates.index(test_dataset)
             best_test_candidates = best_test_candidates[:idx]
             if len(best_test_candidates) == 0:
@@ -162,7 +162,7 @@ def main(config: DictConfig) -> None:
         val_candidates: list[EvalDataset] = list()
         with Parallel(n_jobs=-2, batch_size=10) as parallel:
             for idx, best_test_candidate in enumerate(best_test_candidates):
-                val_candidates = parallel(
+                val_candidates = parallel(  # pyrefly: ignore[bad-assignment]
                     delayed(function=compute_test_candidate)(
                         seed=seed,
                         requirements=dict(
@@ -467,7 +467,7 @@ class EvalDataset:
         Returns:
             The score of the speaker.
         """
-        return sum(weight[row[key]] for key, weight in self.weights.items())
+        return sum(weight[row.loc[key]] for key, weight in self.weights.items())
 
     def __repr__(self) -> str:
         """Return the string representation of the EvalDataset class."""

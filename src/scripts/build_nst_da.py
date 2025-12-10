@@ -355,7 +355,7 @@ def build_huggingface_dataset(dataset_dir: Path | str) -> DatasetDict:
 
         # Remove non-existent audio files
         audio_exists = metadata_df.audio.map(lambda path: Path(path).exists())
-        metadata_df = metadata_df[audio_exists]
+        metadata_df = metadata_df.loc[audio_exists]
 
         metadata_df.to_csv(metadata_path, index=False)
 

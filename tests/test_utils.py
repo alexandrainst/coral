@@ -1,5 +1,7 @@
 """Unit tests for the `utils` module."""
 
+from types import TracebackType
+
 import datasets.utils.logging as ds_logging
 import pytest
 import transformers.utils.logging as hf_logging
@@ -22,7 +24,7 @@ class output_blocked:
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: type[BaseException] | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Unblock terminal output."""
         ds_logging.set_verbosity_warning()

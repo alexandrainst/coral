@@ -233,6 +233,8 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
             audio_column=None,
             convert_numerals=False,
             lower_case=config.model.lower_case,
+            normalise_audio=True,
+            augment_audio=False,
         )
         assert isinstance(dataset, Dataset)
 

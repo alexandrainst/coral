@@ -87,13 +87,13 @@ def main(config: DictConfig) -> None:
         text_column="text",
         audio_column="audio",
         model_id=config.validation.model_id,
-        clean_text=config.validation.clean_text,
         lower_case=config.validation.lower_case,
         sampling_rate=config.validation.sampling_rate,
         characters_to_keep=config.validation.characters_to_keep,
         batch_size=config.validation.batch_size,
         max_cer=config.validation.max_cer,
     )
+    assert isinstance(read_aloud_dataset, Dataset)
 
     logger.info("Splitting the datasets into train, validation and test sets...")
     read_aloud_dataset = split_dataset(
@@ -223,7 +223,9 @@ def build_read_aloud_dataset(
             for subdir in tqdm(audio_subdirs, desc="Collecting audio file paths")
         )
 
-    all_audio_paths_list = list(chain.from_iterable(all_audio_path_lists))
+    all_audio_paths_list = list(
+        chain.from_iterable(all_audio_path_lists)  # pyrefly: ignore[bad-argument-type]
+    )
     all_audio_paths = {path.stem: path for path in all_audio_paths_list}
     logger.info(f"Got {len(all_audio_paths)} audio paths")
 
@@ -502,7 +504,7 @@ def build_conversation_dataset(
     logger.info(f"There are {transcription_lines_count:,} transcribed lines")
 
     processed_conversation_rows = pd.DataFrame(
-        columns=list(conversation_rows.columns)
+        columns=list(conversation_rows.columns)  # pyrefly: ignore[bad-argument-type]
         + list(speaker_rows.columns)
         + ["id_segment", "text", "audio"]
     )

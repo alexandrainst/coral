@@ -2,36 +2,36 @@
 
 import logging
 from collections.abc import Iterable
-from typing import TypeVar
 
 import torch
 from datasets import Audio, Dataset, DatasetDict
+from tqdm.auto import tqdm
 from transformers.pipelines import pipeline
 from transformers.pipelines.automatic_speech_recognition import (
     AutomaticSpeechRecognitionPipeline,
 )
+from transformers.pipelines.base import KeyDataset
 
-from .compute_metrics import compute_metrics_of_dataset_using_pipeline
+from coral.data import DEFAULT_CONVERSION_DICT, process_example
+from coral.utils import transformers_output_ignored
+
 from .data import filter_dataset, process_dataset
+from .metrics import cer, wer
 
 logger = logging.getLogger(__package__)
 
 
-NonIterableData = TypeVar("NonIterableData", bound=Dataset | DatasetDict)
-
-
 def add_validations(
-    dataset: NonIterableData,
+    dataset: Dataset | DatasetDict,
     text_column: str,
     audio_column: str,
     model_id: str,
-    clean_text: bool,
     lower_case: bool,
     sampling_rate: int,
     characters_to_keep: Iterable[str],
     batch_size: int,
     max_cer: float,
-) -> NonIterableData:
+) -> Dataset | DatasetDict:
     """Add the ASR validation columns to the dataset.
 
     Args:
@@ -43,8 +43,6 @@ def add_validations(
             The name of the column containing the audio samples.
         model_id:
             The ID of the ASR model to use for validation.
-        clean_text:
-            Whether to clean the text before transcribing.
         lower_case:
             Whether to lower case the transcriptions.
         sampling_rate:
@@ -72,6 +70,7 @@ def add_validations(
     dataset = filter_dataset(
         dataset=dataset,
         audio_column=audio_column,
+        text_column=text_column,
         min_seconds_per_example=0.25,
         max_seconds_per_example=60 * 60,
         is_main_process=False,
@@ -79,14 +78,16 @@ def add_validations(
 
     processed_dataset = process_dataset(
         dataset=dataset,
-        clean_text=clean_text,
+        lower_case=lower_case,
         characters_to_keep=characters_to_keep,
         text_column=text_column,
         audio_column=audio_column,
         convert_numerals=False,
         remove_input_dataset_columns=False,
-        lower_case=lower_case,
+        normalise_audio=True,
+        augment_audio=False,
     )
+    assert isinstance(dataset, DatasetDict)
 
     logger.info(f"Loading the {model_id!r} ASR model...")
     if torch.cuda.is_available():
@@ -102,21 +103,47 @@ def add_validations(
 
     for split_name, split in processed_dataset.items():
         logger.info(f"Validating the {split_name} split of the dataset...")
-        predictions, labels, score_dict = compute_metrics_of_dataset_using_pipeline(
-            dataset=split,
-            transcriber=transcriber,
-            metric_names=["wer", "cer"],
-            characters_to_keep=characters_to_keep,
-            text_column=text_column,
-            audio_column=audio_column,
-            batch_size=batch_size,
+
+        predictions: list[str] = list()
+        with (
+            tqdm(  # pyrefly: ignore[bad-context-manager]
+                total=len(split), desc="Transcribing"
+            ) as pbar,
+            transformers_output_ignored(),
+        ):
+            for out in transcriber(
+                KeyDataset(  # pyrefly: ignore[bad-argument-type,not-callable]
+                    dataset=split, key=audio_column
+                ),
+                batch_size=batch_size,
+                generate_kwargs=dict(language="danish", task="transcribe"),
+            ):
+                prediction = process_example(
+                    example=dict(text=out["text"]),
+                    characters_to_keep="".join(characters_to_keep),
+                    conversion_dict=DEFAULT_CONVERSION_DICT,
+                    text_column="text",
+                    audio_column=None,
+                    lower_case=True,
+                    convert_numerals=True,
+                    processor=None,
+                    normalise_audio=True,
+                    augment_audio=False,
+                )["text"]
+                predictions.append(prediction)
+                pbar.update()
+
+        # Compute the error rates
+        score_dict = dict(
+            cer=cer(predictions=predictions, labels=split[text_column]),
+            wer=wer(predictions=predictions, labels=split[text_column]),
         )
 
         # Create a new split with the predictions, labels, and scores
         dataset[split_name] = (
             dataset[split_name]
             .add_column(name="asr_prediction", column=predictions)
-            .add_column(name="asr_label", column=labels)
+            .add_column(name="asr_label", column=split[text_column])
             .add_column(name="asr_validation_model", column=[model_id] * len(split))
         )
         for metric_name, scores in score_dict.items():

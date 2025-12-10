@@ -37,15 +37,19 @@ class TestProcessDataset:
         """Test that the `process_dataset` function works as expected."""
         processed_dataset = process_dataset(
             dataset=dataset,
-            clean_text=True,
             characters_to_keep=None,
             text_column="text",
             audio_column=None,
             convert_numerals=False,
             remove_input_dataset_columns=False,
             lower_case=True,
+            normalise_audio=True,
+            augment_audio=False,
         )
-        processed_samples = {sample["text"] for sample in processed_dataset}
+        processed_samples = {
+            sample["text"]  # pyrefly: ignore[bad-index]
+            for sample in processed_dataset
+        }
         expected_samples = {
             "min fortræffelige lille nattergal!",
             "jeg venter grumme meget af den",
@@ -213,9 +217,10 @@ class TestProcessExample:
             conversion_dict=conversion_dict,
             text_column=text_column,
             audio_column=None,
-            clean_text=True,
             lower_case=lower_case,
             convert_numerals=False,
             processor=None,
+            normalise_audio=True,
+            augment_audio=False,
         )[text_column]
         assert cleaned_transcription == expected

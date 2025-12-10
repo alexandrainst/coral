@@ -64,7 +64,6 @@ def main(config: DictConfig) -> None:
         text_column=config.text_column,
         audio_column=config.audio_column,
         model_id=config.model_id,
-        clean_text=config.clean_text,
         lower_case=config.lower_case,
         sampling_rate=config.sampling_rate,
         characters_to_keep=config.characters_to_keep,

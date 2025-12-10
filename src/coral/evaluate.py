@@ -48,7 +48,9 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
 
     predictions: list[str] = list()
     with (
-        tqdm(total=len(dataset), desc="Transcribing") as pbar,
+        tqdm(  # pyrefly: ignore[bad-context-manager]
+            total=len(dataset), desc="Transcribing"
+        ) as pbar,
         transformers_output_ignored(),
     ):
         for out in transcriber(
@@ -65,6 +67,8 @@ def evaluate(config: DictConfig) -> pd.DataFrame:
                 lower_case=True,
                 convert_numerals=True,
                 processor=None,
+                normalise_audio=True,
+                augment_audio=False,
             )["text"]
             predictions.append(prediction)
             pbar.update()

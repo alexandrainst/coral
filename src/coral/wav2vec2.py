@@ -27,7 +27,6 @@ from transformers.training_args import OptimizerNames, TrainingArguments
 from .compute_metrics import compute_error_rate_metrics
 from .data_collators import DataCollatorCTCWithPadding
 from .data_models import ModelSetup, PreTrainedModelData, Processor
-from .trainer_utils import TrainerWithMultipleDataCollators
 from .utils import transformers_output_ignored
 
 logger = logging.getLogger(__package__)
@@ -125,12 +124,8 @@ class Wav2Vec2ModelSetup(ModelSetup):
 
         return model
 
-    def load_data_collator(self, training: bool = True) -> DataCollatorCTCWithPadding:
+    def load_data_collator(self) -> DataCollatorCTCWithPadding:
         """Return the data collator for the model.
-
-        Args:
-            training:
-                Whether the model is currently training.
 
         Returns:
             The data collator.
@@ -140,12 +135,11 @@ class Wav2Vec2ModelSetup(ModelSetup):
             sample_rate=self.config.model.sampling_rate,
             max_seconds_per_example=self.config.max_seconds_per_example,
             padding=self.config.padding,
-            training=training,
         )
 
     def load_trainer_class(self) -> Type[Trainer]:
         """Return the trainer class for the model."""
-        return TrainerWithMultipleDataCollators
+        return Trainer
 
     def load_compute_metrics(self) -> Callable[[EvalPrediction], dict]:
         """Return the compute metrics function for the model."""
