@@ -148,6 +148,7 @@ addopts = [
     '--color=yes',
     '--doctest-modules',
     '--cov=src/coral',
+    '-vvv',
 ]
 xfail_strict = true
 filterwarnings = [
