@@ -246,6 +246,8 @@ def load_data_for_finetuning(
         audio_column="audio",
         convert_numerals=False,
         remove_input_dataset_columns=True,
+        normalise_audio=True,
+        augment_audio=True,
         processor=processor,
         num_proc=config.dataset_num_workers,
     )
@@ -316,6 +318,8 @@ def load_data_for_finetuning(
             audio_column="audio",
             convert_numerals=False,
             remove_input_dataset_columns=True,
+            normalise_audio=True,
+            augment_audio=False,
             processor=processor,
             num_proc=config.dataset_num_workers,
         )
@@ -395,6 +399,8 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         characters_to_keep=config.characters_to_keep,
         text_column=config.text_column,
         audio_column=config.audio_column,
+        normalise_audio=True,
+        augment_audio=False,
         remove_input_dataset_columns=False,
         convert_numerals=True,
     )
@@ -526,6 +532,8 @@ def process_dataset(
     remove_input_dataset_columns: bool,
     audio_column: str | None,
     convert_numerals: bool,
+    normalise_audio: bool,
+    augment_audio: bool,
     num_proc: int | None = None,
     processor: Callable | None = None,
 ) -> Data:
@@ -550,6 +558,10 @@ def process_dataset(
             does not have an audio column.
         convert_numerals:
             Whether to convert numerals to words.
+        normalise_audio:
+            Whether to normalise the audio.
+        augment_audio:
+            Whether to augment the audio.
         num_proc (optional):
             The number of processes to use for processing the dataset. If `None`, then
             no multiprocessing is used. Defaults to `None`.
@@ -576,6 +588,8 @@ def process_dataset(
         lower_case=lower_case,
         convert_numerals=convert_numerals,
         processor=processor,
+        normalise_audio=normalise_audio,
+        augment_audio=augment_audio,
     )
     if isinstance(dataset, Dataset | DatasetDict):
         mapped = dataset.map(
@@ -599,6 +613,8 @@ def process_example(
     lower_case: bool,
     convert_numerals: bool,
     processor: Callable | None,
+    normalise_audio: bool,
+    augment_audio: bool,
 ) -> dict:
     """Helper function which cleans a single example.
 
@@ -622,6 +638,10 @@ def process_example(
         processor:
             The processor to use for processing the audio and transcriptions. If `None`,
             then the processor is not used. Requires `audio_column` to be specified.
+        normalise_audio:
+            Whether to normalise the audio.
+        augment_audio:
+            Whether to augment the audio.
 
     Returns:
         The cleaned example.
@@ -676,8 +696,34 @@ def process_example(
     audio_array = audio["array"]
     sampling_rate = audio["sampling_rate"]
 
-    # Normalise audio
-    audio_array = ta.PeakNormalization(p=1.0)(
+    # Normalise and augment audio
+    normalise = ta.PeakNormalization(p=1.0) if normalise_audio else ta.Identity()
+    augment = (
+        ta.Compose(
+            [
+                ta.PeakNormalization(p=1.0),
+                ta.Gain(p=1.0),
+                ta.AddBackgroundNoise(
+                    background_paths=Path("background-noises"), p=0.7
+                ),
+                ta.AddColoredNoise(p=0.2),
+                ta.OneOf(
+                    [
+                        ta.BandPassFilter(p=1.0),
+                        ta.BandStopFilter(p=1.0),
+                        ta.HighPassFilter(p=1.0),
+                        ta.LowPassFilter(p=1.0),
+                    ],
+                    p=0.2,
+                ),
+            ],
+            p=1.0,
+        )
+        if augment_audio
+        else ta.Identity()
+    )
+    normalise_and_augment = ta.Compose([normalise, augment], p=1.0)
+    audio_array = normalise_and_augment(
         torch.tensor(audio_array).unsqueeze(0).unsqueeze(0), sample_rate=sampling_rate
     )[0, 0]
 
