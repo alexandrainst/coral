@@ -68,7 +68,6 @@ def finetune(config: DictConfig) -> None:
         ]
         if eval_dataset is not None and config.early_stopping
         else None,
-        get_data_collator_fn=model_setup.load_data_collator,
     )
 
     block_terminal_output()
