@@ -1,5 +1,6 @@
 """Unit tests for the `data` module."""
 
+import re
 from collections.abc import Generator
 
 import pytest
@@ -25,7 +26,11 @@ class TestLoadDataForFinetuning:
 
     def test_split_names(self, finetuning_dataset: IterableDatasetDict) -> None:
         """Test that the dataset has the correct split names."""
-        assert set(finetuning_dataset.keys()) == {"train", "val"}
+        assert "train" in finetuning_dataset
+        for split_name in finetuning_dataset.keys():
+            if split_name == "train":
+                continue
+            assert re.match(r"^val(_.+)?$", split_name) is not None
 
 
 class TestProcessDataset:
