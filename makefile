@@ -103,4 +103,5 @@ roest-1.5b:  ## Train the Røst-1.5B model
 		push_to_hub=true \
 		model_id=roest-whisper-1.5b \
 		private=true \
-		per_device_batch_size=64
+		per_device_batch_size=64 \
+		max_steps=30000
