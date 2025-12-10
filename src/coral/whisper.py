@@ -18,6 +18,7 @@ from transformers import (
     WhisperProcessor,
 )
 from transformers.trainer import Trainer
+from transformers.trainer_pt_utils import AcceleratorConfig
 from transformers.trainer_utils import EvalPrediction, SchedulerType
 from transformers.training_args import OptimizerNames, TrainingArguments
 from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
@@ -230,6 +231,9 @@ class WhisperModelSetup(ModelSetup):
             dataloader_num_workers=self.config.dataloader_num_workers,
             dataloader_drop_last=True,
             ddp_find_unused_parameters=False,
+            accelerator_config=AcceleratorConfig(  # pyrefly: ignore[bad-argument-type]
+                dispatch_batches=False
+            ),
         )
         return args
 
