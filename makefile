@@ -93,7 +93,7 @@ roest-315m:  ## Train the Røst-315M model
 		per_device_batch_size=64 \
 		max_steps=100000
 
-roest-1.5b:  ## Train the Røst-1.5B model
+roest-1.5b-30k:  ## Train the Røst-1.5B model
 	@OMP_NUM_THREADS=1 \
 		uv run accelerate launch \
 		--use-deepspeed \
@@ -105,3 +105,16 @@ roest-1.5b:  ## Train the Røst-1.5B model
 		private=true \
 		per_device_batch_size=64 \
 		max_steps=30000
+
+roest-1.5b-100k:  ## Train the Røst-1.5B model
+	@OMP_NUM_THREADS=1 \
+		uv run accelerate launch \
+		--use-deepspeed \
+		--zero-stage 2 \
+		src/scripts/finetune_asr_model.py \
+		model=whisper-large \
+		push_to_hub=true \
+		model_id=roest-whisper-1.5b-100k-steps \
+		private=true \
+		per_device_batch_size=64 \
+		max_steps=100000
