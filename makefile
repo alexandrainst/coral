@@ -104,7 +104,8 @@ roest-1.5b-30k:  ## Train the Røst-1.5B model
 		model_id=roest-whisper-1.5b-30k-steps \
 		private=true \
 		per_device_batch_size=64 \
-		max_steps=30000
+		max_steps=30000 \
+		dataloader_num_workers=0
 
 roest-1.5b-100k:  ## Train the Røst-1.5B model
 	@OMP_NUM_THREADS=1 \
@@ -117,4 +118,5 @@ roest-1.5b-100k:  ## Train the Røst-1.5B model
 		model_id=roest-whisper-1.5b-100k-steps \
 		private=true \
 		per_device_batch_size=64 \
-		max_steps=100000
+		max_steps=100000 \
+		dataloader_num_workers=0
