@@ -225,6 +225,7 @@ class WhisperModelSetup(ModelSetup):
             dataloader_drop_last=True,
             ddp_find_unused_parameters=False,
             accelerator_config=AcceleratorConfig(  # pyrefly: ignore[bad-argument-type]
+                # TODO: See if we can avoid this, as it uses more memory
                 dispatch_batches=False
             ),
         )
