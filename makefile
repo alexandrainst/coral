@@ -76,7 +76,7 @@ tree:  ## Print directory tree
 check:  ## Lint, format, and type-check the code
 	@uv run pre-commit run --all-files
 
-roest-315m-1m:  ## Train the Røst-315M model
+roest-315m-100k:  ## Train the Røst-315M model
 	@OMP_NUM_THREADS=1 \
 		uv run accelerate launch \
 		--use-deepspeed \
@@ -84,10 +84,10 @@ roest-315m-1m:  ## Train the Røst-315M model
 		src/scripts/finetune_asr_model.py \
 		model=wav2vec2-small \
 		push_to_hub=true \
-		model_id=roest-wav2vec2-315m-1M-steps \
+		model_id=roest-wav2vec2-315m-100k-steps-v2 \
 		private=true \
 		per_device_batch_size=64 \
-		max_steps=1000000
+		max_steps=100000
 
 roest-1.5b-30k:  ## Train the Røst-1.5B model
 	@OMP_NUM_THREADS=1 \
