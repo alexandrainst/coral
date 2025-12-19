@@ -8,9 +8,10 @@ Usage:
 """
 
 from pathlib import Path
+from shutil import rmtree
 
 import click
-from datasets import load_dataset
+from huggingface_hub._snapshot_download import snapshot_download
 
 
 @click.command()
@@ -46,8 +47,13 @@ def download_dataset(dataset_id: str, subset: str | None, output_dir: Path) -> N
     dataset_dir = dataset_id.replace("/", "--")
     if subset:
         dataset_dir += f"--{subset}"
-    ds = load_dataset(path=dataset_id, name=subset)
-    ds.save_to_disk(output_dir / dataset_dir)
+    snapshot_download(
+        repo_id=dataset_id,
+        repo_type="dataset",
+        local_dir=output_dir / dataset_dir,
+        cache_dir=output_dir / ".cache",
+    )
+    rmtree(output_dir / ".cache")
 
 
 if __name__ == "__main__":
