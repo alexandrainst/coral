@@ -43,8 +43,11 @@ def download_dataset(dataset_id: str, subset: str | None, output_dir: Path) -> N
         output_dir:
             The directory where the dataset will be saved.
     """
+    dataset_dir = dataset_id.replace("/", "--")
+    if subset:
+        dataset_dir += f"--{subset}"
     ds = load_dataset(path=dataset_id, name=subset)
-    ds.save_to_disk(Path(output_dir, dataset_id.replace("/", "--")))
+    ds.save_to_disk(output_dir / dataset_dir)
 
 
 if __name__ == "__main__":

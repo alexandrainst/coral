@@ -87,7 +87,10 @@ roest-315m-100k:  ## Train the Røst-315M model
 		model_id=roest-wav2vec2-315m-100k-steps-v2 \
 		private=true \
 		per_device_batch_size=64 \
-		max_steps=100000
+		max_steps=100000 \
+		datasets.coral_read_aloud.id=/work/asr-data/CoRal-project--coral-v2--read_aloud \
+		datasets.coral_conversation.id=/work/asr-data/CoRal-project--coral_v3--conversation
+
 
 roest-1.5b-30k:  ## Train the Røst-1.5B model
 	@OMP_NUM_THREADS=1 \
