@@ -57,6 +57,7 @@ def download_and_compile_kenlm(config: DictConfig) -> Path:
     # Install dependencies if on Ubuntu/Debian
     if shutil.which(cmd="apt-get") is not None:
         logger.info("Installing `kenlm` dependencies...")
+        subprocess.run(["sudo", "apt-get", "update"])
         subprocess.run(
             [
                 "sudo",
