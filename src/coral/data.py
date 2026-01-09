@@ -16,7 +16,6 @@ from datasets import (
     IterableDataset,
     IterableDatasetDict,
     NamedSplit,
-    get_dataset_config_info,
     interleave_datasets,
     load_dataset,
 )
@@ -103,7 +102,8 @@ def load_data_for_finetuning(
         if is_main_process:
             logger.info(f"Loading dataset {dataset_name!r}")
 
-        # Load from disk if the dataset ID is a path and it is stored as an arrow dataset
+        # Load from disk if the dataset ID is a path and it is stored as an arrow
+        # dataset
         if Path(dataset_config.id).exists():
             train_path = Path(dataset_config.id) / dataset_config.train_name
             data_files = list(map(str, train_path.glob("data-*.arrow")))
@@ -152,21 +152,12 @@ def load_data_for_finetuning(
                 split=dataset_config.train_name,
                 token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
                 streaming=config.streaming,
-                trust_remote_code=True,
                 cache_dir=config.cache_dir,
             )
 
-            len_datasets.append(
-                get_dataset_config_info(
-                    dataset_config.id, config_name=dataset_config.subset
-                )
-                .splits[dataset_config.train_name]
-                .num_examples
-            )
-
-        assert isinstance(
-            ds, Dataset | IterableDataset
-        ), f"Unsupported dataset type: {type(ds)}"
+        assert isinstance(ds, Dataset | IterableDataset), (
+            f"Unsupported dataset type: {type(ds)}"
+        )
 
         if dataset_config.text_column != "text":
             ds = ds.rename_column(dataset_config.text_column, "text")
@@ -255,7 +246,6 @@ def load_data_for_finetuning(
         split=config.evaluation_dataset.val_name,
         token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
         streaming=True,
-        trust_remote_code=True,
         cache_dir=config.cache_dir,
     )
     assert isinstance(val, IterableDataset)
@@ -329,7 +319,6 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         split=config.eval_split_name,
         revision=dataset_revision,
         token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-        trust_remote_code=True,
         cache_dir=config.cache_dir,
         streaming=True,
     )
@@ -371,7 +360,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
 def filter_dataset(
     dataset: Data,
     audio_column: str,
-    min_seconds_per_example: int,
+    min_seconds_per_example: int | float,
     max_seconds_per_example: int,
     is_main_process: bool,
     num_proc: int | None = None,
@@ -430,7 +419,7 @@ def filter_dataset(
 def filter_example(
     sample: dict[str, Any],
     audio_column: str,
-    min_seconds_per_example: int,
+    min_seconds_per_example: int | float,
     max_seconds_per_example: int,
 ) -> bool:
     """Filter samples based on the validation status.

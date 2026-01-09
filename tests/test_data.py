@@ -3,7 +3,8 @@
 from collections.abc import Generator
 
 import pytest
-from datasets import IterableDatasetDict
+from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict
+from omegaconf import DictConfig
 
 from coral.data import load_data_for_finetuning, process_dataset, process_example
 
@@ -13,16 +14,16 @@ class TestLoadDataForFinetuning:
 
     @pytest.fixture(scope="class")
     def finetuning_dataset(
-        self, finetuning_config
+        self, finetuning_config: DictConfig
     ) -> Generator[IterableDatasetDict, None, None]:
         """Load the dataset for testing."""
         yield load_data_for_finetuning(config=finetuning_config)
 
-    def test_dataset_type(self, finetuning_dataset) -> None:
+    def test_dataset_type(self, finetuning_dataset: IterableDatasetDict) -> None:
         """Test that the dataset is of the correct type."""
         assert isinstance(finetuning_dataset, IterableDatasetDict)
 
-    def test_split_names(self, finetuning_dataset) -> None:
+    def test_split_names(self, finetuning_dataset: IterableDatasetDict) -> None:
         """Test that the dataset has the correct split names."""
         assert set(finetuning_dataset.keys()) == {"train", "val"}
 
@@ -30,7 +31,9 @@ class TestLoadDataForFinetuning:
 class TestProcessDataset:
     """Unit tests for the `process_dataset` function."""
 
-    def test_process_dataset(self, dataset):
+    def test_process_dataset(
+        self, dataset: Dataset | IterableDataset | DatasetDict | IterableDatasetDict
+    ) -> None:
         """Test that the `process_dataset` function works as expected."""
         processed_dataset = process_dataset(
             dataset=dataset,
@@ -196,12 +199,12 @@ class TestProcessExample:
     )
     def test_clean_example(
         self,
-        transcription,
-        characters_to_keep,
-        conversion_dict,
-        text_column,
-        lower_case,
-        expected,
+        transcription: str,
+        characters_to_keep: set[str] | None,
+        conversion_dict: dict[str, str],
+        text_column: str,
+        lower_case: bool,
+        expected: str,
     ) -> None:
         """Test that the `clean_example` function works as expected."""
         example = {text_column: transcription}

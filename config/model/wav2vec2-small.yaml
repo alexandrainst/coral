@@ -1,3 +1,5 @@
+# On a single RTX A4000 (16GiB VRAM), with the default asr_finetuning configuration,
+# ~15 GiB of VRAM were allocated.
 name: wav2vec2-small
 type: wav2vec2
 pretrained_model_id: facebook/wav2vec2-xls-r-300m

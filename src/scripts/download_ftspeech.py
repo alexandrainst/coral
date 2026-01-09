@@ -11,7 +11,7 @@ try:
 except ImportError:
     raise ImportError(
         "To run this script, `selenium` needs to be installed. Please install it with "
-        "`pip install selenium` or `poetry add selenium`."
+        "`pip install selenium` or `uv add selenium`."
     )
 
 import logging
@@ -31,7 +31,7 @@ logger = logging.getLogger("download_ftspeech")
 
 @click.command("Downloads the FTSpeech corpus.")
 @click.argument("download_dir", type=click.Path())
-def main(download_dir) -> None:
+def main(download_dir: str | Path) -> None:
     """Downloads the FTSpeech corpus.
 
     Args:

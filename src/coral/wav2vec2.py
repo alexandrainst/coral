@@ -110,10 +110,10 @@ class Wav2Vec2ModelSetup(ModelSetup):
                 mask_feature_length=self.config.model.mask_feature_length,
                 layerdrop=self.config.model.layerdrop,
                 ctc_loss_reduction=self.config.model.ctc_loss_reduction,
-                pad_token_id=self.processor.tokenizer.pad_token_id,
-                bos_token_id=self.processor.tokenizer.bos_token_id,
-                eos_token_id=self.processor.tokenizer.eos_token_id,
-                vocab_size=len(self.processor.tokenizer.get_vocab()),
+                pad_token_id=self.processor.tokenizer.pad_token_id,  # type: ignore[union-attr]
+                bos_token_id=self.processor.tokenizer.bos_token_id,  # type: ignore[union-attr]
+                eos_token_id=self.processor.tokenizer.eos_token_id,  # type: ignore[union-attr]
+                vocab_size=len(self.processor.tokenizer.get_vocab()),  # type: ignore[union-attr]
                 ctc_zero_infinity=True,
             )
         assert isinstance(model, Wav2Vec2ForCTC)
@@ -214,7 +214,6 @@ class Wav2Vec2ModelSetup(ModelSetup):
             use_cpu=hasattr(sys, "_called_from_test"),
             dataloader_num_workers=self.config.dataloader_num_workers,
             ddp_find_unused_parameters=False,
-            dispatch_batches=False,
         )
         return args
 

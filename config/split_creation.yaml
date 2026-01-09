@@ -1,5 +1,5 @@
 # Dataset parameters
-dataset_path: alexandrainst/coral
+dataset_path: CoRal-project/coral
 dataset_revision: main
 streaming: true
 cache_dir: null

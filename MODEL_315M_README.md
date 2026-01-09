@@ -32,7 +32,7 @@ bootstrapped the results 1000 times and report here the mean scores along with a
 confidence interval (lower is better; best scores in **bold**, second-best in
 *italics*):
 
-| Model | Number of parameters | [CoRal](https://huggingface.co/datasets/alexandrainst/coral/viewer/read_aloud/test) CER | [CoRal](https://huggingface.co/datasets/alexandrainst/coral/viewer/read_aloud/test) WER | [Danish Common Voice 17](https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0/viewer/da/test) CER | [Danish Common Voice 17](https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0/viewer/da/test) WER |
+| Model | Number of parameters | [CoRal](https://huggingface.co/datasets/CoRal-project/coral/viewer/read_aloud/test) CER | [CoRal](https://huggingface.co/datasets/CoRal-project/coral/viewer/read_aloud/test) WER | [Danish Common Voice 17](https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0/viewer/da/test) CER | [Danish Common Voice 17](https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0/viewer/da/test) WER |
 |:---|---:|---:|---:|---:|---:|
 | Røst-315m (this model) | 315M | **6.9% ± 0.2%** | **14.9% ± 0.4%** | *5.1% ± 0.6%* | *13.2% ± 0.8%* |
 | [chcaa/xls-r-300m-danish-nst-cv9](https://hf.co/chcaa/xls-r-300m-danish-nst-cv9) | 315M | 14.4% ± 0.3% | 36.5% ± 0.6% | **4.1% ± 0.5%** | **12.0% ± 0.8%** |
@@ -82,7 +82,7 @@ This model is the result of four different stages of training:
      both audio and transcriptions to perform the speech-to-text task (also known as
      automatic speech recognition). The finetuning data is as follows:
      - The read-aloud training split of the [CoRal
-       dataset](https://huggingface.co/datasets/alexandrainst/coral) (revision
+       dataset](https://huggingface.co/datasets/CoRal-project/coral) (revision
        fb20199b3966d3373e0d3a5ded2c5920c70de99c), consisting of 361 hours of Danish
        read-aloud speech, diverse across dialects, accents, ages and genders.
      - The Danish training split of the [Common Voice 17
@@ -149,6 +149,6 @@ research or development, please cite it as follows:
   author    = {Dan Saattrup Nielsen, Sif Bernstorff Lehmann, Simon Leminen Madsen, Anders Jess Pedersen, Anna Katrine van Zee, Anders Søgaard and Torben Blach},
   title     = {CoRal: A Diverse Danish ASR Dataset Covering Dialects, Accents, Genders, and Age Groups},
   year      = {2024},
-  url       = {https://hf.co/datasets/alexandrainst/coral},
+  url       = {https://hf.co/datasets/CoRal-project/coral},
 }
 ```

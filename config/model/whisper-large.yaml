@@ -1,3 +1,6 @@
+# This config has been used on a RTX 6000 Ada (50GiB VRAM).
+# With the default asr_finetuning configuration, it allocated ~34 GiB and ran for
+# 115 hours to reach 10K steps.
 name: whisper-large
 type: whisper
 pretrained_model_id: openai/whisper-large-v3

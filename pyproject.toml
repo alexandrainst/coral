@@ -1,91 +1,88 @@
-[tool.poetry]
+[project]
 name = "coral"
 version = "0.0.0"
 description = "Danish ASR and TTS models associated with the CoRal project."
-authors = [
-    "Dan Saattrup Nielsen <dan.nielsen@alexandra.dk>",
-]
 readme = "README.md"
-license = "MIT"
-
-[tool.poetry.dependencies]
-python = ">=3.11,<3.13"
-hydra-core = ">=1.1.1"
-evaluate = ">=0.4.0"
-transformers = ">=4.44.2"
-torch = ">=2.0.0"
-librosa = ">=0.10.0"
-soundfile = ">=0.12.1"
-torchaudio = ">=2.0.1"
-pyctcdecode = ">=0.5.0"
-datasets = ">=2.19.0"
-click = ">=8.1.3"
-pydub = ">=0.25.1"
-jiwer = ">=3.0.1"
-wandb = ">=0.15.3"
-accelerate = ">=0.29.3"
-requests = ">=2.31.0"
-openpyxl = ">=3.1.2"
-pycountry = ">=22.3.5"
-wave = ">=0.0.2"
-deepspeed = ">=0.12.3"
-python-dotenv = ">=1.0.1"
-joblib = "^1.4.2"
-kenlm = {url = "https://github.com/kpu/kenlm/archive/master.zip", optional=true}
-gradio = {version = "^5.5.0", optional=true}
-samplerate = {version="^0.2.1", optional=true}
-punctfix = {version="^0.11.1", optional=true}
-matplotlib = {version = "^3.9.2", optional = true}
-mlflow = "^2.17.2"
-
-[tool.poetry.group.dev.dependencies]
-pytest = ">=8.1.1"
-pre-commit = ">=3.6.2"
-lxml = ">=5.1.0"
-pytest-cov = ">=4.1.0"
-readme-coverage-badger = ">=0.1.2"
-ruff = ">=0.6.2"
-mypy = ">=1.11.2"
-nbstripout = ">=0.7.1"
-pdoc = ">=14.5.0"
-jupyterlab = ">=4.2.5"
-ipywidgets = ">=8.1.3"
-
-[tool.poetry.extras]
-kenlm = ["kenlm"]
-demo = ["gradio", "samplerate", "punctfix"]
-plotting = ["matplotlib"]
-all = ["kenlm", "gradio", "samplerate", "punctfix", "matplotlib"]
-
-[tool.pytest.ini_options]
-minversion = "6.0"
-addopts = [
-    '--durations=10',
-    '--color=yes',
-    '--doctest-modules',
-    '--cov=src/coral',
+authors = [
+    {name = "Dan Saattrup Smart", email = "dan.smart@alexandra.dk"},
 ]
-xfail_strict = true
-filterwarnings = [
-    "error",
-    "ignore::UserWarning",
-    "ignore::DeprecationWarning",
-    "ignore::PendingDeprecationWarning",
-    "ignore::ImportWarning",
-    "ignore::FutureWarning",
+maintainers = [
+    {name = "Dan Saattrup Smart", email = "dan.smart@alexandra.dk"},
 ]
-log_cli_level = "info"
-testpaths = ["tests", "src/coral"]
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "accelerate>=1.9.0",
+    "click>=8.2.1",
+    "datasets>=3.6.0,<4.0.0",
+    "deepspeed>=0.17.4",
+    "evaluate>=0.4.5",
+    "hydra-core>=1.1.1",
+    "jiwer>=4.0.0",
+    "joblib>=1.5.1",
+    "librosa>=0.11.0",
+    "mlflow>=3.1.4",
+    "openpyxl>=3.1.5",
+    "progress>=1.6.1",
+    "pycountry>=24.6.1",
+    "pyctcdecode>=0.5.0",
+    "pydub>=0.25.1",
+    "pysubs2>=1.8.0",
+    "python-dotenv>=1.1.1",
+    "requests>=2.32.4",
+    "soundfile>=0.13.1",
+    "torch>=2.7.1",
+    "torchaudio>=2.7.1",
+    "transformers>=4.54.1",
+    "wandb>=0.21.0",
+]
+
+[project.optional-dependencies]
+kenlm = [
+    "kenlm",
+]
+demo = [
+    "gradio>=5.31.0",
+    "samplerate>=0.2.1",
+    "punctfix>=0.11.1",
+]
+plotting = [
+    "matplotlib>=3.9.2",
+]
+
+[project.urls]
+Repository = "https://github.com/CoRal-project/coral"
+Issues = "https://github.com/CoRal-project/coral/issues"
+
+[project.license]
+file = "LICENSE"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.3.3",
+    "pytest-cov>=5.0.0",
+    "pre-commit>=3.8.0",
+    "readme-coverage-badger>=0.1.2",
+    "click>=8.1.7",
+    "ruff>=0.7.1",
+    "mypy>=1.15.0",
+    "nbstripout>=0.7.1",
+    "coverage>=5.5",
+    "lxml>=5.1.0",
+    "pip>=24.3.1",
+    "setuptools>=75.6.0",
+]
+
+[tool.uv.sources]
+kenlm = { url = "https://github.com/kpu/kenlm/archive/master.zip" }
 
 [tool.ruff]
+target-version = "py311"
 line-length = 88
-target-version = "py310"
 exclude = [
     ".git",
     ".mypy_cache",
     ".pytest_cache",
     ".ruff_cache",
-    ".scandeval_cache",
     ".venv",
 ]
 extend-include = [
@@ -99,13 +96,39 @@ docstring-code-format = true
 skip-magic-trailing-comma = true
 
 [tool.ruff.lint]
-extend-select = [
+select = [
+    # isort (imports)
     "I",
+    # pydocstyle (docstrings)
     "D",
+    # pycodestyle errors and warnings (PEP8)
+    "E",
+    "W",
+    # flake-annotations (type hints)
+    "ANN",
+    # Pyflakes
+    "F",
+]
+ignore = [
+    # Type annotations for "self" arguments
+    "ANN101",
+    # Type annotations for "cls" arguments
+    "ANN102",
+    # Type annotations for *args
+    "ANN002",
+    # Type annotations for **kwargs
+    "ANN003",
+    # Docstrings for **kwargs
+    "D417",
 ]
 
 [tool.ruff.lint.extend-per-file-ignores]
-"__init__.py" = ["F401"]
+"__init__.py" = [
+    "F401",
+]
+"src/scripts/main.py" = [
+    "I",
+]
 
 [tool.ruff.lint.isort]
 split-on-trailing-comma = false
@@ -113,6 +136,30 @@ split-on-trailing-comma = false
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    '--durations=10',
+    '--color=yes',
+    '--doctest-modules',
+    '--cov=src/coral',
+]
+xfail_strict = true
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::ImportWarning",
+    "ignore::ResourceWarning",
+    "ignore::FutureWarning",
+]
+log_cli_level = "info"
+testpaths = [
+    "tests",
+    "src/coral",
+]
+
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
