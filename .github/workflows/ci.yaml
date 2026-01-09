@@ -46,4 +46,4 @@ jobs:
       - name: Test with pytest
         run: uv run pytest
         env:
-          HUGGINGFACE_HUB_TOKEN: ${{ secrets.HUGGINGFACE_HUB_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
