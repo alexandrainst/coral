@@ -31,7 +31,6 @@ def finetune(config: DictConfig) -> None:
     processor.save_pretrained(save_directory=config.model_dir)
     model = model_setup.load_model()
     dataset = load_data_for_finetuning(config=config, processor=processor)
-    breakpoint()
 
     extracking_setup: ExTrackingSetup | None = None
     if config.enable_experiment_tracking and is_main_process:
@@ -61,7 +60,7 @@ def finetune(config: DictConfig) -> None:
         compute_metrics=model_setup.load_compute_metrics(),
         train_dataset=dataset["train"],
         eval_dataset=eval_dataset,
-        processing_class=getattr(processor, "tokenizer"),
+        processing_class=processor,  # getattr(processor, "tokenizer"),
         callbacks=[
             EarlyStoppingCallback(
                 early_stopping_patience=config.early_stopping_patience
