@@ -143,6 +143,9 @@ class WhisperModelSetup(ModelSetup):
             f"{self.config.per_device_batch_size}."
         )
 
+        # TEMP
+        gradient_accumulation_steps = 1
+
         if gradient_accumulation_steps == 0:
             if self.is_main_process:
                 logger.warning(
