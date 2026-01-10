@@ -18,7 +18,6 @@ from transformers import (
     WhisperProcessor,
 )
 from transformers.trainer import Trainer
-from transformers.trainer_pt_utils import AcceleratorConfig
 from transformers.trainer_seq2seq import Seq2SeqTrainer
 from transformers.trainer_utils import EvalPrediction, SchedulerType
 from transformers.training_args import OptimizerNames, TrainingArguments
@@ -205,8 +204,8 @@ class WhisperModelSetup(ModelSetup):
             save_strategy="no" if self.config.save_total_limit == 0 else "steps",
             logging_steps=self.config.logging_steps,
             length_column_name="input_length",
-            # gradient_checkpointing=self.config.gradient_checkpointing,
-            # gradient_checkpointing_kwargs=dict(use_reentrant=False),
+            gradient_checkpointing=self.config.gradient_checkpointing,
+            gradient_checkpointing_kwargs=dict(use_reentrant=False),
             save_total_limit=self.config.save_total_limit,
             load_best_model_at_end=self.config.early_stopping,
             metric_for_best_model=metric_name,
@@ -227,10 +226,10 @@ class WhisperModelSetup(ModelSetup):
             dataloader_num_workers=self.config.dataloader_num_workers,
             dataloader_drop_last=True,
             ddp_find_unused_parameters=False,
-            accelerator_config=AcceleratorConfig(
-                # TODO: See if we can avoid this, as it uses more memory
-                dispatch_batches=False
-            ).to_dict(),
+            # accelerator_config=AcceleratorConfig(
+            #     # TODO: See if we can avoid this, as it uses more memory
+            #     dispatch_batches=False
+            # ).to_dict(),
         )
         return args
 
