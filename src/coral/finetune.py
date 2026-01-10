@@ -60,7 +60,7 @@ def finetune(config: DictConfig) -> None:
         compute_metrics=model_setup.load_compute_metrics(),
         train_dataset=dataset["train"],
         eval_dataset=eval_dataset,
-        processing_class=processor,  # getattr(processor, "tokenizer"),
+        processing_class=getattr(processor, "tokenizer"),
         callbacks=[
             EarlyStoppingCallback(
                 early_stopping_patience=config.early_stopping_patience

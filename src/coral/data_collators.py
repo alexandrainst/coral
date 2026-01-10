@@ -176,4 +176,5 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
             labels = labels[:, 1:]
 
         batch["labels"] = labels
+        breakpoint()
         return batch
