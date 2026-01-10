@@ -9,8 +9,6 @@ from pathlib import Path
 from typing import Any
 from unicodedata import normalize
 
-import torch
-import torch_audiomentations as ta
 from datasets import (
     Audio,
     Dataset,
@@ -697,42 +695,39 @@ def process_example(
     sampling_rate = audio["sampling_rate"]
 
     # Normalise and augment audio
-    normalise = ta.PeakNormalization(p=1.0) if normalise_audio else ta.Identity()
-    augment = (
-        ta.Compose(
-            [
-                ta.PeakNormalization(p=1.0),
-                ta.Gain(p=1.0),
-                ta.AddBackgroundNoise(
-                    background_paths=Path("background-noises"), p=0.7
-                ),
-                ta.AddColoredNoise(p=0.2),
-                ta.OneOf(
-                    [
-                        ta.BandPassFilter(p=1.0),
-                        ta.BandStopFilter(p=1.0),
-                        ta.HighPassFilter(p=1.0),
-                        ta.LowPassFilter(p=1.0),
-                    ],
-                    p=0.2,
-                ),
-            ],
-            p=1.0,
-        )
-        if augment_audio
-        else ta.Identity()
-    )
-    normalise_and_augment = ta.Compose([normalise, augment], p=1.0)
-    audio_array = normalise_and_augment(
-        torch.tensor(audio_array).unsqueeze(0).unsqueeze(0), sample_rate=sampling_rate
-    )[0, 0]
+    # normalise = ta.PeakNormalization(p=1.0) if normalise_audio else ta.Identity()
+    # augment = (
+    #     ta.Compose(
+    #         [
+    #             ta.PeakNormalization(p=1.0),
+    #             ta.Gain(p=1.0),
+    #             ta.AddBackgroundNoise(
+    #                 background_paths=Path("background-noises"), p=0.7
+    #             ),
+    #             ta.AddColoredNoise(p=0.2),
+    #             ta.OneOf(
+    #                 [
+    #                     ta.BandPassFilter(p=1.0),
+    #                     ta.BandStopFilter(p=1.0),
+    #                     ta.HighPassFilter(p=1.0),
+    #                     ta.LowPassFilter(p=1.0),
+    #                 ],
+    #                 p=0.2,
+    #             ),
+    #         ],
+    #         p=1.0,
+    #     )
+    #     if augment_audio
+    #     else ta.Identity()
+    # )
+    # normalise_and_augment = ta.Compose([normalise, augment], p=1.0)
+    # audio_array = normalise_and_augment(
+    #     torch.tensor(audio_array).unsqueeze(0).unsqueeze(0), sample_rate=sampling_rate
+    # )[0, 0]
 
     # If we don't have a processor then we just re-assign the normalised audio and
     # return the processed example
     if processor is None:
-        raise ValueError(
-            "If audio processing is required, a processor must be provided"
-        )
         example[audio_column]["array"] = audio_array
         return example
 
