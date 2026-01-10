@@ -177,8 +177,4 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
 
         batch["labels"] = labels
 
-        # TEMP
-        batch_shapes = {k: v.shape for k, v in batch.items()}
-        logger.info(f"{ batch_shapes = }")
-
         return batch
