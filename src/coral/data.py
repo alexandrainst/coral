@@ -254,7 +254,6 @@ def load_data_for_finetuning(
 
     data_dict = dict(train=train)
     dataset = IterableDatasetDict(data_dict)
-    breakpoint()
 
     if is_main_process:
         logger.info("Loading CoRal validation dataset...")
