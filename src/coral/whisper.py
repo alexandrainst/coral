@@ -18,6 +18,7 @@ from transformers import (
     WhisperProcessor,
 )
 from transformers.trainer import Trainer
+from transformers.trainer_pt_utils import AcceleratorConfig
 from transformers.trainer_seq2seq import Seq2SeqTrainer
 from transformers.trainer_utils import EvalPrediction, SchedulerType
 from transformers.training_args import OptimizerNames, TrainingArguments
@@ -226,10 +227,10 @@ class WhisperModelSetup(ModelSetup):
             dataloader_num_workers=self.config.dataloader_num_workers,
             dataloader_drop_last=True,
             ddp_find_unused_parameters=False,
-            # accelerator_config=AcceleratorConfig(
-            #     # TODO: See if we can avoid this, as it uses more memory
-            #     dispatch_batches=False
-            # ).to_dict(),
+            accelerator_config=AcceleratorConfig(
+                # TODO: See if we can avoid this, as it uses more memory
+                dispatch_batches=False
+            ).to_dict(),
         )
         return args
 
