@@ -116,7 +116,7 @@ roest-1.5b-30k:  ## Train the Røst-1.5B model
 		push_to_hub=true \
 		model_id=roest-whisper-1.5b-30k-steps \
 		private=true \
-		per_device_batch_size=1 \
+		per_device_batch_size=8 \
 		max_steps=30000 \
 		datasets.coral_read_aloud.id=/work/asr-data/CoRal-project--coral-v2 \
 		datasets.coral_conversation.id=/work/asr-data/CoRal-project--coral_v3
@@ -131,7 +131,7 @@ roest-1.5b-100k:  ## Train the Røst-1.5B model
 		push_to_hub=true \
 		model_id=roest-whisper-1.5b-100k-steps \
 		private=true \
-		per_device_batch_size=1 \
+		per_device_batch_size=8 \
 		max_steps=100000 \
 		datasets.coral_read_aloud.id=/work/asr-data/CoRal-project--coral-v2 \
 		datasets.coral_conversation.id=/work/asr-data/CoRal-project--coral_v3
