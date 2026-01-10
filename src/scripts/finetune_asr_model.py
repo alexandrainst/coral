@@ -52,15 +52,13 @@ def main(config: DictConfig) -> None:
                     "training with `accelerate`"
                 )
             config.model.layerdrop = 0.0
-        # This causes errors when training Whisper models - maybe this is only required
-        # for Wav2Vec2?
-        # if config.padding != "max_length":
-        #     if is_main_process:
-        #         logger.info(
-        #             "Forcing `padding` to be 'max_length' as this is required in a "
-        #             "multi-GPU training with `accelerate`"
-        #         )
-        #     config.padding = "max_length"
+        if config.padding != "max_length" and config.model.type == "wav2vec2":
+            if is_main_process:
+                logger.info(
+                    "Forcing `padding` to be 'max_length' as this is required in a "
+                    "multi-GPU training of Wav2Vec2 models with `accelerate`"
+                )
+            config.padding = "max_length"
 
     elif torch.cuda.device_count() > 1:
         if is_main_process:
