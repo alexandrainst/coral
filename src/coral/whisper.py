@@ -226,7 +226,7 @@ class WhisperModelSetup(ModelSetup):
             use_cpu=hasattr(sys, "_called_from_test"),
             dataloader_num_workers=self.config.dataloader_num_workers,
             dataloader_drop_last=True,
-            ddp_find_unused_parameters=False,
+            # ddp_find_unused_parameters=False,
             accelerator_config=AcceleratorConfig(
                 # TODO: See if we can avoid this, as it uses more memory
                 dispatch_batches=False
