@@ -30,8 +30,8 @@ evaluation_datasets:
 # Dataset parameters
 min_seconds_per_example: 1.0
 max_seconds_per_example: 10.0
-dataset_num_workers: 4
-dataloader_num_workers: 4
+dataset_num_workers: 1  # TEMP
+dataloader_num_workers: 1  # TEMP
 streaming: true
 cache_dir: null
 
