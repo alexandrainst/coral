@@ -2,6 +2,7 @@
 
 import logging
 import os
+import sys
 from collections.abc import Callable
 from functools import partial
 from pathlib import Path
@@ -19,7 +20,7 @@ from transformers import (
 from transformers.trainer import Trainer
 from transformers.trainer_seq2seq import Seq2SeqTrainer
 from transformers.trainer_utils import EvalPrediction, SchedulerType
-from transformers.training_args import TrainingArguments
+from transformers.training_args import OptimizerNames, TrainingArguments
 from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 
 from .compute_metrics import compute_error_rate_metrics
@@ -157,18 +158,22 @@ class WhisperModelSetup(ModelSetup):
                 )
             gradient_accumulation_steps = 1
 
+        fp16 = False
+        bf16 = False
         if not mps_is_available():
             if self.config.bf16_allowed and torch.cuda.is_bf16_supported():
+                bf16 = True
                 if self.is_main_process:
                     logger.info("Mixed precision training with BF16 enabled.")
             elif self.config.fp16_allowed and torch.cuda.is_available():
+                fp16 = True
                 if self.is_main_process:
                     logger.info("Mixed precision training with FP16 enabled.")
 
         if self.config.early_stopping:
             self.config.save_total_limit = max(self.config.save_total_limit, 1)
 
-        (
+        metric_name = (
             (
                 "val_"
                 + self.config.evaluation_datasets[0].id.split("/")[-1]
@@ -185,42 +190,42 @@ class WhisperModelSetup(ModelSetup):
             hub_private_repo=self.config.private,
             per_device_train_batch_size=self.config.per_device_batch_size,
             per_device_eval_batch_size=self.config.per_device_batch_size,
-            # gradient_accumulation_steps=gradient_accumulation_steps,
+            gradient_accumulation_steps=gradient_accumulation_steps,
             learning_rate=self.config.model.learning_rate,
             lr_scheduler_type=SchedulerType.COSINE,
             warmup_steps=self.config.warmup_steps,
             max_steps=self.config.max_steps,
-            # fp16=fp16,
-            # bf16=bf16,
+            fp16=fp16,
+            bf16=bf16,
             push_to_hub=False,
             eval_strategy="steps",
             eval_steps=self.config.eval_steps,
             save_steps=self.config.save_steps,
             save_strategy="no" if self.config.save_total_limit == 0 else "steps",
             logging_steps=self.config.logging_steps,
-            # length_column_name="input_length",
-            # gradient_checkpointing=self.config.gradient_checkpointing,
-            # gradient_checkpointing_kwargs=dict(use_reentrant=False),
-            # save_total_limit=self.config.save_total_limit,
-            # load_best_model_at_end=self.config.early_stopping,
-            # metric_for_best_model=metric_name,
-            # greater_is_better=False,
-            # seed=self.config.seed,
-            # remove_unused_columns=False,
-            # optim=OptimizerNames.ADAMW_TORCH,
-            # adam_beta1=self.config.adam_first_momentum,
-            # adam_beta2=self.config.adam_second_momentum,
-            # report_to=[self.config.experiment_tracking.type]
-            # if self.config.enable_experiment_tracking
-            # else [],
-            # ignore_data_skip=self.config.ignore_data_skip,
-            # save_safetensors=True,
+            length_column_name="input_length",
+            gradient_checkpointing=self.config.gradient_checkpointing,
+            gradient_checkpointing_kwargs=dict(use_reentrant=False),
+            save_total_limit=self.config.save_total_limit,
+            load_best_model_at_end=self.config.early_stopping,
+            metric_for_best_model=metric_name,
+            greater_is_better=False,
+            seed=self.config.seed,
+            remove_unused_columns=False,
+            optim=OptimizerNames.ADAMW_TORCH,
+            adam_beta1=self.config.adam_first_momentum,
+            adam_beta2=self.config.adam_second_momentum,
+            report_to=[self.config.experiment_tracking.type]
+            if self.config.enable_experiment_tracking
+            else [],
+            ignore_data_skip=self.config.ignore_data_skip,
+            save_safetensors=True,
             predict_with_generate=True,
             generation_max_length=self.config.model.max_length,
-            # use_cpu=hasattr(sys, "_called_from_test"),
-            # dataloader_num_workers=self.config.dataloader_num_workers,
-            # dataloader_drop_last=True,
-            # ddp_find_unused_parameters=False,
+            use_cpu=hasattr(sys, "_called_from_test"),
+            dataloader_num_workers=self.config.dataloader_num_workers,
+            dataloader_drop_last=True,
+            ddp_find_unused_parameters=False,
             # accelerator_config=AcceleratorConfig(
             #     # TODO: See if we can avoid this, as it uses more memory
             #     dispatch_batches=False
