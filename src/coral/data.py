@@ -730,6 +730,9 @@ def process_example(
     # If we don't have a processor then we just re-assign the normalised audio and
     # return the processed example
     if processor is None:
+        raise ValueError(
+            "If audio processing is required, a processor must be provided"
+        )
         example[audio_column]["array"] = audio_array
         return example
 

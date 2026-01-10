@@ -257,10 +257,9 @@ class WhisperModelSetup(ModelSetup):
             max_seconds_per_example=self.config.max_seconds_per_example,
             padding=self.config.padding,
         )
-        compute_metrics = partial(compute_error_rate_metrics, processor=processor)
         return PreTrainedModelData(
             processor=processor,
             model=model,
             data_collator=data_collator,
-            compute_metrics=compute_metrics,
+            compute_metrics=partial(compute_error_rate_metrics, processor=processor),
         )
