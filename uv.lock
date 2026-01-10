@@ -446,7 +446,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "accelerate", specifier = "==1.9.0" },
+    { name = "accelerate", specifier = ">=1.9.0" },
     { name = "click", specifier = ">=8.2.1" },
     { name = "datasets", specifier = ">=3.6.0,<4.0.0" },
     { name = "deepspeed", specifier = ">=0.17.4" },
@@ -471,7 +471,7 @@ requires-dist = [
     { name = "soundfile", specifier = ">=0.13.1" },
     { name = "torch-audiomentations", specifier = ">=0.12.0" },
     { name = "torchaudio", specifier = ">=2.6.0,<2.7.0" },
-    { name = "transformers", specifier = "==4.54.1" },
+    { name = "transformers", specifier = ">=4.54.1" },
     { name = "wandb", specifier = ">=0.23.1" },
 ]
 provides-extras = ["kenlm", "demo", "plotting"]

@@ -11,7 +11,7 @@ maintainers = [
 ]
 requires-python = ">=3.11,<3.13"
 dependencies = [
-    "accelerate==1.9.0",
+    "accelerate>=1.9.0",
     "click>=8.2.1",
     "datasets>=3.6.0,<4.0.0",
     "deepspeed>=0.17.4",
@@ -31,7 +31,7 @@ dependencies = [
     "soundfile>=0.13.1",
     "torch-audiomentations>=0.12.0",
     "torchaudio>=2.6.0,<2.7.0",  # Upper bound for compatibility with audiomentations
-    "transformers==4.54.1",
+    "transformers>=4.54.1",
     "wandb>=0.23.1",
 ]
 
