@@ -6,6 +6,8 @@ import os
 from omegaconf import DictConfig
 from transformers.trainer_callback import EarlyStoppingCallback
 
+from coral.data import download_background_noises
+
 from .data import load_data_for_finetuning
 from .data_models import ModelSetup
 from .experiment_tracking import ExTrackingSetup, load_extracking_setup
@@ -23,6 +25,8 @@ def finetune(config: DictConfig) -> None:
         config:
             The Hydra configuration object.
     """
+    download_background_noises()
+
     # Note if we're on the main process, if we are running in a distributed setting
     is_main_process = os.getenv("RANK", "0") == "0"
 
