@@ -47,7 +47,11 @@ def main(evaluation_file: tuple[Path, ...], metric: str) -> None:
             The metric to plot. Either "cer" or "wer".
     """
     # Glob evaluation files if needed
-    glob_files = [file for file in evaluation_file if "*" in str(file)]
+    glob_files = [
+        file if "*.csv" in file.name else Path(file.as_posix().replace("*", "*.csv"))
+        for file in evaluation_file
+        if "*" in file.name
+    ]
     if glob_files:
         evaluation_file = tuple(
             [
@@ -55,7 +59,7 @@ def main(evaluation_file: tuple[Path, ...], metric: str) -> None:
                 for glob_file in glob_files
                 for file in glob_file.parent.glob(glob_file.name)
             ]
-            + [file for file in evaluation_file if file not in glob_files]
+            + [file for file in evaluation_file if "*" not in file.name]
         )
 
     assert len({file.stem.split(".")[1] for file in evaluation_file}) == 1, (
