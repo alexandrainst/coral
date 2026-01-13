@@ -238,8 +238,16 @@ def load_data_for_finetuning(
 
         probabilities = config.dataset_probabilities
         if probabilities is None:
-            probabilities = [n / sum(len_datasets) for n in len_datasets]
-            probabilities[-1] = 1 - sum(probabilities[:-1])
+            if any(n is None for n in len_datasets):
+                logger.warning(
+                    "Some datasets have unknown lengths; defaulting to uniform "
+                    "sampling probabilities across datasets."
+                )
+                probabilities = [1.0 / len(len_datasets)] * len(len_datasets)
+            else:
+                total_len = sum(len_datasets)  # type: ignore[arg-type]
+                probabilities = [n / total_len for n in len_datasets]  # type: ignore[operator]
+                probabilities[-1] = 1 - sum(probabilities[:-1])
 
         elif sum(probabilities) != 1:
             raise ValueError(
