@@ -9,7 +9,7 @@ description: >
   [RØST](https://huggingface.co/CoRal-project/roest-whisper-large-v1) er en talegenkendelsesmodel udviklet som en del af Grand Solution projektet: [CoRal](https://alexandra.dk/coral/). RØST er designet til at fremme dansk taleteknologi ved at tilbyde en åben og transparent model, der er tilgængelig for alle og kan anvendes til en bred vifte af formål.
 
 
-  I CoRal-projektet er der indsamlet et omfattende datasæt med danske taledata, som kan bruges til at forbedre talegenkendelsesteknologier på dansk. Datasættet indeholder både oplæst tale og samtaledata fra et bredt og repræsentativt udsnit af den danske befolkning - inklusive dialekter og accenter. Dette danner grundlaget for udvikling af talegenkendelsesmodeller, der kan bruges af hele den danske befolkning og give adgang kunstig intelligens i stor skala.
+  I CoRal-projektet er der indsamlet et omfattende datasæt med danske taledata, som kan bruges til at forbedre talegenkendelsesteknologier på dansk. Datasættet indeholder både oplæst tale og samtaledata fra et bredt og repræsentativt udsnit af den danske befolkning - inklusive dialekter og accenter. Dette danner grundlaget for udvikling af talegenkendelsesmodeller, der kan bruges af hele den danske befolkning og give adgang til kunstig intelligens i stor skala.
 
 
   Sådan bruger du CoRal:
