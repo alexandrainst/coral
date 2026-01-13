@@ -52,6 +52,7 @@ def main(config: DictConfig) -> None:
 
     dataset = filter_dataset(
         dataset=dataset,
+        text_column=config.text_column,
         audio_column=config.audio_column,
         min_seconds_per_example=config.min_seconds_per_example,
         max_seconds_per_example=config.max_seconds_per_example,
@@ -63,7 +64,6 @@ def main(config: DictConfig) -> None:
         text_column=config.text_column,
         audio_column=config.audio_column,
         model_id=config.model_id,
-        clean_text=config.clean_text,
         lower_case=config.lower_case,
         sampling_rate=config.sampling_rate,
         characters_to_keep=config.characters_to_keep,

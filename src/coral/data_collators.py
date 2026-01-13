@@ -1,5 +1,6 @@
 """Data collators for the models."""
 
+import logging
 from dataclasses import dataclass
 
 import torch
@@ -9,6 +10,8 @@ from transformers.tokenization_utils_base import BatchEncoding
 
 from .data_models import Processor
 
+logger = logging.getLogger(__package__)
+
 
 @dataclass
 class DataCollatorCTCWithPadding(DataCollatorMixin):
@@ -17,6 +20,8 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
     Args:
         processor:
             The processor used for proccessing the data.
+        sample_rate:
+            The sample rate that the audio is in.
         max_seconds_per_example:
             The maximum number of seconds per example.
         padding:
@@ -32,10 +37,10 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
             * False or 'do_not_pad':
                 No padding (i.e., can output a batch with sequences of different
                 lengths).
-            Defaults to True.
     """
 
     processor: Processor
+    sample_rate: int
     max_seconds_per_example: float
     padding: bool | str
     return_tensors: str = "pt"
@@ -59,14 +64,19 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
             raise ValueError(
                 "Features must contain either 'input_values' or 'audio' key."
             )
+
+        # Get the batch
         batch: BatchFeature = self.processor.pad(  # type: ignore[union-attr]
             audio_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
-            max_length=16_000 * self.max_seconds_per_example,
+            max_length=int(self.sample_rate * self.max_seconds_per_example),
         )
 
+        # Get the tokenized label sequences
         label_features = [dict(input_ids=feature["labels"]) for feature in features]
+
+        # Pad the labels to max length
         labels_batch: BatchEncoding = self.processor.pad(  # type: ignore[union-attr]
             labels=label_features,
             padding=self.padding,
@@ -89,6 +99,8 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
     Args:
         processor:
             The processor used for proccessing the data.
+        sample_rate:
+            The sample rate that the audio is in.
         max_seconds_per_example:
             The maximum number of seconds per example.
         padding:
@@ -104,12 +116,12 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
             * False or 'do_not_pad':
                 No padding (i.e., can output a batch with sequences of different
                 lengths).
-            Defaults to True.
     """
 
     processor: Processor
+    sample_rate: int
     max_seconds_per_example: float
-    padding: bool | str = True
+    padding: bool | str
     return_tensors: str = "pt"
 
     def torch_call(self, features: list[dict]) -> BatchFeature:
@@ -133,11 +145,13 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
             raise ValueError(
                 "Features must contain either 'input_features' or 'audio' key."
             )
+
+        # Get the batch
         batch = self.processor.feature_extractor.pad(  # type: ignore[union-attr]
             audio_features,
             padding=self.padding,
             return_tensors=self.return_tensors,
-            max_length=16_000 * self.max_seconds_per_example,
+            max_length=int(self.sample_rate * self.max_seconds_per_example),
         )
 
         # Get the tokenized label sequences
@@ -162,4 +176,5 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
             labels = labels[:, 1:]
 
         batch["labels"] = labels
+
         return batch

@@ -9,6 +9,7 @@ import re
 import warnings
 from functools import partialmethod
 from pathlib import Path
+from types import TracebackType
 
 import datasets.utils.logging as ds_logging
 import tqdm as tqdm_package
@@ -22,7 +23,7 @@ from datasets import (
 )
 from huggingface_hub import CommitInfo, upload_folder
 from tqdm.auto import tqdm
-from transformers import Trainer
+from transformers.trainer import Trainer
 
 logger = logging.getLogger(__package__)
 
@@ -44,6 +45,7 @@ def block_terminal_output() -> None:
     logging.getLogger("transformers.models.whisper").setLevel(logging.ERROR)
     logging.getLogger("transformers.generation.utils").setLevel(logging.ERROR)
     logging.getLogger("huggingface_hub.utils").setLevel(logging.ERROR)
+    os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
 
 
 class transformers_output_ignored:
@@ -57,7 +59,7 @@ class transformers_output_ignored:
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: type[BaseException] | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Exit the context manager."""
         hf_logging.set_verbosity_info()
@@ -122,6 +124,7 @@ def convert_iterable_dataset_to_dataset(
     if cache_dir is None:
         cache_dir = Path.home() / ".cache" / "huggingface" / "datasets"
 
+    dataset_dir = None
     if dataset_id is not None:
         dataset_dir = Path(cache_dir) / dataset_id
         if dataset_dir.exists():
@@ -131,7 +134,7 @@ def convert_iterable_dataset_to_dataset(
     num_examples = None if splits_info is None else splits_info[split_name].num_examples
 
     def gen_from_iterable_dataset() -> c.Generator[dict, None, None]:
-        yield from tqdm(
+        yield from tqdm(  #  type: ignore[invalid-yield]
             iterable=iterable_dataset,
             total=num_examples,
             desc="Converting iterable dataset to regular dataset",
@@ -146,7 +149,7 @@ def convert_iterable_dataset_to_dataset(
         )
     assert isinstance(dataset, Dataset)
 
-    if dataset_id is not None:
+    if dataset_dir is not None:
         dataset_dir.mkdir(exist_ok=True, parents=True)
         dataset.save_to_disk(str(dataset_dir))
 
@@ -164,7 +167,7 @@ class no_datasets_progress_bars:
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: type[BaseException] | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Re-enable the progress bar."""
         enable_progress_bar()

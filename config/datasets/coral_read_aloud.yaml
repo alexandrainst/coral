@@ -1,7 +1,7 @@
-coral:
-  id: CoRal-project/coral
+coral_read_aloud:
+  id: CoRal-project/coral-v2
   subset: read_aloud
   train_name: train
   text_column: text
   audio_column: audio
-  filter_dataset: false
+  filter_dataset: true

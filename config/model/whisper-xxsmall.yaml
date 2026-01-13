@@ -6,9 +6,8 @@ pretrained_model_id: openai/whisper-tiny
 freeze_feature_encoder: false
 
 # Data hyperparameters
-lower_case: true
-clean_text: true
-normalize_audio: true
+lower_case: false
+characters_to_keep: null
 
 # Model hyperparameters
 sampling_rate: 16_000

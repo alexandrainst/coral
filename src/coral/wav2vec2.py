@@ -14,19 +14,17 @@ import torch
 from omegaconf import DictConfig
 from torch.backends.mps import is_available as mps_is_available
 from transformers import (
-    EvalPrediction,
-    SchedulerType,
-    Trainer,
-    TrainingArguments,
     Wav2Vec2CTCTokenizer,
     Wav2Vec2FeatureExtractor,
     Wav2Vec2ForCTC,
     Wav2Vec2Processor,
     Wav2Vec2ProcessorWithLM,
 )
-from transformers.trainer import OptimizerNames
+from transformers.trainer import Trainer
+from transformers.trainer_utils import EvalPrediction, SchedulerType
+from transformers.training_args import OptimizerNames, TrainingArguments
 
-from .compute_metrics import compute_wer_metrics
+from .compute_metrics import compute_error_rate_metrics
 from .data_collators import DataCollatorCTCWithPadding
 from .data_models import ModelSetup, PreTrainedModelData, Processor
 from .utils import transformers_output_ignored
@@ -55,7 +53,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
         while True:
             try:
                 dump_vocabulary(self.config)
-                tokenizer: Wav2Vec2CTCTokenizer = Wav2Vec2CTCTokenizer.from_pretrained(
+                tokenizer = Wav2Vec2CTCTokenizer.from_pretrained(
                     self.config.model_dir,
                     pad_token="<pad>",
                     unk_token="<unk>",
@@ -64,6 +62,8 @@ class Wav2Vec2ModelSetup(ModelSetup):
                     word_delimiter_token="|",
                     replace_word_delimiter_char=" ",
                 )
+                if not tokenizer:
+                    raise ValueError("Tokenizer could not be loaded.")
                 break
             except json.decoder.JSONDecodeError:
                 log_message = "JSONDecodeError while loading tokenizer"
@@ -110,10 +110,10 @@ class Wav2Vec2ModelSetup(ModelSetup):
                 mask_feature_length=self.config.model.mask_feature_length,
                 layerdrop=self.config.model.layerdrop,
                 ctc_loss_reduction=self.config.model.ctc_loss_reduction,
-                pad_token_id=self.processor.tokenizer.pad_token_id,  # type: ignore[union-attr]
-                bos_token_id=self.processor.tokenizer.bos_token_id,  # type: ignore[union-attr]
-                eos_token_id=self.processor.tokenizer.eos_token_id,  # type: ignore[union-attr]
-                vocab_size=len(self.processor.tokenizer.get_vocab()),  # type: ignore[union-attr]
+                pad_token_id=self.processor.tokenizer.pad_token_id,  # type: ignore[missing-attribute]
+                bos_token_id=self.processor.tokenizer.bos_token_id,  # type: ignore[missing-attribute]
+                eos_token_id=self.processor.tokenizer.eos_token_id,  # type: ignore[missing-attribute]
+                vocab_size=len(self.processor.tokenizer.get_vocab()),  # type: ignore[missing-attribute]
                 ctc_zero_infinity=True,
             )
         assert isinstance(model, Wav2Vec2ForCTC)
@@ -125,9 +125,14 @@ class Wav2Vec2ModelSetup(ModelSetup):
         return model
 
     def load_data_collator(self) -> DataCollatorCTCWithPadding:
-        """Return the data collator for the model."""
+        """Return the data collator for the model.
+
+        Returns:
+            The data collator.
+        """
         return DataCollatorCTCWithPadding(
             processor=self.processor,
+            sample_rate=self.config.model.sampling_rate,
             max_seconds_per_example=self.config.max_seconds_per_example,
             padding=self.config.padding,
         )
@@ -138,7 +143,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
 
     def load_compute_metrics(self) -> Callable[[EvalPrediction], dict]:
         """Return the compute metrics function for the model."""
-        return partial(compute_wer_metrics, processor=self.processor)
+        return partial(compute_error_rate_metrics, processor=self.processor)
 
     def load_training_arguments(self) -> TrainingArguments:
         """Return the training arguments for the model."""
@@ -147,6 +152,12 @@ class Wav2Vec2ModelSetup(ModelSetup):
         per_device_total_batch_size = self.config.total_batch_size // num_devices
         gradient_accumulation_steps = (
             per_device_total_batch_size // self.config.per_device_batch_size
+        )
+        logger.info(
+            f"Using a gradient accumulation of {gradient_accumulation_steps} "
+            f"to achieve a total batch size of {self.config.total_batch_size} "
+            f"with {num_devices} devices and a per device batch size of "
+            f"{self.config.per_device_batch_size}."
         )
 
         if gradient_accumulation_steps == 0:
@@ -176,6 +187,17 @@ class Wav2Vec2ModelSetup(ModelSetup):
         if self.config.early_stopping:
             self.config.save_total_limit = max(self.config.save_total_limit, 1)
 
+        metric_name = (
+            (
+                "val_"
+                + self.config.evaluation_datasets[0].id.split("/")[-1]
+                + "_"
+                + self.config.evaluation_datasets[0].subset
+                + "_cer"
+            )
+            .lower()
+            .replace("-", "_")
+        )
         args = TrainingArguments(
             output_dir=self.config.model_dir,
             hub_model_id=f"{self.config.hub_organisation}/{self.config.model_id}",
@@ -196,10 +218,12 @@ class Wav2Vec2ModelSetup(ModelSetup):
             save_strategy="no" if self.config.save_total_limit == 0 else "steps",
             logging_steps=self.config.logging_steps,
             length_column_name="input_length",
+            max_grad_norm=self.config.max_grad_norm,
             gradient_checkpointing=self.config.gradient_checkpointing,
+            gradient_checkpointing_kwargs=dict(use_reentrant=False),
             save_total_limit=self.config.save_total_limit,
             load_best_model_at_end=self.config.early_stopping,
-            metric_for_best_model="wer",
+            metric_for_best_model=metric_name,
             greater_is_better=False,
             seed=self.config.seed,
             remove_unused_columns=False,
@@ -207,12 +231,13 @@ class Wav2Vec2ModelSetup(ModelSetup):
             adam_beta1=self.config.adam_first_momentum,
             adam_beta2=self.config.adam_second_momentum,
             report_to=[self.config.experiment_tracking.type]
-            if self.config.experiment_tracking
+            if self.config.enable_experiment_tracking
             else [],
             ignore_data_skip=self.config.ignore_data_skip,
             save_safetensors=True,
             use_cpu=hasattr(sys, "_called_from_test"),
             dataloader_num_workers=self.config.dataloader_num_workers,
+            dataloader_drop_last=True,
             ddp_find_unused_parameters=False,
         )
         return args
@@ -250,6 +275,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
 
         data_collator = DataCollatorCTCWithPadding(
             processor=processor,
+            sample_rate=self.config.model.sampling_rate,
             max_seconds_per_example=self.config.max_seconds_per_example,
             padding=self.config.padding,
         )
@@ -258,7 +284,7 @@ class Wav2Vec2ModelSetup(ModelSetup):
             processor=processor,
             model=model,
             data_collator=data_collator,
-            compute_metrics=partial(compute_wer_metrics, processor=processor),
+            compute_metrics=partial(compute_error_rate_metrics, processor=processor),
         )
 
 
@@ -272,7 +298,7 @@ def dump_vocabulary(config: DictConfig) -> None:
             The Hydra configuration object.
     """
     # Build the set of all unique characters in the dataset
-    unique_characters: set[str] = set(config.characters_to_keep + "|")
+    unique_characters: set[str] = set(config.model.characters_to_keep + "|")
     sorted_unique_characters: list[str] = sorted(unique_characters)
 
     # Build vocabulary

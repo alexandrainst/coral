@@ -1,0 +1,7 @@
+coral_conversation:
+  id: CoRal-project/coral_v3
+  subset: conversation
+  train_name: train
+  text_column: text
+  audio_column: audio
+  filter_dataset: true

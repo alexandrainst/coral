@@ -1,7 +1,7 @@
 name: CI
 
 on:
-  pull_request:
+  pull_request_target:
     types:
       - opened
       - synchronize
@@ -10,32 +10,53 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
 jobs:
   code-check:
     if: github.event.pull_request.draft == false
+    permissions:
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-      - uses: pre-commit/action@v3.0.1
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          ref: main
+
+      - name: Install uv and set up Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: false
+          python-version: "3.11"
+
+      - name: Run pre-commit hooks
+        uses: pre-commit/action@v3.0.1
 
   pytest:
     if: github.event.pull_request.draft == false
+    permissions:
+      contents: read
+      pull-requests: write
     strategy:
         matrix:
             os: [ubuntu-latest]
             python-version: ["3.11"]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
+          ref: main
 
       - name: Install ffmpeg
         uses: FedericoCarboni/setup-ffmpeg@v2
 
       - name: Install uv and set up Python
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
         with:
           enable-cache: false
           python-version: ${{ matrix.python-version }}

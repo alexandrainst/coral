@@ -1,5 +1,6 @@
 """Training n-gram language model for Wav2Vec2 models."""
 
+import hashlib
 import io
 import logging
 import os
@@ -56,6 +57,7 @@ def download_and_compile_kenlm(config: DictConfig) -> Path:
     # Install dependencies if on Ubuntu/Debian
     if shutil.which(cmd="apt-get") is not None:
         logger.info("Installing `kenlm` dependencies...")
+        subprocess.run(["sudo", "apt-get", "update"])
         subprocess.run(
             [
                 "sudo",
@@ -110,7 +112,7 @@ def train_ngram_model(kenlm_build_dir: Path, config: DictConfig) -> Path:
     num_ngrams = config.model.decoder_num_ngrams
     correct_ngram_path = Path(config.model_dir) / f"{num_ngrams}gram.arpa"
     if correct_ngram_path.exists():
-        return correct_ngram_path
+        correct_ngram_path.unlink()
 
     raw_ngram_path = Path(config.model_dir) / f"raw_{num_ngrams}gram.arpa"
     raw_ngram_path.parent.mkdir(parents=True, exist_ok=True)
@@ -188,11 +190,14 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
         Path.home() / ".cache" if config.cache_dir is None else Path(config.cache_dir)
     )
 
-    dataset_hash = hash(
-        tuple([dataset_name for dataset_name in config.decoder_datasets])
-    )
+    dataset_hash = hashlib.md5(
+        ",".join([dataset_name for dataset_name in config.decoder_datasets]).encode(
+            "utf-8"
+        )
+    ).hexdigest()
     sentence_path = cache_dir / f"ngram-sentences-{dataset_hash}.txt"
     if sentence_path.exists():
+        logger.info(f"Loading existing sentence corpus from {sentence_path}...")
         return sentence_path
 
     all_datasets: list[Dataset] = list()
@@ -206,6 +211,7 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
             token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
             cache_dir=str(cache_dir),
             streaming=True,
+            trust_remote_code=True,
         )
         assert isinstance(dataset, IterableDataset)
 
@@ -222,14 +228,14 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
 
         dataset = process_dataset(
             dataset=dataset,
-            clean_text=config.model.clean_text,
-            lower_case=config.model.lower_case,
-            characters_to_keep=config.characters_to_keep,
-            remove_input_dataset_columns=False,
+            characters_to_keep=config.model.characters_to_keep,
             text_column="text",
+            remove_input_dataset_columns=False,
             audio_column=None,
             convert_numerals=False,
-            normalize_audio=config.model.normalize_audio,
+            lower_case=config.model.lower_case,
+            normalise_audio=True,
+            augment_audio=False,
         )
         assert isinstance(dataset, Dataset)
 
@@ -259,7 +265,7 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
     # Load the evaluation sentences, which are not allowed to be in the training dataset
     evaluation_config = DictConfig(
         dict(
-            dataset="CoRal-project/coral::read_aloud",
+            dataset="CoRal-project/coral-v2::read_aloud",
             cache_dir=cache_dir,
             eval_split_name="test",
             text_column="text",
@@ -267,7 +273,6 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
             sampling_rate=16_000,
             min_seconds_per_example=0.0,
             max_seconds_per_example=1e6,
-            clean_text=config.model.clean_text,
             lower_case=config.model.lower_case,
             characters_to_keep="abcdefghijklmnopqrstuvwxyzæøå0123456789éü",
         )
@@ -299,7 +304,7 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
     with Parallel(n_jobs=-2) as parallel:
         tuples = parallel(
             delayed(remove_evaluation_sentences)(sentence=sentence)
-            for sentence in tqdm(sentences, desc="Removing evaluation sentences")
+            for sentence in tqdm(sentences, desc="Removing evaluation sentences")  #  type: ignore[not-iterable]
         )
     sentences = [t[0] for t in tuples if t is not None]
     number_of_sentences_changed = sum(t[1] for t in tuples if t is not None)
@@ -328,19 +333,23 @@ def store_ngram_model(ngram_model_path: Path, config: DictConfig) -> None:
     processor = Wav2Vec2Processor.from_pretrained(config.model_dir)
 
     # Extract the vocabulary, which will be used to build the CTC decoder
-    vocab_dict: dict[str, int] = processor.tokenizer.get_vocab()
+    vocab_dict: dict[str, int] = processor.tokenizer.get_vocab()  #  type: ignore[missing-attribute]
     sorted_vocab_list = sorted(vocab_dict.items(), key=lambda item: item[1])
     sorted_vocab_dict = {k.lower(): v for k, v in sorted_vocab_list}
 
-    # Build the processor with LM included and save it
+    # Build the processor with LM included
     decoder = build_ctcdecoder(
         labels=list(sorted_vocab_dict.keys()), kenlm_model_path=str(ngram_model_path)
     )
     processor_with_lm = Wav2Vec2ProcessorWithLM(
-        feature_extractor=processor.feature_extractor,
-        tokenizer=processor.tokenizer,
+        feature_extractor=processor.feature_extractor,  #  type: ignore[missing-attribute]
+        tokenizer=processor.tokenizer,  #  type: ignore[missing-attribute]
         decoder=decoder,
     )
+
+    # Store the processor with LM, where any existing ngram model is removed
+    if Path(config.model_dir, "language_model").exists():
+        shutil.rmtree(Path(config.model_dir) / "language_model")
     processor_with_lm.save_pretrained(config.model_dir)
 
     # Remove the ngram model again, as the `save_pretrained` method also saves the ngram

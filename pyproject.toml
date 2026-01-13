@@ -15,7 +15,6 @@ dependencies = [
     "click>=8.2.1",
     "datasets>=3.6.0,<4.0.0",
     "deepspeed>=0.17.4",
-    "evaluate>=0.4.5",
     "hydra-core>=1.1.1",
     "jiwer>=4.0.0",
     "joblib>=1.5.1",
@@ -30,10 +29,10 @@ dependencies = [
     "python-dotenv>=1.1.1",
     "requests>=2.32.4",
     "soundfile>=0.13.1",
-    "torch>=2.7.1",
-    "torchaudio>=2.7.1",
+    "torch-audiomentations>=0.12.0",
+    "torchaudio>=2.6.0,<2.7.0",  # Upper bound for compatibility with audiomentations
     "transformers>=4.54.1",
-    "wandb>=0.21.0",
+    "wandb>=0.23.1",
 ]
 
 [project.optional-dependencies]
@@ -42,8 +41,8 @@ kenlm = [
 ]
 demo = [
     "gradio>=5.31.0",
-    "samplerate>=0.2.1",
     "punctfix>=0.11.1",
+    "samplerate>=0.2.2",
 ]
 plotting = [
     "matplotlib>=3.9.2",
@@ -56,20 +55,20 @@ Issues = "https://github.com/CoRal-project/coral/issues"
 [project.license]
 file = "LICENSE"
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pytest>=8.3.3",
     "pytest-cov>=5.0.0",
     "pre-commit>=3.8.0",
     "readme-coverage-badger>=0.1.2",
     "click>=8.1.7",
     "ruff>=0.7.1",
-    "mypy>=1.15.0",
     "nbstripout>=0.7.1",
     "coverage>=5.5",
     "lxml>=5.1.0",
     "pip>=24.3.1",
     "setuptools>=75.6.0",
+    "pyrefly>=0.45.0",
 ]
 
 [tool.uv.sources]
@@ -80,7 +79,6 @@ target-version = "py311"
 line-length = 88
 exclude = [
     ".git",
-    ".mypy_cache",
     ".pytest_cache",
     ".ruff_cache",
     ".venv",
@@ -136,6 +134,12 @@ split-on-trailing-comma = false
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
+[tool.pyrefly.errors]
+missing-import = false
+missing-attribute = false
+not-iterable = false
+no-matching-overload = false
+
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = [
@@ -143,6 +147,7 @@ addopts = [
     '--color=yes',
     '--doctest-modules',
     '--cov=src/coral',
+    '-vvv',
 ]
 xfail_strict = true
 filterwarnings = [
@@ -159,6 +164,9 @@ testpaths = [
     "tests",
     "src/coral",
 ]
+
+[tool.pyrefly]
+site-package-path = [".venv/lib/python3.11/site-packages"]
 
 [build-system]
 requires = ["hatchling"]

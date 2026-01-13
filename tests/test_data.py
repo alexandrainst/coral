@@ -1,5 +1,6 @@
 """Unit tests for the `data` module."""
 
+import re
 from collections.abc import Generator
 
 import pytest
@@ -25,7 +26,11 @@ class TestLoadDataForFinetuning:
 
     def test_split_names(self, finetuning_dataset: IterableDatasetDict) -> None:
         """Test that the dataset has the correct split names."""
-        assert set(finetuning_dataset.keys()) == {"train", "val"}
+        assert "train" in finetuning_dataset
+        for split_name in finetuning_dataset.keys():
+            if split_name == "train":
+                continue
+            assert re.match(r"^val(_.+)?$", split_name) is not None
 
 
 class TestProcessDataset:
@@ -37,16 +42,19 @@ class TestProcessDataset:
         """Test that the `process_dataset` function works as expected."""
         processed_dataset = process_dataset(
             dataset=dataset,
-            clean_text=True,
-            lower_case=True,
             characters_to_keep=None,
             remove_input_dataset_columns=False,
             text_column="text",
             audio_column=None,
             convert_numerals=False,
-            normalize_audio=False,
+            lower_case=True,
+            normalise_audio=True,
+            augment_audio=False,
         )
-        processed_samples = {sample["text"] for sample in processed_dataset}
+        processed_samples = {
+            sample["text"]  # pyrefly: ignore[bad-index]
+            for sample in processed_dataset
+        }
         expected_samples = {
             "min fortræffelige lille nattergal!",
             "jeg venter grumme meget af den",
@@ -214,10 +222,10 @@ class TestProcessExample:
             conversion_dict=conversion_dict,
             text_column=text_column,
             audio_column=None,
-            clean_text=True,
             lower_case=lower_case,
             convert_numerals=False,
-            normalize_audio=False,
             processor=None,
+            normalise_audio=True,
+            augment_audio=False,
         )[text_column]
         assert cleaned_transcription == expected

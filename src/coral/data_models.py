@@ -7,15 +7,15 @@ from typing import Type, TypeAlias
 
 from omegaconf import DictConfig
 from transformers import (
-    EvalPrediction,
     PreTrainedModel,
-    Trainer,
-    TrainingArguments,
     Wav2Vec2Processor,
     Wav2Vec2ProcessorWithLM,
     WhisperProcessor,
 )
 from transformers.data.data_collator import DataCollatorMixin
+from transformers.trainer import Trainer
+from transformers.trainer_utils import EvalPrediction
+from transformers.training_args import TrainingArguments
 
 Processor: TypeAlias = Wav2Vec2Processor | Wav2Vec2ProcessorWithLM | WhisperProcessor
 

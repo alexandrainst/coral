@@ -5,11 +5,11 @@ Usage:
 """
 
 import logging
+import re
 from pathlib import Path
 from shutil import rmtree
 
 import hydra
-import pandas as pd
 from dotenv import load_dotenv
 from omegaconf import DictConfig
 
@@ -48,18 +48,21 @@ def main(config: DictConfig) -> None:
             rmtree(path=model_dir)
 
     if config.store_results:
-        model_id_without_slashes = config.model_id.replace("/", "--")
-        if "coral" in config.dataset and config.detailed:
-            filename = Path(f"{model_id_without_slashes}-coral-scores.csv")
-            score_df.to_csv(filename, index=False)
-        else:
-            filename = Path("evaluation-results.csv")
-            if filename.exists():
-                score_df = pd.concat(
-                    objs=[pd.read_csv(filename, index_col=False), score_df],
-                    ignore_index=True,
-                )
-            score_df.to_csv(filename, index=False)
+        single_dash_pattern = re.compile(r"\.|\:\:")
+        double_dash_pattern = re.compile(r"\/")
+
+        model_id = config.model_id
+        model_id = double_dash_pattern.sub(repl="--", string=model_id)
+        model_id = single_dash_pattern.sub(repl="-", string=model_id)
+        if config.no_lm:
+            model_id += "-no-lm"
+
+        dataset = config.dataset
+        dataset = double_dash_pattern.sub(repl="--", string=dataset)
+        dataset = single_dash_pattern.sub(repl="-", string=dataset)
+
+        filename = Path(f"{model_id}.{dataset}.csv")
+        score_df.to_csv(filename, index=False)
 
 
 if __name__ == "__main__":

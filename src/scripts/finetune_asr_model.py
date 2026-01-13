@@ -49,19 +49,16 @@ def main(config: DictConfig) -> None:
             if is_main_process:
                 logger.info(
                     "Forcing `layerdrop` to be 0.0 as this is required in a multi-GPU "
-                    "training"
+                    "training with `accelerate`"
                 )
             config.model.layerdrop = 0.0
-
-        # TODO: This doesn't seem to be changed anymore, but keeping it here for some
-        #       time in case we need to re-enable it.
-        # if config.padding != "max_length":
-        #    if is_main_process:
-        #        logger.info(
-        #            "Forcing `padding` to be 'max_length' as this is required in a "
-        #            "multi-GPU training"
-        #        )
-        #    config.padding = "max_length"
+        if config.padding != "max_length" and config.model.type == "wav2vec2":
+            if is_main_process:
+                logger.info(
+                    "Forcing `padding` to be 'max_length' as this is required in a "
+                    "multi-GPU training of Wav2Vec2 models with `accelerate`"
+                )
+            config.padding = "max_length"
 
     elif torch.cuda.device_count() > 1:
         if is_main_process:

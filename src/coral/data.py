@@ -1,14 +1,20 @@
 """Functions related to the data loading and processing."""
 
+import io
 import logging
 import os
 import re
+import shutil
 from collections.abc import Callable, Iterable, Sized
 from functools import partial
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, cast
 from unicodedata import normalize
+from zipfile import ZipFile
 
+import httpx
+import torch
+import torch_audiomentations as ta
 from datasets import (
     Audio,
     Dataset,
@@ -20,6 +26,7 @@ from datasets import (
     load_dataset,
 )
 from omegaconf import DictConfig
+from tqdm.auto import tqdm
 
 from .types import Data
 from .utils import (
@@ -27,6 +34,7 @@ from .utils import (
     convert_iterable_dataset_to_dataset,
     convert_numeral_to_words,
     interpret_dataset_name,
+    no_datasets_progress_bars,
 )
 
 logger = logging.getLogger(__package__)
@@ -44,6 +52,9 @@ DEFAULT_CONVERSION_DICT = {
     "è": "e",
     "kg": " kilo ",
     "μg": " mikrogram ",
+    "hhv": "henholdsvis",
+    "fx": "for eksempel",
+    "f.eks.": "for eksempel",
     "-": " minus ",
     "+": " plus ",
     "μ": " mikro ",
@@ -74,6 +85,11 @@ DEFAULT_CONVERSION_DICT = {
 }
 
 
+FILLER_WORDS_PATTERN = re.compile(
+    pattern=r"\b(eh+m*|øh+m*|h+m+|m+h+)\b", flags=re.IGNORECASE
+)
+
+
 def load_data_for_finetuning(
     config: DictConfig, processor: Callable | None = None
 ) -> IterableDatasetDict:
@@ -97,7 +113,7 @@ def load_data_for_finetuning(
     is_main_process = os.getenv("RANK", "0") == "0"
 
     all_datasets: list[IterableDataset] | list[Dataset] = list()
-    len_datasets: list[int] = list()
+    len_datasets: list[int | None] = list()
     for dataset_name, dataset_config in config.datasets.items():
         if is_main_process:
             logger.info(f"Loading dataset {dataset_name!r}")
@@ -140,20 +156,39 @@ def load_data_for_finetuning(
                         cache_dir=config.cache_dir,
                     )
 
-            len_datasets.append(len(ds))
+            if isinstance(ds, (IterableDataset, IterableDatasetDict)):
+                length = None
+
+                # info.splits is typed as "object", cast it to dict
+                splits: Dict[str, object] = cast(
+                    Dict[str, object], getattr(ds.info, "splits", {})
+                )
+
+                split_info = splits.get(dataset_config.train_name)
+                if split_info is not None:
+                    # num_examples might still be missing
+                    length = getattr(split_info, "num_examples", None)
+
+                len_datasets.append(length)
+
+            else:
+                # Non-streaming dataset: len() is safe
+                len_datasets.append(len(ds))
 
         # Load dataset from the Hugging Face Hub. The HUGGINGFACE_HUB_TOKEN is only
         # used during CI - normally it is expected that the user is logged in to the
         # Hugging Face Hub using the `huggingface-cli login` command.
         else:
-            ds = load_dataset(
-                path=dataset_config.id,
-                name=dataset_config.subset,
-                split=dataset_config.train_name,
-                token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-                streaming=config.streaming,
-                cache_dir=config.cache_dir,
-            )
+            with no_datasets_progress_bars():
+                ds = load_dataset(
+                    path=dataset_config.id,
+                    name=dataset_config.subset,
+                    split=dataset_config.train_name,
+                    token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+                    streaming=config.streaming,
+                    cache_dir=config.cache_dir,
+                    trust_remote_code=True,
+                )
 
         assert isinstance(ds, Dataset | IterableDataset), (
             f"Unsupported dataset type: {type(ds)}"
@@ -168,6 +203,7 @@ def load_data_for_finetuning(
             ds = filter_dataset(
                 dataset=ds,
                 audio_column="audio",
+                text_column="text",
                 min_seconds_per_example=config.min_seconds_per_example,
                 max_seconds_per_example=config.max_seconds_per_example,
                 is_main_process=is_main_process,
@@ -186,7 +222,7 @@ def load_data_for_finetuning(
             column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
         )
 
-        all_datasets.append(ds)
+        all_datasets.append(ds)  #  type: ignore[bad-argument-type]
 
     assert len(all_datasets) > 0, "No datasets were loaded"
 
@@ -210,8 +246,14 @@ def load_data_for_finetuning(
                 f"Dataset probabilities must sum to 1, but sum to {sum(probabilities)}"
             )
 
+        assert len(all_datasets) == len(probabilities), (
+            f"There are {len(all_datasets):,} datasets ({all_datasets}), but "
+            f"{len(probabilities):,} probabilities ({probabilities}), but these "
+            "should be equal!"
+        )
+
         train = interleave_datasets(
-            datasets=[ds for ds in all_datasets],
+            datasets=all_datasets,  #  type: ignore[bad-argument-type]
             probabilities=probabilities,
             seed=config.seed,
             split=NamedSplit("train"),
@@ -222,16 +264,16 @@ def load_data_for_finetuning(
 
     train = process_dataset(
         dataset=train,
-        clean_text=config.model.clean_text,
         lower_case=config.model.lower_case,
-        characters_to_keep=config.characters_to_keep,
-        remove_input_dataset_columns=True,
+        characters_to_keep=config.model.characters_to_keep,
         text_column="text",
         audio_column="audio",
         convert_numerals=False,
-        normalize_audio=config.model.normalize_audio,
-        num_proc=config.dataset_num_workers,
+        remove_input_dataset_columns=True,
+        normalise_audio=True,
+        augment_audio=True,
         processor=processor,
+        num_proc=config.dataset_num_workers,
     )
 
     data_dict = dict(train=train)
@@ -240,45 +282,78 @@ def load_data_for_finetuning(
     if is_main_process:
         logger.info("Loading CoRal validation dataset...")
 
-    val = load_dataset(
-        path=config.evaluation_dataset.id,
-        name=config.evaluation_dataset.subset,
-        split=config.evaluation_dataset.val_name,
-        token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
-        streaming=True,
-        cache_dir=config.cache_dir,
-    )
-    assert isinstance(val, IterableDataset)
-    if not config.streaming:
+    def load_validation_dataset(dataset_config: DictConfig) -> Dataset:
+        """Load a validation dataset.
+
+        Args:
+            dataset_config:
+                The config for the dataset to load.
+
+        Returns:
+            The loaded dataset.
+        """
+        with no_datasets_progress_bars():
+            val = load_dataset(
+                path=dataset_config.id,
+                name=dataset_config.subset,
+                split=dataset_config.val_name,
+                token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
+                streaming=True,
+                cache_dir=config.cache_dir,
+                trust_remote_code=True,
+            )
+        assert isinstance(val, IterableDataset)
         val = convert_iterable_dataset_to_dataset(
             iterable_dataset=val,
             split_name="val",
-            dataset_id=config.evaluation_dataset.id.replace("/", "--") + "-validation",
+            dataset_id=dataset_config.id.replace("/", "--") + "-validation",
             cache_dir=config.cache_dir,
         )
-    if config.evaluation_dataset.text_column != "text":
-        val = val.rename_column(config.evaluation_dataset.text_column, "text")
-    if config.evaluation_dataset.audio_column != "audio":
-        val = val.rename_column(config.evaluation_dataset.audio_column, "audio")
+        if dataset_config.text_column != "text":
+            val = val.rename_column(dataset_config.text_column, "text")
+        if dataset_config.audio_column != "audio":
+            val = val.rename_column(dataset_config.audio_column, "audio")
+        return val.cast_column(
+            column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
+        ).select_columns(column_names=["text", "audio"])
 
-    val = val.cast_column(
-        column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
-    )
-
-    val = process_dataset(
-        dataset=val,
-        clean_text=config.model.clean_text,
-        lower_case=config.model.lower_case,
-        characters_to_keep=config.characters_to_keep,
-        remove_input_dataset_columns=True,
-        text_column="text",
-        audio_column="audio",
-        convert_numerals=False,
-        normalize_audio=config.model.normalize_audio,
-        num_proc=config.dataset_num_workers,
-        processor=processor,
-    )
-    dataset["val"] = val
+    vals = [
+        load_validation_dataset(dataset_config=dataset_config)
+        for dataset_config in config.evaluation_datasets
+    ]
+    vals = [
+        filter_dataset(
+            dataset=val,
+            audio_column="audio",
+            text_column="text",
+            min_seconds_per_example=config.min_seconds_per_example,
+            max_seconds_per_example=config.max_seconds_per_example,
+            is_main_process=is_main_process,
+            num_proc=config.dataset_num_workers,
+        )
+        for val in vals
+    ]
+    vals = [
+        process_dataset(
+            dataset=val,
+            lower_case=config.evaluation_lower_case,
+            characters_to_keep=config.evaluation_characters_to_keep,
+            text_column="text",
+            audio_column="audio",
+            convert_numerals=False,
+            remove_input_dataset_columns=True,
+            normalise_audio=True,
+            augment_audio=False,
+            processor=processor,
+            num_proc=config.dataset_num_workers,
+        )
+        for val in vals
+    ]
+    for dataset_config, split in zip(config.evaluation_datasets, vals):
+        split_name = f"val_{dataset_config.id.split('/')[-1].lower().replace('-', '_')}"
+        if dataset_config.subset is not None:
+            split_name += f"_{dataset_config.subset.lower().replace('-', '_')}"
+        dataset[split_name] = split
 
     return dataset
 
@@ -306,6 +381,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
             "dataset..."
         )
 
+    eval_dataset_path = None
     if config.cache_dir:
         eval_dataset_path = (
             Path(config.cache_dir) / "test-sets" / dataset_id.replace("/", "--")
@@ -321,6 +397,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         token=os.getenv("HUGGINGFACE_HUB_TOKEN", True),
         cache_dir=config.cache_dir,
         streaming=True,
+        trust_remote_code=True,
     )
     assert isinstance(dataset, IterableDataset)
     dataset = convert_iterable_dataset_to_dataset(
@@ -332,6 +409,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     dataset = filter_dataset(
         dataset=dataset,
         audio_column=config.audio_column,
+        text_column=config.text_column,
         min_seconds_per_example=config.min_seconds_per_example,
         max_seconds_per_example=config.max_seconds_per_example,
         is_main_process=is_main_process,
@@ -341,17 +419,17 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
     )
     dataset = process_dataset(
         dataset=dataset,
-        clean_text=config.clean_text,
         lower_case=config.lower_case,
         characters_to_keep=config.characters_to_keep,
         remove_input_dataset_columns=False,
         text_column=config.text_column,
         audio_column=config.audio_column,
+        normalise_audio=True,
+        augment_audio=False,
         convert_numerals=True,
-        normalize_audio=config.normalize_audio,
     )
 
-    if config.cache_dir:
+    if eval_dataset_path is not None:
         dataset.save_to_disk(dataset_path=eval_dataset_path)
 
     return dataset
@@ -360,6 +438,7 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
 def filter_dataset(
     dataset: Data,
     audio_column: str,
+    text_column: str,
     min_seconds_per_example: int | float,
     max_seconds_per_example: int,
     is_main_process: bool,
@@ -374,6 +453,8 @@ def filter_dataset(
             The dataset to filter.
         audio_column:
             The name of the column containing the audio.
+        text_column:
+            The name of the column containing the transcriptions.
         min_seconds_per_example:
             The minimum number of seconds that an example can have.
         max_seconds_per_example:
@@ -391,34 +472,44 @@ def filter_dataset(
 
     filter_fn = partial(
         filter_example,
+        text_column=text_column,
         audio_column=audio_column,
         min_seconds_per_example=min_seconds_per_example,
         max_seconds_per_example=max_seconds_per_example,
     )
     if isinstance(dataset, Dataset | DatasetDict):
         filtered = dataset.filter(
-            function=filter_fn, num_proc=num_proc, desc="Filtering dataset"
+            function=filter_fn,
+            num_proc=num_proc,
+            desc="Filtering dataset",
+            keep_in_memory=True,
         )
     else:
         filtered = dataset.filter(function=filter_fn)
 
     # Add info back in the filtered dataset, as it gets removed after calling `filter`
-    if isinstance(dataset, Dataset | IterableDataset):
+    if isinstance(dataset, Dataset | IterableDataset) and isinstance(
+        filtered, Dataset | IterableDataset
+    ):
         filtered.info.features = dataset.info.features
     else:
+        assert isinstance(dataset, DatasetDict | IterableDatasetDict) and isinstance(
+            filtered, DatasetDict | IterableDatasetDict
+        )
         for split_name in dataset.keys():
             dataset[split_name].info.features = filtered[split_name].info.features
 
-    if isinstance(dataset, Sized) and is_main_process:
-        num_samples_removed = num_samples_before - len(dataset)
+    if isinstance(dataset, Sized) and isinstance(filtered, Sized) and is_main_process:
+        num_samples_removed = num_samples_before - len(filtered)
         logger.info(f"Removed {num_samples_removed:,} samples from the dataset")
 
-    return filtered
+    return filtered  #  type: ignore[bad-return]
 
 
 def filter_example(
     sample: dict[str, Any],
     audio_column: str,
+    text_column: str,
     min_seconds_per_example: int | float,
     max_seconds_per_example: int,
 ) -> bool:
@@ -429,6 +520,8 @@ def filter_example(
             The sample to filter.
         audio_column:
             The name of the column containing the audio.
+        text_column:
+            The name of the column containing the transcriptions.
         min_seconds_per_example:
             The minimum number of seconds that an example can have.
         max_seconds_per_example:
@@ -444,6 +537,10 @@ def filter_example(
     if audio["array"].shape[0] >= audio["sampling_rate"] * max_seconds_per_example:
         return False
 
+    # Filtering based on text
+    if len(sample[text_column].strip()) == 0:
+        return False
+
     # Filtering based on validation
     if "validated" in sample and sample["validated"] == "rejected":
         return False
@@ -453,14 +550,14 @@ def filter_example(
 
 def process_dataset(
     dataset: Data,
-    clean_text: bool,
     lower_case: bool,
     characters_to_keep: Iterable[str] | None,
     remove_input_dataset_columns: bool,
     text_column: str,
     audio_column: str | None,
     convert_numerals: bool,
-    normalize_audio: bool = False,
+    normalise_audio: bool,
+    augment_audio: bool,
     num_proc: int | None = None,
     processor: Callable | None = None,
 ) -> Data:
@@ -471,13 +568,11 @@ def process_dataset(
     Args:
         dataset:
             The dataset to be cleaned.
-        clean_text:
-            Whether to clean the text.
         lower_case:
-            Whether to make the text lower case. Only relevant if `clean_text` is True.
+            Whether to make the text lower case.
         characters_to_keep:
             All the characters that should be kept in the transcriptions. Can be None if
-            all characters should be kept. Only relevant if `clean_text` is True.
+            all characters should be kept.
         text_column:
             The name of the column containing the text.
         remove_input_dataset_columns:
@@ -487,8 +582,10 @@ def process_dataset(
             does not have an audio column.
         convert_numerals:
             Whether to convert numerals to words.
-        normalize_audio:
-            Whether to normalize the audio.
+        normalise_audio:
+            Whether to normalise the audio.
+        augment_audio:
+            Whether to augment the audio.
         num_proc (optional):
             The number of processes to use for processing the dataset. If `None`, then
             no multiprocessing is used. Defaults to `None`.
@@ -503,6 +600,8 @@ def process_dataset(
         column_names = dataset.column_names
     elif isinstance(dataset, DatasetDict) or isinstance(dataset, IterableDatasetDict):
         column_names = dataset["train"].column_names
+    else:
+        raise ValueError(f"Unsupported dataset type: {type(dataset)}")
 
     map_fn = partial(
         process_example,
@@ -510,11 +609,11 @@ def process_dataset(
         conversion_dict=DEFAULT_CONVERSION_DICT,
         text_column=text_column,
         audio_column=audio_column,
-        clean_text=clean_text,
         lower_case=lower_case,
         convert_numerals=convert_numerals,
-        normalize_audio=normalize_audio,
         processor=processor,
+        normalise_audio=normalise_audio,
+        augment_audio=augment_audio,
     )
     if isinstance(dataset, Dataset | DatasetDict):
         mapped = dataset.map(
@@ -526,7 +625,7 @@ def process_dataset(
     else:
         mapped = dataset.map(function=map_fn, remove_columns=column_names)
 
-    return mapped
+    return mapped  #  type: ignore[bad-return]
 
 
 def process_example(
@@ -535,11 +634,11 @@ def process_example(
     conversion_dict: dict[str, str],
     text_column: str,
     audio_column: str | None,
-    clean_text: bool,
     lower_case: bool,
     convert_numerals: bool,
-    normalize_audio: bool,
     processor: Callable | None,
+    normalise_audio: bool,
+    augment_audio: bool,
 ) -> dict:
     """Helper function which cleans a single example.
 
@@ -556,17 +655,17 @@ def process_example(
         audio_column:
             The name of the column containing the audio. Can be `None` if the dataset
             does not have an audio column.
-        clean_text:
-            Whether to clean the text.
         lower_case:
             Whether to make the text lower case.
         convert_numerals:
             Whether to convert numerals to words.
-        normalize_audio:
-            Whether to normalize the audio.
         processor:
             The processor to use for processing the audio and transcriptions. If `None`,
             then the processor is not used. Requires `audio_column` to be specified.
+        normalise_audio:
+            Whether to normalise the audio.
+        augment_audio:
+            Whether to augment the audio.
 
     Returns:
         The cleaned example.
@@ -583,55 +682,139 @@ def process_example(
     if lower_case:
         doc = doc.lower()
 
+    # Remove filler words such as "ehh"
+    doc = FILLER_WORDS_PATTERN.sub(repl="", string=doc)
+
     # Normalise the transcription, which uniformises the characters. For instance, the
     # "long dash" (－) is converted to the normal dash (-).
-    if clean_text:
-        doc = normalize("NFKC", doc)
+    doc = normalize("NFKC", doc)
 
-        for key, value in conversion_dict.items():
-            doc = doc.replace(key, value)
+    # Convert known symbols
+    for key, value in conversion_dict.items():
+        doc = doc.replace(key, value)
 
-        # Remove all non-standard characters
-        if characters_to_keep is not None:
-            characters_to_keep = "".join(char for char in characters_to_keep)
-            if lower_case:
-                characters_to_keep = characters_to_keep.lower()
-            else:
-                characters_to_keep = (
-                    characters_to_keep.upper() + characters_to_keep.lower()
-                )
-            non_standard_characters_regex = re.compile(
-                f"[^{re.escape(characters_to_keep + ' |')}]"
-            )
-            doc = re.sub(non_standard_characters_regex, " ", doc.strip())
+    # Remove all non-standard characters
+    if characters_to_keep is not None:
+        characters_to_keep = "".join(char for char in characters_to_keep)
+        non_standard_characters_regex = re.compile(
+            f"[^{re.escape(characters_to_keep + ' |')}]", flags=re.IGNORECASE
+        )
+        doc = re.sub(non_standard_characters_regex, " ", doc.strip())
 
-        # Replace superfluous spaces
-        doc = re.sub(r" +", " ", doc)
+    # Replace superfluous spaces
+    doc = re.sub(r" +", " ", doc)
 
-        # Strip each newline
-        doc = "\n".join([line.strip() for line in doc.split("\n")]).strip("\n")
+    # Strip each newline
+    doc = "\n".join([line.strip() for line in doc.split("\n")]).strip("\n")
 
     # Re-assign the cleaned transcription
     example[text_column] = doc
 
-    if processor is None:
+    # If we do not have any audio, then we return the example, as the remainder of the
+    # function concerns audio processing
+    if audio_column is None:
         return example
 
-    # Prepare audio
+    # Extract audio from example
     audio = example[audio_column]
+    audio_array = audio["array"]
     sampling_rate = audio["sampling_rate"]
-    processed = processor(
-        audio["array"], sampling_rate=sampling_rate, do_normalize=normalize_audio
-    )
-    if "input_values" in processed:
-        example["input_values"] = processed.input_values[0]
-        example["num_seconds"] = len(example["input_values"]) / sampling_rate
-    if "input_features" in processed:
-        example["input_features"] = processed.input_features[0]
-        example["num_seconds"] = len(example["input_features"]) / sampling_rate
 
-    # Prepare transcriptions
+    # Normalise and augment audio
+    download_background_noises()
+    normalise = ta.PeakNormalization(p=1.0) if normalise_audio else ta.Identity()
+    augment = (
+        ta.Compose(
+            [
+                ta.PeakNormalization(p=1.0),
+                ta.Gain(p=1.0),
+                ta.AddBackgroundNoise(
+                    background_paths=Path("background-noises"), p=0.7
+                ),
+                ta.AddColoredNoise(p=0.2),
+                ta.OneOf(
+                    [
+                        ta.BandPassFilter(p=1.0),
+                        ta.BandStopFilter(p=1.0),
+                        ta.HighPassFilter(p=1.0),
+                        ta.LowPassFilter(p=1.0),
+                    ],
+                    p=0.2,
+                ),
+            ],
+            p=1.0,
+        )
+        if augment_audio
+        else ta.Identity()
+    )
+    normalise_and_augment = ta.Compose([normalise, augment], p=1.0)
+    audio_array = normalise_and_augment(
+        torch.tensor(audio_array).unsqueeze(0).unsqueeze(0), sample_rate=sampling_rate
+    )[0, 0]
+
+    # If we don't have a processor then we just re-assign the normalised audio and
+    # return the processed example
+    if processor is None:
+        example[audio_column]["array"] = audio_array
+        return example
+
+    # Process the audio
+    processed = processor(audio_array, sampling_rate=sampling_rate)
+    audio_feature_name = (
+        "input_values" if "input_values" in processed else "input_features"
+    )
+    audio_array = processed[audio_feature_name][0]
+    example[audio_feature_name] = audio_array
+    example["num_seconds"] = len(example[audio_feature_name]) / sampling_rate
+
+    # Process the labels
     example["labels"] = processor(text=example[text_column], truncation=True).input_ids
     example["input_length"] = len(example["labels"])
 
     return example
+
+
+def download_background_noises() -> None:
+    """Download background noises for audio augmentation.
+
+    This function downloads the background noises to the `background-noises` directory,
+    and will do nothing if the directory already exists.
+    """
+    background_noises_path = Path("background-noises")
+    if background_noises_path.exists():
+        return
+
+    logger.info("Downloading background noises from the ESC-50 dataset...")
+
+    # Download the ESC-50 dataset zip file as a stream
+    zip_url = "https://github.com/karolpiczak/ESC-50/archive/master.zip"
+    chunks = []
+    with httpx.stream(method="GET", url=zip_url, follow_redirects=True) as response:
+        for chunk in tqdm(
+            response.iter_bytes(),
+            desc="Downloading ESC-50 dataset",
+            unit="B",
+            unit_scale=True,
+            total=int(response.headers.get("Content-Length", 0)),
+        ):
+            chunks.append(chunk)
+    content = b"".join(chunks)
+
+    # Unzip only the audio files from the ESC-50 dataset
+    with ZipFile(file=io.BytesIO(content)) as zip_file:
+        audio_files = [
+            file_info
+            for file_info in zip_file.infolist()
+            if file_info.filename.startswith("ESC-50-master/audio/")
+        ]
+        zip_file.extractall(members=audio_files, path=background_noises_path)
+
+    # Move audio files to the root of the background-noises directory
+    extracted_audio_path = background_noises_path / "ESC-50-master" / "audio"
+    for audio_file in extracted_audio_path.iterdir():
+        audio_file.rename(background_noises_path / audio_file.name)
+
+    # Remove the extracted directories
+    shutil.rmtree(background_noises_path / "ESC-50-master")
+
+    logger.info("Background noises downloaded successfully.")

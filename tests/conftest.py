@@ -54,6 +54,7 @@ def finetuning_config(
             "per_device_batch_size=2",
             "max_steps=2",
             "save_total_limit=0",
+            "enable_experiment_tracking=false",
         ],
     )
 
