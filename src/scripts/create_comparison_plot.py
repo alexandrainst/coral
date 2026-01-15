@@ -7,6 +7,7 @@ Usage:
         [--metric METRIC]
 """
 
+import itertools as it
 from pathlib import Path
 
 import click
@@ -36,16 +37,21 @@ METRIC_NAMES = dict(cer="Character error rate", wer="Word error rate")
     type=click.Choice(["cer", "wer"]),
     help="The metric to plot.",
 )
-def main(evaluation_file: tuple[Path, ...], metric: str) -> None:
-    """Creates a plot comparing the performance of different models on a dataset.
-
-    Args:
-        evaluation_file:
-            A tuple of paths to the evaluation files, generated with the
-            `evaluate_model` script.
-        metric:
-            The metric to plot. Either "cer" or "wer".
-    """
+@click.option(
+    "--model-focus",
+    "-m",
+    multiple=True,
+    type=str,
+    help="If specified, mark these models in a separate colour for emphasis.",
+)
+@click.option("--title", default=None, type=str, help="The title of the plot.")
+def main(
+    evaluation_file: tuple[Path, ...],
+    metric: str,
+    model_focus: tuple[str],
+    title: str | None,
+) -> None:
+    """Creates a plot comparing the performance of different models on a dataset."""
     # Glob evaluation files if needed
     glob_files = [
         file if "*.csv" in file.name else Path(file.as_posix().replace("*", "*.csv"))
@@ -62,28 +68,72 @@ def main(evaluation_file: tuple[Path, ...], metric: str) -> None:
             + [file for file in evaluation_file if "*" not in file.name]
         )
 
-    assert len({file.stem.split(".")[1] for file in evaluation_file}) == 1, (
-        "All evaluation files must be evaluations on the same dataset."
-    )
-    dataset_name = evaluation_file[0].stem.split(".")[1].split("--")[-1]
     metric_name = METRIC_NAMES[metric.lower()]
-    dfs = {
-        file.stem.split(".")[0]
-        .replace("oe", "ø")
-        .replace("ae", "æ"): load_evaluation_df(file=file)
-        for file in evaluation_file
+    dataset_names = {
+        file.stem.split(".")[1].split("--")[-1] for file in evaluation_file
     }
-    df = pd.DataFrame.from_records(
-        [df[metric].to_dict() for df in dfs.values()],
-        index=[name for name in dfs.keys()],
-    ).sort_values(by="overall", ascending=False)
+
+    dfs: dict[str, pd.DataFrame] = dict()
+    column_order: list[str] = []
+    for dataset_name in dataset_names:
+        sub_dfs = {
+            file.stem.split(".")[0]
+            .replace("oe", "ø")
+            .replace("ae", "æ"): load_evaluation_df(file=file)
+            for file in evaluation_file
+            if file.stem.split(".")[1].split("--")[-1] == dataset_name
+        }
+        df = pd.DataFrame.from_records(
+            [df[metric].to_dict() for df in sub_dfs.values()],
+            index=[name for name in sub_dfs.keys()],
+        ).sort_index()
+        dfs[dataset_name] = df
+        column_order = df.columns.tolist()
+
+    # Check that each dataset has the same models
+    model_sets = [set(df.index) for df in dfs.values()]
+    if not all(model_set == model_sets[0] for model_set in model_sets[1:]):
+        raise ValueError(
+            "The evaluation files must contain the same models for each dataset."
+        )
+
+    # Merge dataframes by averaging the metrics across datasets
+    df = sum(dfs.values()) / len(dfs)
+    df.dropna(axis=1, how="any", inplace=True)
+    df.sort_values(by="overall", ascending=False, inplace=True)
+    df = df.loc[:, [col for col in column_order if col in df.columns]]
+
+    # Sort colours by model name, unless model focus is specified, in which case
+    # we colour the focused models in shades of the same colour and the rest in shades
+    # of a more faded colour
+    if model_focus:
+        red_colours = it.cycle(plt.cm.tab20c.colors[4:8])
+        grey_colours = it.cycle(plt.cm.tab20c.colors[16:20])
+        model_colours = {
+            model: next(red_colours) if model in model_focus else next(grey_colours)
+            for model in sorted(df.index)
+        }
+        colours = [model_colours[model] for model in df.index]
+    else:
+        colours = [
+            colour
+            for _, colour in sorted(
+                zip(df.index, plt.cm.Set3.colors[: df.shape[0]]), key=lambda x: x[0]
+            )
+        ]
+
     df.T.plot(
         kind="bar",
-        title=f"{metric_name} by group on {dataset_name} (lower is better)",
+        title=(
+            f"{metric_name} by group on {dataset_name} (lower is better)"
+            if title is None
+            else title
+        ),
         ylabel=METRIC_NAMES[metric.lower()],
         legend=True,
         figsize=(12, 6),
         rot=25,
+        color=colours,
     )
     plt.tight_layout(pad=2)
     plt.show()
