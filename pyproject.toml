@@ -48,6 +48,12 @@ demo = [
 plotting = [
   "matplotlib>=3.9.2",
 ]
+tts = [
+  "qwen-tts>=0.0.5",
+]
+
+[tool.uv.extra-build-dependencies]
+  flash-attn = ["torch"]
 
 [project.urls]
 Repository = "https://github.com/CoRal-project/coral"
