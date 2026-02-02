@@ -4,48 +4,49 @@ version = "0.0.0"
 description = "Danish ASR and TTS models associated with the CoRal project."
 readme = "README.md"
 authors = [
-    {name = "Dan Saattrup Smart", email = "dan.smart@alexandra.dk"},
+  {name = "Dan Saattrup Smart", email = "dan.smart@alexandra.dk"},
 ]
 maintainers = [
-    {name = "Dan Saattrup Smart", email = "dan.smart@alexandra.dk"},
+  {name = "Dan Saattrup Smart", email = "dan.smart@alexandra.dk"},
 ]
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.12,<3.13"
 dependencies = [
-    "accelerate>=1.9.0",
-    "click>=8.2.1",
-    "datasets>=3.6.0,<4.0.0",
-    "deepspeed>=0.17.4",
-    "hydra-core>=1.1.1",
-    "jiwer>=4.0.0",
-    "joblib>=1.5.1",
-    "librosa>=0.11.0",
-    "mlflow>=3.1.4",
-    "openpyxl>=3.1.5",
-    "progress>=1.6.1",
-    "pycountry>=24.6.1",
-    "pyctcdecode>=0.5.0",
-    "pydub>=0.25.1",
-    "pysubs2>=1.8.0",
-    "python-dotenv>=1.1.1",
-    "requests>=2.32.4",
-    "soundfile>=0.13.1",
-    "torch-audiomentations>=0.12.0",
-    "torchaudio>=2.6.0,<2.7.0",  # Upper bound for compatibility with audiomentations
-    "transformers>=4.54.1",
-    "wandb>=0.23.1",
+  "accelerate>=1.9.0",
+  "click>=8.2.1",
+  "datasets>=3.6.0,<4.0.0",
+  "deepspeed>=0.17.4",
+  "hydra-core>=1.1.1",
+  "jiwer>=4.0.0",
+  "joblib>=1.5.1",
+  "librosa>=0.11.0",
+  "mlflow>=3.1.4",
+  "openpyxl>=3.1.5",
+  "progress>=1.6.1",
+  "pycountry>=24.6.1",
+  "pyctcdecode>=0.5.0",
+  "pydub>=0.25.1",
+  "pysubs2>=1.8.0",
+  "python-dotenv>=1.1.1",
+  "qwen-tts>=0.0.5",
+  "requests>=2.32.4",
+  "soundfile>=0.13.1",
+  "torch-audiomentations>=0.12.0",
+  "torchaudio>=2.6.0,<2.7.0",  # Upper bound for compatibility with audiomentations
+  "transformers>=4.54.1",
+  "wandb>=0.23.1",
 ]
 
 [project.optional-dependencies]
 kenlm = [
-    "kenlm",
+  "kenlm",
 ]
 demo = [
-    "gradio>=5.31.0",
-    "punctfix>=0.11.1",
-    "samplerate>=0.2.2",
+  "gradio>=5.31.0",
+  "punctfix>=0.11.1",
+  "samplerate>=0.2.2",
 ]
 plotting = [
-    "matplotlib>=3.9.2",
+  "matplotlib>=3.9.2",
 ]
 
 [project.urls]
@@ -57,31 +58,31 @@ file = "LICENSE"
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3.3",
-    "pytest-cov>=5.0.0",
-    "pre-commit>=3.8.0",
-    "readme-coverage-badger>=0.1.2",
-    "click>=8.1.7",
-    "ruff>=0.7.1",
-    "nbstripout>=0.7.1",
-    "coverage>=5.5",
-    "lxml>=5.1.0",
-    "pip>=24.3.1",
-    "setuptools>=75.6.0",
-    "pyrefly>=0.45.0",
+  "pytest>=8.3.3",
+  "pytest-cov>=5.0.0",
+  "pre-commit>=3.8.0",
+  "readme-coverage-badger>=0.1.2",
+  "click>=8.1.7",
+  "ruff>=0.7.1",
+  "nbstripout>=0.7.1",
+  "coverage>=5.5",
+  "lxml>=5.1.0",
+  "pip>=24.3.1",
+  "setuptools>=75.6.0",
+  "pyrefly>=0.45.0",
 ]
 
 [tool.uv.sources]
 kenlm = { url = "https://github.com/kpu/kenlm/archive/master.zip" }
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py312"
 line-length = 88
 exclude = [
-    ".git",
-    ".pytest_cache",
-    ".ruff_cache",
-    ".venv",
+  ".git",
+  ".pytest_cache",
+  ".ruff_cache",
+  ".venv",
 ]
 extend-include = [
     "*.ipynb",
@@ -95,37 +96,37 @@ skip-magic-trailing-comma = true
 
 [tool.ruff.lint]
 select = [
-    # isort (imports)
-    "I",
-    # pydocstyle (docstrings)
-    "D",
-    # pycodestyle errors and warnings (PEP8)
-    "E",
-    "W",
-    # flake-annotations (type hints)
-    "ANN",
-    # Pyflakes
-    "F",
+  # isort (imports)
+  "I",
+  # pydocstyle (docstrings)
+  "D",
+  # pycodestyle errors and warnings (PEP8)
+  "E",
+  "W",
+  # flake-annotations (type hints)
+  "ANN",
+  # Pyflakes
+  "F",
 ]
 ignore = [
-    # Type annotations for "self" arguments
-    "ANN101",
-    # Type annotations for "cls" arguments
-    "ANN102",
-    # Type annotations for *args
-    "ANN002",
-    # Type annotations for **kwargs
-    "ANN003",
-    # Docstrings for **kwargs
-    "D417",
+  # Type annotations for "self" arguments
+  "ANN101",
+  # Type annotations for "cls" arguments
+  "ANN102",
+  # Type annotations for *args
+  "ANN002",
+  # Type annotations for **kwargs
+  "ANN003",
+  # Docstrings for **kwargs
+  "D417",
 ]
 
 [tool.ruff.lint.extend-per-file-ignores]
 "__init__.py" = [
-    "F401",
+  "F401",
 ]
 "src/scripts/main.py" = [
-    "I",
+  "I",
 ]
 
 [tool.ruff.lint.isort]
@@ -143,30 +144,30 @@ no-matching-overload = false
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = [
-    '--durations=10',
-    '--color=yes',
-    '--doctest-modules',
-    '--cov=src/coral',
-    '-vvv',
+  '--durations=10',
+  '--color=yes',
+  '--doctest-modules',
+  '--cov=src/coral',
+  '-vvv',
 ]
 xfail_strict = true
 filterwarnings = [
-    "error",
-    "ignore::UserWarning",
-    "ignore::DeprecationWarning",
-    "ignore::PendingDeprecationWarning",
-    "ignore::ImportWarning",
-    "ignore::ResourceWarning",
-    "ignore::FutureWarning",
+  "error",
+  "ignore::UserWarning",
+  "ignore::DeprecationWarning",
+  "ignore::PendingDeprecationWarning",
+  "ignore::ImportWarning",
+  "ignore::ResourceWarning",
+  "ignore::FutureWarning",
 ]
 log_cli_level = "info"
 testpaths = [
-    "tests",
-    "src/coral",
+  "tests",
+  "src/coral",
 ]
 
 [tool.pyrefly]
-site-package-path = [".venv/lib/python3.11/site-packages"]
+site-package-path = [".venv/lib/python3.12/site-packages"]
 
 [build-system]
 requires = ["hatchling"]
