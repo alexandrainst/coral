@@ -34,7 +34,7 @@ def main() -> None:
         config:
             The Hydra configuration object.
     """
-    dataset = prepare_data(dataset_id="coral/coral-tts", speaker="mic")
+    dataset = prepare_data(dataset_id="CoRal-project/coral-tts", speaker="mic")
     finetune_tts_model(dataset=dataset)
 
 
