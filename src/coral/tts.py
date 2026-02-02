@@ -147,8 +147,8 @@ def prepare_data(dataset_id: str, speaker: t.Literal["mic", "nic"]) -> Dataset:
     return dataset
 
 
-def train_tts_model(dataset: Dataset) -> None:
-    """Train the TTS model.
+def finetune_tts_model(dataset: Dataset) -> None:
+    """Finetune the TTS model.
 
     Args:
         dataset:
