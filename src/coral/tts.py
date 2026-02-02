@@ -7,10 +7,10 @@ import shutil
 import typing as t
 from functools import partial
 
-import librosa
 import numpy as np
 import torch
 from accelerate import Accelerator
+from datasets import Audio
 from datasets.arrow_dataset import Dataset
 from datasets.load import load_dataset
 from safetensors.torch import save_file
@@ -22,10 +22,11 @@ if importlib.util.find_spec("qwen_tts") is not None:
     from qwen_tts import Qwen3TTSTokenizer
     from qwen_tts.core.models import Qwen3TTSConfig
     from qwen_tts.core.models.modeling_qwen3_tts import mel_spectrogram
-    from qwen_tts.inference.qwen3_tts_model import AudioLike, Qwen3TTSModel
+    from qwen_tts.inference.qwen3_tts_model import Qwen3TTSModel
 
 
 TTS_BASE_MODEL = "Qwen/Qwen3-TTS-12Hz-1.7B-Base"
+TTS_TOKENIZER = "Qwen/Qwen3-TTS-Tokenizer-12Hz"
 
 T = t.TypeVar("T")
 
@@ -81,8 +82,6 @@ class TTSDataset(torch.utils.data.Dataset):
         text = (
             f"<|im_start|>assistant\n{item['text']}<|im_end|>\n<|im_start|>assistant\n"
         )
-        text_ids = self._tokenize_texts(text=text)
-
         input = self.processor(text=text, return_tensors="pt", padding=True)
         text_ids = (
             input["input_ids"].unsqueeze(0)
@@ -90,13 +89,9 @@ class TTSDataset(torch.utils.data.Dataset):
             else input["input_ids"]
         )
 
-        # Get the Mel spectrogram
-        ref_audio_list = (
-            item["ref_audio"]
-            if isinstance(item["ref_audio"], list)
-            else [item["ref_audio"]]
-        )
-        audio, sr = normalise_audio_inputs(audios=ref_audio_list)[0]
+        # Get the Mel spectrogram for the reference audio
+        audio = item["ref_audio"]["array"].astype(np.float32)
+        sr = item["ref_audio"]["sampling_rate"]
         ref_mel = extract_mels(audio=audio, sr=sr)
 
         return dict(
@@ -125,11 +120,16 @@ def prepare_data(dataset_id: str, speaker: t.Literal["mic", "nic"]) -> Dataset:
     # Filter the dataset
     dataset = dataset.filter(lambda x: x["speaker_id"] == speaker)
     dataset = dataset.filter(lambda x: x["audio"]["array"].shape[0] > 0)
+    dataset = dataset.remove_columns(["speaker_id", "transcription_id"])
+
+    # Ensure that the audio is 24kHz
+    dataset = dataset.cast_column(column="audio", feature=Audio(sampling_rate=24_000))
+
+    # Extract example for the reference audio
+    dataset = dataset.add_column("ref_audio", [dataset[0]["audio"]] * len(dataset))
 
     # Tokenise the audio
-    tokenizer = Qwen3TTSTokenizer.from_pretrained(
-        "Qwen/Qwen3-TTS-Tokenizer-12Hz", device_map="auto"
-    )
+    tokenizer = Qwen3TTSTokenizer.from_pretrained(TTS_TOKENIZER, device_map="auto")
     dataset = dataset.map(
         lambda batch: dict(
             audio_codes=tokenizer.encode(
@@ -139,6 +139,7 @@ def prepare_data(dataset_id: str, speaker: t.Literal["mic", "nic"]) -> Dataset:
         ),
         batched=True,
         batch_size=32,
+        desc="Generating audio codes",
     )
     assert isinstance(dataset, Dataset), (
         f"Expected a Dataset after tokenisation, got {type(dataset)}",
@@ -305,65 +306,18 @@ def extract_mels(audio: np.ndarray, sr: int) -> torch.Tensor:
     Returns:
         The mel spectrograms.
     """
-    assert sr == 24000, "Only 24kHz audio is supported"
+    assert sr == 24_000, "Only 24kHz audio is supported"
     mels = mel_spectrogram(
         torch.from_numpy(audio).unsqueeze(0),
         n_fft=1024,
         num_mels=128,
-        sampling_rate=24000,
+        sampling_rate=24_000,
         hop_size=256,
         win_size=1024,
         fmin=0,
-        fmax=12000,
+        fmax=12_000,
     ).transpose(1, 2)
     return mels
-
-
-def normalise_audio_inputs(
-    audios: AudioLike | list[AudioLike],
-) -> list[tuple[np.ndarray, int]]:
-    """Normalise audio inputs into a list of (waveform, sr).
-
-    Supported forms:
-      - str: wav path / URL / base64 audio string
-      - np.ndarray: waveform (NOT allowed alone here because sr is unknown)
-      - (np.ndarray, sr): waveform + sampling rate
-      - list of the above
-
-    Args:
-        audios:
-            Audio input(s).
-
-    Returns:
-        List of (float32 waveform, original sr).
-
-    Raises:
-        ValueError:
-            If a numpy waveform is provided without sr.
-        TypeError:
-            If the input type is not supported.
-    """
-    if isinstance(audios, list):
-        items = audios
-    else:
-        items = [audios]
-
-    out: list[tuple[np.ndarray, int]] = []
-    for a in items:
-        if isinstance(a, str):
-            audio, sr = librosa.load(path=a, sr=None, mono=True)
-            if audio.ndim > 1:
-                audio = np.mean(audio, axis=-1)
-            audio = audio.astype(np.float32)
-            sr = int(sr)
-            out.append((audio, sr))
-        elif isinstance(a, tuple) and len(a) == 2 and isinstance(a[0], np.ndarray):
-            out.append((a[0].astype(np.float32), int(a[1])))
-        elif isinstance(a, np.ndarray):
-            raise ValueError("For numpy waveform input, pass a tuple (audio, sr).")
-        else:
-            raise TypeError(f"Unsupported audio input type: {type(a)}")
-    return out
 
 
 def collate_fn(
