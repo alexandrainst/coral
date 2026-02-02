@@ -90,7 +90,7 @@ class TTSDataset(torch.utils.data.Dataset):
         )
 
         # Get the Mel spectrogram for the reference audio
-        audio = item["ref_audio"]["array"].astype(np.float32)
+        audio = np.array(item["ref_audio"]["array"], dtype=np.float32)
         sr = item["ref_audio"]["sampling_rate"]
         ref_mel = extract_mels(audio=audio, sr=sr)
 
@@ -155,16 +155,15 @@ def finetune_tts_model(dataset: Dataset) -> None:
         dataset:
             The dataset to train on.
     """
-    accelerator = Accelerator(gradient_accumulation_steps=4, mixed_precision="bf16")
-
+    config = Qwen3TTSConfig.from_pretrained(TTS_BASE_MODEL)
     model = Qwen3TTSModel.from_pretrained(
         TTS_BASE_MODEL,
-        torch_dtype=torch.bfloat16,
-        attn_implementation="flash_attention_2",
+        dtype=torch.bfloat16,
+        attn_implementation="flash_attention_2" if torch.cuda.is_available() else None,
     )
-    config = Qwen3TTSConfig.from_pretrained(TTS_BASE_MODEL)
-    tts_dataset = TTSDataset(dataset=dataset, processor=model.tokenizer, config=config)
+    optimizer = AdamW(model.model.parameters(), lr=2e-5, weight_decay=0.01)
 
+    tts_dataset = TTSDataset(dataset=dataset, processor=model.processor, config=config)
     dataloader = DataLoader(
         tts_dataset,
         batch_size=32,
@@ -183,81 +182,89 @@ def finetune_tts_model(dataset: Dataset) -> None:
         ),
     )
 
-    optimizer = AdamW(model.model.parameters(), lr=2e-5, weight_decay=0.01)
-
+    accelerator = Accelerator(gradient_accumulation_steps=4, mixed_precision="bf16")
     model, optimizer, train_dataloader = accelerator.prepare(
         model.model, optimizer, dataloader
     )
 
     model.train()
-
     for epoch in range(3):
         speaker_embedding = None
         for step, batch in enumerate(dataloader):
             with accelerator.accumulate(model):
-                input_ids = batch["input_ids"]
-                codec_ids = batch["codec_ids"]
-                ref_mels = batch["ref_mels"]
-                attention_mask = batch["attention_mask"]
-                codec_0_labels = batch["codec_0_labels"]
-                codec_mask = batch["codec_mask"]
-
-                speaker_embedding = model.speaker_encoder(
-                    ref_mels.to(model.device).to(model.dtype)
-                ).detach()
-
-                input_text_ids = input_ids[:, :, 0]
-                input_codec_ids = input_ids[:, :, 1]
-
+                # Get the embedding of the input text
+                input_text_ids = batch["input_ids"][:, :, 0]
                 input_text_embedding = model.talker.model.text_embedding(input_text_ids)
+
+                # Get the embedding of the input codec
+                input_codec_ids = batch["input_ids"][:, :, 1]
                 input_codec_embedding = model.talker.model.codec_embedding(
                     input_codec_ids
                 )
+
+                # Add the speaker embedding to the codec embedding
+                speaker_embedding = model.speaker_encoder(
+                    batch["ref_mels"].to(model.dtype).to(model.device)
+                ).detach()
                 input_codec_embedding[:, 6, :] = speaker_embedding
 
+                # Combine the text and codec embeddings to get the input embeddings
                 input_embeddings = input_text_embedding + input_codec_embedding
 
-                for i in range(1, 16):
+                # Add the individual codec embeddings to the input embeddings
+                # NOTE: Not sure if this is correct
+                for i in range(1, batch["codec_ids"].shape[2]):
                     codec_i_embedding = (
                         model.talker.code_predictor.get_input_embeddings()[i - 1](
-                            codec_ids[:, :, i]
+                            batch["codec_ids"][:, :, i]
                         )
                     )
-                    codec_i_embedding = codec_i_embedding * codec_mask.unsqueeze(-1)
+                    codec_i_embedding = codec_i_embedding * batch[
+                        "codec_mask"
+                    ].unsqueeze(-1)
                     input_embeddings = input_embeddings + codec_i_embedding
 
+                # Get the output of the TTS model
                 outputs = model.talker(
                     inputs_embeds=input_embeddings[:, :-1, :],
-                    attention_mask=attention_mask[:, :-1],
-                    labels=codec_0_labels[:, 1:],
+                    attention_mask=batch["attention_mask"][:, :-1],
+                    labels=batch["codec_0_labels"][:, 1:],
                     output_hidden_states=True,
                 )
 
+                # Extract the hidden states from the TTS outputs
                 hidden_states = outputs.hidden_states[0][-1]
-                talker_hidden_states = hidden_states[codec_mask[:, 1:]]
-                talker_codec_ids = codec_ids[codec_mask]
+                talker_hidden_states = hidden_states[batch["codec_mask"][:, 1:]]
+                talker_codec_ids = batch["codec_ids"][batch["codec_mask"]]
 
+                # NOTE: Not sure what this does
                 sub_talker_logits, sub_talker_loss = (
                     model.talker.forward_sub_talker_finetune(
                         talker_codec_ids, talker_hidden_states
                     )
                 )
 
+                # Add the TTS loss to the sub-talker loss to get the total loss
                 loss = outputs.loss + sub_talker_loss
 
+                # Backpropagate
                 accelerator.backward(loss)
 
+                # Gradient clipping if applicable
                 if accelerator.sync_gradients:
                     accelerator.clip_grad_norm_(model.parameters(), 1.0)
 
+                # Update the model
                 optimizer.step()
                 optimizer.zero_grad()
 
+            # Logging
             if step % 10 == 0:
                 accelerator.print(
                     f"Epoch {epoch} | Step {step} | Loss: {loss.item():.4f}"
                 )
 
+        # Model saving
         if accelerator.is_main_process and speaker_embedding is not None:
             output_dir = os.path.join("output", f"checkpoint-epoch-{epoch}")
             shutil.copytree(TTS_BASE_MODEL, output_dir, dirs_exist_ok=True)
@@ -287,7 +294,7 @@ def finetune_tts_model(dataset: Dataset) -> None:
 
             weight = state_dict["talker.model.codec_embedding.weight"]
             state_dict["talker.model.codec_embedding.weight"][3000] = (
-                speaker_embedding[0].detach().to(weight.device).to(weight.dtype)
+                speaker_embedding[0].detach().to(weight.dtype).to(weight.device)
             )
             save_path = os.path.join(output_dir, "model.safetensors")
             save_file(state_dict, save_path)
