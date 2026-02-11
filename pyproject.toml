@@ -116,8 +116,6 @@ ignore = [
     "ANN002",
     # Type annotations for **kwargs
     "ANN003",
-    # Docstrings for **kwargs
-    "D417",
 ]
 
 [tool.ruff.lint.extend-per-file-ignores]
