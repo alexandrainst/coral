@@ -80,10 +80,10 @@ def add_validations(
         dataset=dataset,
         lower_case=lower_case,
         characters_to_keep=characters_to_keep,
+        remove_input_dataset_columns=False,
         text_column=text_column,
         audio_column=audio_column,
         convert_numerals=False,
-        remove_input_dataset_columns=False,
         normalise_audio=True,
         augment_audio=False,
     )
@@ -119,7 +119,7 @@ def add_validations(
                 generate_kwargs=dict(language="danish", task="transcribe"),
             ):
                 prediction = process_example(
-                    example=dict(text=out["text"]),
+                    example=dict(text=out["text"]),  #  type: ignore[bad-argument-type]
                     characters_to_keep="".join(characters_to_keep),
                     conversion_dict=DEFAULT_CONVERSION_DICT,
                     text_column="text",
