@@ -29,8 +29,11 @@ def compute_error_rate_metrics(
             Whether to log examples of the predictions and the ground truth labels.
 
     Returns:
-        dict:
-            dictionary with 'wer' as the key and the word error rate as the value.
+        Dictionary with 'wer' as the key and the word error rate as the value.
+
+    Raises:
+        ValueError:
+            If the predictions are not of the correct shape.
     """
     tokenizer: PreTrainedTokenizerBase = getattr(processor, "tokenizer")
     pad_token = tokenizer.pad_token_id

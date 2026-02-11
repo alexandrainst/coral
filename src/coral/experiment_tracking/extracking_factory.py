@@ -16,6 +16,10 @@ def load_extracking_setup(config: DictConfig) -> ExTrackingSetup:
 
     Returns:
         The experiment tracking setup.
+
+    Raises:
+        ValueError:
+            If the experiment tracking type is not supported.
     """
     match config.experiment_tracking.type:
         case "wandb":

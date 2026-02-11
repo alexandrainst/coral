@@ -51,7 +51,12 @@ def main(
     model_focus: tuple[str],
     title: str | None,
 ) -> None:
-    """Creates a plot comparing the performance of different models on a dataset."""
+    """Creates a plot comparing the performance of different models on a dataset.
+
+    Raises:
+        ValueError:
+            If the metric is not supported.
+    """
     # Glob evaluation files if needed
     glob_files = [
         file if "*.csv" in file.name else Path(file.as_posix().replace("*", "*.csv"))

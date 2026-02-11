@@ -53,8 +53,11 @@ class DataCollatorCTCWithPadding(DataCollatorMixin):
                 A list of feature dicts.
 
         Returns:
-            BatchFeature:
-                A dictionary of the collated features.
+            A dictionary of the collated features.
+
+        Raises:
+            ValueError:
+                If the features do not contain either 'input_features' or 'audio' key.
         """
         if "input_values" in features[0]:
             audio_features = [dict(input_values=f["input_values"]) for f in features]
@@ -134,6 +137,10 @@ class DataCollatorSpeechSeq2SeqWithPadding(DataCollatorMixin):
         Returns:
             BatchFeature:
                 A dictionary of the collated features.
+
+        Raises:
+            ValueError:
+                If the features do not contain either 'input_features' or 'audio' key.
         """
         if "input_features" in features[0]:
             audio_features = [

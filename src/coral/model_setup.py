@@ -16,6 +16,10 @@ def load_model_setup(config: DictConfig) -> ModelSetup:
 
     Returns:
         The model setup.
+
+    Raises:
+        ValueError:
+            If the model type is not supported.
     """
     model_type: str = config.model.type
     match model_type:

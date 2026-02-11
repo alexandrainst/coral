@@ -304,7 +304,7 @@ def get_sentence_corpus_path(config: DictConfig) -> Path:
     with Parallel(n_jobs=-2) as parallel:
         tuples = parallel(
             delayed(remove_evaluation_sentences)(sentence=sentence)
-            for sentence in tqdm(sentences, desc="Removing evaluation sentences")  #  type: ignore[not-iterable]
+            for sentence in tqdm(sentences, desc="Removing evaluation sentences")  # type: ignore[not-iterable]
         )
     sentences = [t[0] for t in tuples if t is not None]
     number_of_sentences_changed = sum(t[1] for t in tuples if t is not None)
@@ -333,7 +333,7 @@ def store_ngram_model(ngram_model_path: Path, config: DictConfig) -> None:
     processor = Wav2Vec2Processor.from_pretrained(config.model_dir)
 
     # Extract the vocabulary, which will be used to build the CTC decoder
-    vocab_dict: dict[str, int] = processor.tokenizer.get_vocab()  #  type: ignore[missing-attribute]
+    vocab_dict: dict[str, int] = processor.tokenizer.get_vocab()  # type: ignore[missing-attribute]
     sorted_vocab_list = sorted(vocab_dict.items(), key=lambda item: item[1])
     sorted_vocab_dict = {k.lower(): v for k, v in sorted_vocab_list}
 
@@ -342,8 +342,8 @@ def store_ngram_model(ngram_model_path: Path, config: DictConfig) -> None:
         labels=list(sorted_vocab_dict.keys()), kenlm_model_path=str(ngram_model_path)
     )
     processor_with_lm = Wav2Vec2ProcessorWithLM(
-        feature_extractor=processor.feature_extractor,  #  type: ignore[missing-attribute]
-        tokenizer=processor.tokenizer,  #  type: ignore[missing-attribute]
+        feature_extractor=processor.feature_extractor,  # type: ignore[missing-attribute]
+        tokenizer=processor.tokenizer,  # type: ignore[missing-attribute]
         decoder=decoder,
     )
 

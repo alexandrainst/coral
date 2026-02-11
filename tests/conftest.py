@@ -41,7 +41,11 @@ def pytest_unconfigure() -> None:
 def finetuning_config(
     request: pytest.FixtureRequest,
 ) -> Generator[DictConfig, None, None]:
-    """Hydra configuration."""
+    """Hydra configuration.
+
+    Yields:
+        The Hydra configuration.
+    """
     model, datasets = request.param
     yield compose(
         config_name="asr_finetuning",
@@ -61,7 +65,11 @@ def finetuning_config(
 
 @pytest.fixture(scope="session")
 def dataset(finetuning_config: DictConfig) -> Generator[Dataset, None, None]:
-    """Load the dataset for testing."""
+    """Load the dataset for testing.
+
+    Yields:
+        The dataset for testing.
+    """
     dataset_config = list(finetuning_config.datasets.values())[0]
     dataset = load_dataset(
         path=dataset_config.id,
