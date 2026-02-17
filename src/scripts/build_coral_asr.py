@@ -52,10 +52,12 @@ def main(config: DictConfig) -> None:
     dir_conversation = Path(config.dir_data_raw) / "conversations"
     dir_transcription = Path(config.dir_data_raw) / "transcriptions"
 
-    temp_metadata_database_path = (
-        Path.cwd() / "data" / "raw" / metadata_database_path.name
-    )
-    shutil.copy(src=metadata_database_path, dst=temp_metadata_database_path)
+    if config.download2disk:
+        temp_metadata_database_path = (
+            Path.cwd() / "data" / "raw" / metadata_database_path.name
+        )
+        shutil.copy(src=metadata_database_path, dst=temp_metadata_database_path)
+        metadata_database_path = temp_metadata_database_path
 
     if config.build_read_aloud:
         logger.info("Building the CoRal read-aloud speech recognition dataset...")
@@ -65,7 +67,7 @@ def main(config: DictConfig) -> None:
 
         logger.debug("Building the read-aloud dataset...")
         read_aloud_dataset = build_read_aloud_dataset(
-            metadata_database_path=temp_metadata_database_path,
+            metadata_database_path=metadata_database_path,
             audio_dir=dir_read_aloud,
             additional_logging=config.debug_logging,
         )
@@ -103,7 +105,7 @@ def main(config: DictConfig) -> None:
 
         logger.debug("Building the conversation dataset...")
         conversation_dataset = build_conversation_dataset(
-            metadata_database_path=temp_metadata_database_path,
+            metadata_database_path=metadata_database_path,
             audio_dir=dir_conversation,
             transcript_dir=dir_transcription,
             additional_logging=config.debug_logging,
