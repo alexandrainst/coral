@@ -1,12 +1,12 @@
 # Subset selection
-build_read_aloud: false
+build_read_aloud: true
 build_conversation: true
 
 # Download from NAS to local disk
 download2disk: false
 
 # Dataset version
-dataset_name: coral_v3
+dataset_name: coral-v3
 
 # Directories for raw and processed data
 dir_data_raw: /mnt/Coral_NAS/raw
@@ -40,7 +40,7 @@ upload_to_hub: true
 hub_id: CoRal-project/${dataset_name}
 
 # Turn on additional logging
-debug_logging: false
+debug_logging: true
 
 # TODO: Update stats
 # Estimated number of hours: 8.84

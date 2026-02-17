@@ -1068,6 +1068,47 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
     return new_audio_dir
 
 
+def copy_recordings_to_cwd(
+    recordings_dir: Path, use_compression: bool = False, dest_dir: Path | None = None
+) -> Path:
+    """Copy audio directory to the current working directory.
+
+    Args:
+        recordings_dir:
+            The directory containing the audio recordings.
+        use_compression (optional):
+            Whether to compress the files before copying. Defaults to False.
+        dest_dir (optional):
+            The destination directory where files will be copied. Defaults to None, in
+            which case a "data/raw/recordings" directory will be created in the current
+            working directory.
+
+    Returns:
+        The new directory containing the audio recordings.
+    """
+    if dest_dir is None:
+        dest_dir = Path.cwd() / "data" / "raw" / recordings_dir.name
+
+    recordings_subdirs: List[Path] = [
+        path for path in recordings_dir.iterdir() if path.is_dir()
+    ]
+
+    with Parallel(n_jobs=mp.cpu_count(), backend="threading") as parallel:
+        parallel(
+            delayed(copy_files_to_cwd)(
+                source_dir=subdir,
+                use_compression=use_compression,
+                dest_dir=dest_dir / subdir.name,
+            )
+            for subdir in tqdm(
+                iterable=recordings_subdirs,
+                desc="Copying the recordings to the current working directory",
+            )
+        )
+
+    return dest_dir
+
+
 def copy_files_to_cwd(
     source_dir: Path, use_compression: bool = False, dest_dir: Path | None = None
 ) -> Path:
@@ -1094,7 +1135,7 @@ def copy_files_to_cwd(
     ]
 
     if use_compression:
-        tar_path = source_dir / "temp_transfer.tar.xz"
+        tar_path = source_dir.with_suffix(".tar.xz")
 
         compress_files(files_to_copy, tar_path)
         decompress_file(tar_path, dest_dir)
