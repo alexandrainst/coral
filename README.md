@@ -91,7 +91,7 @@ Here are some of the more important available keys:
 - `model_id` (required): The Hugging Face model ID of the ASR model to evaluate.
 - `dataset`: The ASR dataset to evaluate the model on. Can be any ASR dataset on the
   Hugging Face Hub. Note that subsets are separated with "::". Defaults to
-  `CoRal-project/coral_v3::conversation`.
+  `CoRal-project/coral-v3::conversation`.
 - `eval_split_name`: The dataset split to evaluate on. Defaults to `test`.
 - `text_column`: The name of the column in the dataset that contains the text. Defaults
   to `text`.

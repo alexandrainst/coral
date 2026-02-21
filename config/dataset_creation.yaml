@@ -17,7 +17,7 @@ validation:
   max_cer: 0.6
 
 # Hugging Face Hub ID of output dataset
-hub_id: CoRal-project/coral-v2
+hub_id: CoRal-project/coral-v3
 
 # Turn on additional logging
 debug_logging: false

@@ -16,12 +16,12 @@ seed: 4242
 evaluation_lower_case: true
 evaluation_characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
 evaluation_datasets:
-  - id: CoRal-project/coral-v2
+  - id: CoRal-project/coral-v3
     subset: read_aloud
     val_name: val
     text_column: text
     audio_column: audio
-  - id: CoRal-project/coral_v3
+  - id: CoRal-project/coral-v3
     subset: conversation
     val_name: val
     text_column: text

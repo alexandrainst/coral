@@ -1,5 +1,5 @@
 coral_conversation:
-  id: CoRal-project/coral_v3
+  id: CoRal-project/coral-v3
   subset: conversation
   train_name: train
   text_column: text
