@@ -202,7 +202,7 @@ def load_data_for_finetuning(
             column="audio", feature=Audio(sampling_rate=config.model.sampling_rate)
         )
 
-        all_datasets.append(ds)  #  type: ignore[bad-argument-type]
+        all_datasets.append(ds)  # type: ignore[bad-argument-type]
 
     assert len(all_datasets) > 0, "No datasets were loaded"
 
@@ -234,7 +234,7 @@ def load_data_for_finetuning(
         )
 
         train = interleave_datasets(
-            datasets=all_datasets,  #  type: ignore[bad-argument-type]
+            datasets=all_datasets,  # type: ignore[bad-argument-type]
             probabilities=probabilities,
             seed=config.seed,
             split=NamedSplit("train"),
@@ -484,7 +484,7 @@ def filter_dataset(
         num_samples_removed = num_samples_before - len(filtered)
         logger.info(f"Removed {num_samples_removed:,} samples from the dataset")
 
-    return filtered  #  type: ignore[bad-return]
+    return filtered  # type: ignore[bad-return]
 
 
 def filter_example(
@@ -576,6 +576,10 @@ def process_dataset(
 
     Returns:
         The cleaned dataset.
+
+    Raises:
+        ValueError:
+            If the dataset type is not supported.
     """
     if isinstance(dataset, Dataset) or isinstance(dataset, IterableDataset):
         column_names = dataset.column_names
@@ -606,7 +610,7 @@ def process_dataset(
     else:
         mapped = dataset.map(function=map_fn, remove_columns=column_names)
 
-    return mapped  #  type: ignore[bad-return]
+    return mapped  # type: ignore[bad-return]
 
 
 def process_example(

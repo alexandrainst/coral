@@ -134,7 +134,7 @@ def convert_iterable_dataset_to_dataset(
     num_examples = None if splits_info is None else splits_info[split_name].num_examples
 
     def gen_from_iterable_dataset() -> c.Generator[dict, None, None]:
-        yield from tqdm(  #  type: ignore[invalid-yield]
+        yield from tqdm(  # type: ignore[invalid-yield]
             iterable=iterable_dataset,
             total=num_examples,
             desc="Converting iterable dataset to regular dataset",

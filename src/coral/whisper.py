@@ -232,7 +232,11 @@ class WhisperModelSetup(ModelSetup):
         return args
 
     def load_saved(self) -> PreTrainedModelData:
-        """Load the model setup."""
+        """Load the model setup.
+
+        Returns:
+            The model setup.
+        """
         if Path(self.config.model_dir).exists():
             model_path = self.config.model_dir
         else:

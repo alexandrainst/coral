@@ -439,6 +439,9 @@ class EvalDataset:
         Args:
             speaker:
                 The ID of the speaker
+
+        Returns:
+            EvalDataset object with samples.
         """
         self.speakers.add(speaker)
 
@@ -549,6 +552,10 @@ def load_coral_metadata_df(
 
     Returns:
         The metadata of the CoRal dataset.
+
+    Raises:
+        ValueError:
+            If some dialects were missing.
     """
     metadata_path = Path("coral-metadata.csv")
 

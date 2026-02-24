@@ -47,7 +47,15 @@ class Wav2Vec2ModelSetup(ModelSetup):
         self.is_main_process = os.getenv("RANK", "0") == "0"
 
     def load_processor(self) -> Wav2Vec2Processor:
-        """Return the processor for the model."""
+        """Return the processor for the model.
+
+        Returns:
+            The processor for the model.
+
+        Raises:
+            ValueError:
+                If the tokeniser could not be loaded.
+        """
         # We dump the vocabulary to a file since the tokenizer uses this file during
         # initialisation
         while True:
@@ -63,10 +71,10 @@ class Wav2Vec2ModelSetup(ModelSetup):
                     replace_word_delimiter_char=" ",
                 )
                 if not tokenizer:
-                    raise ValueError("Tokenizer could not be loaded.")
+                    raise ValueError("Tokeniser could not be loaded.")
                 break
             except json.decoder.JSONDecodeError:
-                log_message = "JSONDecodeError while loading tokenizer"
+                log_message = "JSONDecodeError while loading tokeniser"
                 process_id = os.getenv("RANK")
                 if process_id is not None:
                     log_message += f" in process {process_id}"
@@ -243,7 +251,16 @@ class Wav2Vec2ModelSetup(ModelSetup):
         return args
 
     def load_saved(self) -> PreTrainedModelData:
-        """Return the saved model data for the model."""
+        """Return the saved model data for the model.
+
+        Returns:
+            The model setup.
+
+        Raises:
+            FileNotFoundError:
+                If the model was trained with a language model decoder, but the language
+                model decoder was not found.
+        """
         if Path(self.config.model_dir).exists():
             model_path = self.config.model_dir
         else:

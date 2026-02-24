@@ -17,7 +17,11 @@ class TestLoadDataForFinetuning:
     def finetuning_dataset(
         self, finetuning_config: DictConfig
     ) -> Generator[IterableDatasetDict, None, None]:
-        """Load the dataset for testing."""
+        """Load the dataset for testing.
+
+        Yields:
+            The dataset for testing.
+        """
         yield load_data_for_finetuning(config=finetuning_config)
 
     def test_dataset_type(self, finetuning_dataset: IterableDatasetDict) -> None:

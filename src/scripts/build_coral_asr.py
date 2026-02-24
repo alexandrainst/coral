@@ -122,7 +122,7 @@ def main(config: DictConfig) -> None:
 
 
 ##########################################
-##### Building the read-aloud subset #####
+# Building the read-aloud subset #####
 ##########################################
 
 
@@ -316,7 +316,7 @@ def list_audio_files(
 
 
 ############################################
-##### Building the conversation subset #####
+# Building the conversation subset #####
 ############################################
 
 
@@ -595,7 +595,7 @@ def build_conversation_dataset(
 
 
 #####################################
-##### Splitting of the datasets #####
+# Splitting of the datasets #####
 #####################################
 
 
@@ -614,10 +614,6 @@ def split_dataset(
 
     Returns:
         The split dataset, or None if no training samples are found.
-
-    Raises:
-        ValueError:
-            If no training samples are found.
     """
     if len(dataset) == 0:
         return None
@@ -711,7 +707,7 @@ def examples_belong_to_test(
 
 
 #####################################
-##### Uploading of the datasets #####
+# Uploading of the datasets #####
 #####################################
 
 
@@ -770,7 +766,7 @@ def upload_dataset(
 
 
 #############################
-##### Utility functions #####
+# Utility functions #####
 #############################
 
 
@@ -780,8 +776,6 @@ def copy_audio_directory_to_cwd(audio_dir: Path) -> Path:
     Args:
         audio_dir:
             The directory containing the audio files.
-        max_attempts (optional):
-            The maximum number of attempts to list the audio files. Defaults to 10.
 
     Returns:
         The new directory containing the audio files.

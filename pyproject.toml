@@ -101,30 +101,30 @@ docstring-code-format = true
 skip-magic-trailing-comma = true
 
 [tool.ruff.lint]
+preview = true
 select = [
-  # isort (imports)
-  "I",
-  # pydocstyle (docstrings)
-  "D",
-  # pycodestyle errors and warnings (PEP8)
-  "E",
-  "W",
-  # flake-annotations (type hints)
-  "ANN",
-  # Pyflakes
-  "F",
+    # isort (imports)
+    "I",
+    # Docstrings
+    "D",
+    "DOC",
+    # pycodestyle errors and warnings (PEP8)
+    "E",
+    "W",
+    # flake-annotations (type hints)
+    "ANN",
+    # Pyflakes
+    "F",
 ]
 ignore = [
-  # Type annotations for "self" arguments
-  "ANN101",
-  # Type annotations for "cls" arguments
-  "ANN102",
-  # Type annotations for *args
-  "ANN002",
-  # Type annotations for **kwargs
-  "ANN003",
-  # Docstrings for **kwargs
-  "D417",
+    # Type annotations for "self" arguments
+    "ANN101",
+    # Type annotations for "cls" arguments
+    "ANN102",
+    # Type annotations for *args
+    "ANN002",
+    # Type annotations for **kwargs
+    "ANN003",
 ]
 
 [tool.ruff.lint.extend-per-file-ignores]
