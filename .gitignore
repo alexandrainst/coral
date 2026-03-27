@@ -138,3 +138,6 @@ background-noises/
 node_modules/
 package.json
 package-lock.json
+
+# Training output
+output/

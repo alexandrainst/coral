@@ -27,6 +27,10 @@ if importlib.util.find_spec("qwen_tts") is not None:
 
 TTS_BASE_MODEL = "Qwen/Qwen3-TTS-12Hz-1.7B-Base"
 TTS_TOKENIZER = "Qwen/Qwen3-TTS-Tokenizer-12Hz"
+HAS_FLASH_ATTN = importlib.util.find_spec("flash_attn") is not None
+
+if not os.environ.get("CUDA_HOME") and os.path.isdir("/usr/local/cuda"):
+    os.environ["CUDA_HOME"] = "/usr/local/cuda"
 
 T = t.TypeVar("T")
 
@@ -82,11 +86,11 @@ class TTSDataset(torch.utils.data.Dataset):
         text = (
             f"<|im_start|>assistant\n{item['text']}<|im_end|>\n<|im_start|>assistant\n"
         )
-        input = self.processor(text=text, return_tensors="pt", padding=True)
+        encoded_input = self.processor(text=text, return_tensors="pt", padding=True)
         text_ids = (
-            input["input_ids"].unsqueeze(0)
-            if input["input_ids"].dim() == 1
-            else input["input_ids"]
+            encoded_input["input_ids"].unsqueeze(0)
+            if encoded_input["input_ids"].dim() == 1
+            else encoded_input["input_ids"]
         )
 
         # Get the Mel spectrogram for the reference audio
@@ -101,7 +105,9 @@ class TTSDataset(torch.utils.data.Dataset):
         )
 
 
-def prepare_data(dataset_id: str, speaker: t.Literal["mic", "nic"]) -> Dataset:
+def prepare_data(
+    dataset_id: str, speaker: t.Literal["mic", "nic"], max_samples: int | None = None
+) -> Dataset:
     """Prepare the data for training.
 
     Args:
@@ -109,9 +115,15 @@ def prepare_data(dataset_id: str, speaker: t.Literal["mic", "nic"]) -> Dataset:
             The dataset ID.
         speaker:
             The speaker to use.
+        max_samples:
+            Optional cap on number of samples used (useful for debugging).
 
     Returns:
         The prepared dataset.
+
+    Raises:
+        ValueError:
+            If `max_samples` is not a positive integer when provided.
     """
     # Load the dataset
     dataset = load_dataset(path=dataset_id, split="train")
@@ -122,6 +134,11 @@ def prepare_data(dataset_id: str, speaker: t.Literal["mic", "nic"]) -> Dataset:
     dataset = dataset.filter(lambda x: x["audio"]["array"].shape[0] > 0)
     dataset = dataset.remove_columns(["speaker_id", "transcription_id"])
 
+    if max_samples is not None:
+        if max_samples <= 0:
+            raise ValueError("max_samples must be a positive integer")
+        dataset = dataset.select(range(min(max_samples, len(dataset))))
+
     # Ensure that the audio is 24kHz
     dataset = dataset.cast_column(column="audio", feature=Audio(sampling_rate=24_000))
 
@@ -129,7 +146,7 @@ def prepare_data(dataset_id: str, speaker: t.Literal["mic", "nic"]) -> Dataset:
     dataset = dataset.add_column("ref_audio", [dataset[0]["audio"]] * len(dataset))
 
     # Tokenise the audio
-    tokenizer = Qwen3TTSTokenizer.from_pretrained(TTS_TOKENIZER, device_map="auto")
+    tokenizer = Qwen3TTSTokenizer.from_pretrained(TTS_TOKENIZER, device_map="cpu")
     dataset = dataset.map(
         lambda batch: dict(
             audio_codes=tokenizer.encode(
@@ -154,12 +171,17 @@ def finetune_tts_model(dataset: Dataset) -> None:
     Args:
         dataset:
             The dataset to train on.
+
+    Raises:
+        RuntimeError:
+            If no CUDA device is available.
     """
     config = Qwen3TTSConfig.from_pretrained(TTS_BASE_MODEL)
+    attn_implementation = (
+        "flash_attention_2" if torch.cuda.is_available() and HAS_FLASH_ATTN else None
+    )
     model = Qwen3TTSModel.from_pretrained(
-        TTS_BASE_MODEL,
-        dtype=torch.bfloat16,
-        attn_implementation="flash_attention_2" if torch.cuda.is_available() else None,
+        TTS_BASE_MODEL, dtype=torch.bfloat16, attn_implementation=attn_implementation
     )
     optimizer = AdamW(model.model.parameters(), lr=2e-5, weight_decay=0.01)
 
@@ -183,6 +205,20 @@ def finetune_tts_model(dataset: Dataset) -> None:
     )
 
     accelerator = Accelerator(gradient_accumulation_steps=4, mixed_precision="bf16")
+    if accelerator.device.type != "cuda":
+        raise RuntimeError("finetune_tts_model requires a CUDA device")
+
+    def move_to_device(value: T) -> T:
+        if isinstance(value, torch.Tensor):
+            return t.cast(T, value.to(accelerator.device, non_blocking=True))
+        if isinstance(value, dict):
+            return t.cast(T, {k: move_to_device(v) for k, v in value.items()})
+        if isinstance(value, list):
+            return t.cast(T, [move_to_device(v) for v in value])
+        if isinstance(value, tuple):
+            return t.cast(T, tuple(move_to_device(v) for v in value))
+        return value
+
     model, optimizer, train_dataloader = accelerator.prepare(
         model.model, optimizer, dataloader
     )
@@ -190,7 +226,44 @@ def finetune_tts_model(dataset: Dataset) -> None:
     model.train()
     for epoch in range(3):
         speaker_embedding = None
-        for step, batch in enumerate(dataloader):
+        for step, batch in enumerate(train_dataloader):
+            batch = move_to_device(batch)
+
+            if step == 0:
+                model_device = next(model.parameters()).device
+                accelerator_device = accelerator.device
+                same_device_type = model_device.type == accelerator_device.type
+                same_device_index = (
+                    accelerator_device.index is None
+                    or model_device.index == accelerator_device.index
+                )
+                if not (same_device_type and same_device_index):
+                    raise RuntimeError(
+                        f"Model is on {model_device}, expected {accelerator_device}"
+                    )
+                expected_batch_keys = [
+                    "input_ids",
+                    "ref_mels",
+                    "attention_mask",
+                    "codec_0_labels",
+                    "codec_ids",
+                    "codec_mask",
+                ]
+                for key in expected_batch_keys:
+                    tensor_value = batch[key]
+                    if isinstance(tensor_value, torch.Tensor):
+                        tensor_device = tensor_value.device
+                        same_device_type = tensor_device.type == accelerator_device.type
+                        same_device_index = (
+                            accelerator_device.index is None
+                            or tensor_device.index == accelerator_device.index
+                        )
+                        if not (same_device_type and same_device_index):
+                            raise RuntimeError(
+                                f"Batch tensor {key} is on {tensor_device}, "
+                                f"expected {accelerator_device}"
+                            )
+
             with accelerator.accumulate(model):
                 # Get the embedding of the input text
                 input_text_ids = batch["input_ids"][:, :, 0]
@@ -204,7 +277,7 @@ def finetune_tts_model(dataset: Dataset) -> None:
 
                 # Add the speaker embedding to the codec embedding
                 speaker_embedding = model.speaker_encoder(
-                    batch["ref_mels"].to(model.dtype).to(model.device)
+                    batch["ref_mels"].to(model.dtype)
                 ).detach()
                 input_codec_embedding[:, 6, :] = speaker_embedding
 
@@ -245,7 +318,7 @@ def finetune_tts_model(dataset: Dataset) -> None:
                 )
 
                 # Add the TTS loss to the sub-talker loss to get the total loss
-                loss = outputs.loss + sub_talker_loss
+                loss = outputs.loss + 0.3 * sub_talker_loss
 
                 # Backpropagate
                 accelerator.backward(loss)
@@ -267,12 +340,15 @@ def finetune_tts_model(dataset: Dataset) -> None:
         # Model saving
         if accelerator.is_main_process and speaker_embedding is not None:
             output_dir = os.path.join("output", f"checkpoint-epoch-{epoch}")
-            shutil.copytree(TTS_BASE_MODEL, output_dir, dirs_exist_ok=True)
+            os.makedirs(output_dir, exist_ok=True)
 
-            input_config_file = os.path.join(TTS_BASE_MODEL, "config.json")
+            if os.path.isdir(TTS_BASE_MODEL):
+                shutil.copytree(TTS_BASE_MODEL, output_dir, dirs_exist_ok=True)
+            else:
+                tts_dataset.processor.save_pretrained(output_dir)
+
             output_config_file = os.path.join(output_dir, "config.json")
-            with open(input_config_file, "r", encoding="utf-8") as f:
-                config_dict = json.load(f)
+            config_dict = config.to_dict()
             config_dict["tts_model_type"] = "custom_voice"
             talker_config = config_dict.get("talker_config", {})
             talker_config["spk_id"] = {"speaker_test": 3000}
@@ -282,9 +358,15 @@ def finetune_tts_model(dataset: Dataset) -> None:
             with open(output_config_file, "w", encoding="utf-8") as f:
                 json.dump(config_dict, f, indent=2, ensure_ascii=False)
 
-            unwrapped_model = accelerator.unwrap_model(model)
+            raw_state_dict = accelerator.get_state_dict(model)
+            if not isinstance(raw_state_dict, dict):
+                raise RuntimeError(
+                    f"Expected state dict to be a dict, got {type(raw_state_dict)}"
+                )
             state_dict = {
-                k: v.detach().to("cpu") for k, v in unwrapped_model.state_dict().items()
+                k: v.detach().to("cpu")
+                for k, v in raw_state_dict.items()
+                if isinstance(v, torch.Tensor)
             }
 
             drop_prefix = "speaker_encoder"
