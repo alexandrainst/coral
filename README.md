@@ -117,3 +117,27 @@ that [you have Homebrew installed](https://brew.sh/), after which you run the fo
 ```
 brew install cmake boost zlib eigen
 ```
+
+If you're on Linux and use DeepSpeed, you may see an error like `CUDA_HOME does not
+exist, unable to compile CUDA op(s)`. This usually means the CUDA compiler (`nvcc`) is
+missing, even if PyTorch can still use CUDA.
+
+Check whether CUDA toolkit/compiler is available:
+
+```bash
+echo "$CUDA_HOME"
+which nvcc
+nvcc --version
+python -c "import torch; print(torch.version.cuda)"
+```
+
+If `nvcc` is missing, install CUDA toolkit and set `CUDA_HOME` (example for Ubuntu):
+
+```bash
+sudo apt-get update
+sudo apt-get install -y cuda-toolkit-12-5
+echo 'export CUDA_HOME=/usr/local/cuda' >> ~/.bashrc
+echo 'export PATH="$CUDA_HOME/bin:$PATH"' >> ~/.bashrc
+echo 'export LD_LIBRARY_PATH="$CUDA_HOME/lib64:${LD_LIBRARY_PATH:-}"' >> ~/.bashrc
+source ~/.bashrc
+```
