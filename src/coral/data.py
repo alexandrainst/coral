@@ -8,7 +8,7 @@ import shutil
 from collections.abc import Callable, Iterable, Sized
 from functools import partial
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, cast
 from unicodedata import normalize
 from zipfile import ZipFile
 
@@ -113,6 +113,7 @@ def load_data_for_finetuning(
     is_main_process = os.getenv("RANK", "0") == "0"
 
     all_datasets: list[IterableDataset] | list[Dataset] = list()
+    len_datasets: list[int | None] = list()
     for dataset_name, dataset_config in config.datasets.items():
         if is_main_process:
             logger.info(f"Loading dataset {dataset_name!r}")
@@ -154,6 +155,25 @@ def load_data_for_finetuning(
                         streaming=config.streaming,
                         cache_dir=config.cache_dir,
                     )
+
+            if isinstance(ds, (IterableDataset, IterableDatasetDict)):
+                length = None
+
+                # info.splits is typed as "object", cast it to dict
+                splits: Dict[str, object] = cast(
+                    Dict[str, object], getattr(ds.info, "splits", {})
+                )
+
+                split_info = splits.get(dataset_config.train_name)
+                if split_info is not None:
+                    # num_examples might still be missing
+                    length = getattr(split_info, "num_examples", None)
+
+                len_datasets.append(length)
+
+            else:
+                # Non-streaming dataset: len() is safe
+                len_datasets.append(len(ds))
 
         # Load dataset from the Hugging Face Hub. The HUGGINGFACE_HUB_TOKEN is only
         # used during CI - normally it is expected that the user is logged in to the
@@ -212,16 +232,23 @@ def load_data_for_finetuning(
             if config.dataset_probabilities is None and len(all_datasets) > 1:
                 logger.warning(
                     "No dataset probabilities were specified for the training split. "
-                    "This means that each dataset will be sampled with equal "
-                    "probability, which means that the smaller datasets will be "
-                    "sampled more often than the larger datasets. This is probably "
-                    "not what you want."
+                    "This means that each dataset will be sampled according to their "
+                    "relative sizes, which might not be what you want."
                 )
 
         probabilities = config.dataset_probabilities
         if probabilities is None:
-            probabilities = [1 / len(all_datasets)] * len(all_datasets)
-            probabilities[-1] = 1 - sum(probabilities[:-1])
+            if any(n is None for n in len_datasets):
+                logger.warning(
+                    "Some datasets have unknown lengths; defaulting to uniform "
+                    "sampling probabilities across datasets."
+                )
+                probabilities = [1.0 / len(len_datasets)] * len(len_datasets)
+            else:
+                total_len = sum(len_datasets)  # type: ignore[arg-type]
+                probabilities = [n / total_len for n in len_datasets]  # type: ignore[operator]
+                probabilities[-1] = 1 - sum(probabilities[:-1])
+
         elif sum(probabilities) != 1:
             raise ValueError(
                 f"Dataset probabilities must sum to 1, but sum to {sum(probabilities)}"
@@ -402,11 +429,11 @@ def load_dataset_for_evaluation(config: DictConfig) -> Dataset:
         dataset=dataset,
         lower_case=config.lower_case,
         characters_to_keep=config.characters_to_keep,
+        remove_input_dataset_columns=False,
         text_column=config.text_column,
         audio_column=config.audio_column,
         normalise_audio=True,
         augment_audio=False,
-        remove_input_dataset_columns=False,
         convert_numerals=True,
     )
 
@@ -533,8 +560,8 @@ def process_dataset(
     dataset: Data,
     lower_case: bool,
     characters_to_keep: Iterable[str] | None,
-    text_column: str,
     remove_input_dataset_columns: bool,
+    text_column: str,
     audio_column: str | None,
     convert_numerals: bool,
     normalise_audio: bool,

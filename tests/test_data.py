@@ -47,10 +47,10 @@ class TestProcessDataset:
         processed_dataset = process_dataset(
             dataset=dataset,
             characters_to_keep=None,
+            remove_input_dataset_columns=False,
             text_column="text",
             audio_column=None,
             convert_numerals=False,
-            remove_input_dataset_columns=False,
             lower_case=True,
             normalise_audio=True,
             augment_audio=False,
