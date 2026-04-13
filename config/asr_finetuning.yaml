@@ -6,7 +6,7 @@ defaults:
   - decoder_datasets:
     - wikipedia
     - reddit
-  - experiment_tracking: wandb
+  - experiment_tracking: mlflow
   - override hydra/job_logging: custom
   - _self_
 
@@ -32,7 +32,7 @@ min_seconds_per_example: 1.0
 max_seconds_per_example: 10.0
 dataset_num_workers: 4
 dataloader_num_workers: 4
-streaming: true
+streaming: false
 cache_dir: null
 
 # Can be `longest`, `max_length` or `do_not_pad`
