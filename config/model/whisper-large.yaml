@@ -23,4 +23,4 @@ layerdrop: 0.1  # NOTE: This will automatically be set to 0 in a multi-gpu setti
 max_length: 225
 
 # Model-specific optimisation hyperparameters
-learning_rate: 5e-6
+learning_rate: 1e-5
