@@ -12,6 +12,7 @@ max_seconds_per_example: 10
 # Processing of the dataset
 lower_case: true
 characters_to_keep: 'abcdefghijklmnopqrstuvwxyzæøå0123456789éü'
+normalize_audio: false
 
 # Evaluation parameters
 model_id: null

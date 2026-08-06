@@ -1,0 +1,8 @@
+coral_readaloud_internal:
+  id: alexandrainst/coral-internal
+  subset: read_aloud
+  train_name: train
+  text_column: text
+  audio_column: audio
+  filter_dataset: false
+  normalize_audio: false
