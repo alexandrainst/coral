@@ -4,20 +4,11 @@ transcripts_dir: /Volumes/CoRal/raw/transcriptions
 metadata_database_path: /Volumes/CoRal/raw/CoRal_public.db
 
 # Directory to save new files to
-new_local_dir: /redacted_conversations/
+new_local_dir: /Volumes/T9/data/full_conversations_redacted/
 
-# Validation parameters
-validation:
-  lower_case: true
-  clean_text: true
-  model_id: alexandrainst/coral-asr-bootstrap
-  sampling_rate: 16_000
-  characters_to_keep: "abcdefghijklmnopqrstuvwxyzæøå0123456789éü"
-  batch_size: 16
-  max_cer: 0.6
-
-# Hugging Face Hub ID of output dataset
-hub_id: alexandrainst/coral
+# Hugging Face Hub ID of output dataset
+hub_id: CoRal-project/coral_full_conversations
+upload: true
 
 personal_information: "***PI***"
 
