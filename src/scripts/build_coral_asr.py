@@ -125,7 +125,7 @@ def main(config: DictConfig) -> None:
         save_dataset(
             read_aloud_dataset=read_aloud_dataset,
             conversation_dataset=conversation_dataset,
-            dir_dest=config.dir_save,
+            dir_dest=Path(config.dir_save),
         )
 
     if config.upload_to_hub:
@@ -691,7 +691,7 @@ def process_all_conversations(
         DataFrame with all processed segments
     """
     # debug limit
-    df_conversations = df_conversations[:10]
+    # df_conversations = df_conversations[:10]
 
     # Count total lines for progress bar
     total_lines = 0
